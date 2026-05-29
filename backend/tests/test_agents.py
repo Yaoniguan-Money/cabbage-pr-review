@@ -36,10 +36,11 @@ def test_agent_pipeline_schema():
     assert base.architecture_diagram and base.architecture_diagram.nodes
     diff, _ = run_agent3(base, head, SAMPLE_CONTEXT)
     assert diff.all_atoms
-    review, _ = run_agent4(diff, base, head, SAMPLE_CONTEXT)
+    review, _, stats = run_agent4(diff, base, head, SAMPLE_CONTEXT)
     assert review.risks
     assert review.risks[0].evidence
-    result, _ = run_agent5(base, head, diff, review, SAMPLE_CONTEXT, None, None)
+    assert stats.reviewed_atoms >= 1
+    result, _ = run_agent5(base, head, diff, review, SAMPLE_CONTEXT, None, None, review_stats=stats)
     assert result.summary
     assert len(result.diagrams) >= 1
     assert result.detected_framework

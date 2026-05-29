@@ -7,6 +7,26 @@ export interface AgentProgress {
   message: string;
 }
 
+export interface ReviewStats {
+  review_depth_mode: string;
+  review_depth_label: string;
+  total_atoms: number;
+  reviewed_atoms: number;
+  batches_run: number;
+  pro_calls: number;
+  flash_calls: number;
+}
+
+export interface ReviewDepthOption {
+  id: string;
+  label: string;
+  summary: string;
+  detail_bullets: string[];
+  estimated_time: string;
+  cost_tier: "low" | "medium" | "high";
+  default: boolean;
+}
+
 export interface TaskRecord {
   id: string;
   input_type: InputType;
@@ -18,6 +38,8 @@ export interface TaskRecord {
   framework?: string | null;
   error_message?: string | null;
   rerun_used: boolean;
+  review_depth_mode?: string;
+  review_depth_label?: string;
   result?: TaskResult | null;
 }
 
@@ -64,6 +86,7 @@ export interface TaskResult {
   diff_atoms: DiffAtom[];
   detected_project_type: string;
   detected_framework: string;
+  review_stats?: ReviewStats | null;
 }
 
 export interface ExamplePR {
@@ -80,6 +103,7 @@ export async function createTask(body: {
   value: string;
   project_type?: string;
   framework?: string;
+  review_depth_mode?: string;
 }): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
@@ -115,6 +139,15 @@ export async function rerunTask(
     const data = await res.json();
     throw new Error(data.detail || "重跑失败");
   }
+  return res.json();
+}
+
+export async function fetchReviewDepthOptions(): Promise<{
+  options: ReviewDepthOption[];
+  default_review_depth_mode: string;
+}> {
+  const res = await fetch(`${API}/review-depth-options`);
+  if (!res.ok) throw new Error("无法加载审阅深度选项");
   return res.json();
 }
 

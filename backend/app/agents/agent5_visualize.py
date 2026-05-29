@@ -7,6 +7,7 @@ from app.local.diagram_utils import attach_mermaid_list
 from app.models.schemas import (
     DiffCompareSchema,
     ProjectIndexSchema,
+    ReviewStats,
     RiskReviewSchema,
     TaskResultSchema,
     VisualizationSchema,
@@ -21,6 +22,7 @@ def run_agent5(
     pr_context: dict,
     project_type: str | None,
     framework: str | None,
+    review_stats: ReviewStats | None = None,
 ) -> tuple[TaskResultSchema, list[str]]:
     payload = {
         "base_index": base.model_dump(),
@@ -62,6 +64,7 @@ def run_agent5(
             head_index=head,
             detected_project_type=viz.detected_project_type,
             detected_framework=viz.detected_framework,
+            review_stats=review_stats,
         ),
         notes,
     )

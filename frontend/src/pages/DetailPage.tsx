@@ -82,6 +82,18 @@ export default function DetailPage() {
 
       {task && <AgentProgressBar progress={task.agent_progress} />}
 
+      {task && (
+        <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
+          本次审阅：{task.review_depth_label || task.review_depth_mode || "标准审阅"}
+          {result?.review_stats
+            ? ` | 已扫描 ${result.review_stats.reviewed_atoms}/${result.review_stats.total_atoms} 个差异点`
+            : ""}
+          {result?.review_stats
+            ? ` | Pro ×${result.review_stats.pro_calls} · Flash ×${result.review_stats.flash_calls}`
+            : ""}
+        </p>
+      )}
+
       {task?.status === "running" || task?.status === "pending" ? (
         <p>分析进行中，请稍候…</p>
       ) : null}

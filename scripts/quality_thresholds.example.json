@@ -1,0 +1,7 @@
+{
+  "min_risks": 1,
+  "max_degradation_notes": 0,
+  "require_all_diagram_types": true,
+  "min_risks_evidence_coverage": 0.0,
+  "require_missing_info_when_no_risks": true
+}

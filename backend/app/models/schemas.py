@@ -82,6 +82,8 @@ class DiffAtom(BaseModel):
     route_or_api: str = ""
     dependency_hint: str = ""
     summary: str = ""
+    patch_excerpt: str = ""
+    affected_symbols: list[str] = Field(default_factory=list)
 
 
 class DiffCompareSchema(BaseModel):
@@ -124,6 +126,11 @@ class AtomContextPlanBatch(BaseModel):
     plans: list[AtomContextPlan] = Field(default_factory=list)
 
 
+class AtomPriorityBatch(BaseModel):
+    ordered_atom_ids: list[str] = Field(default_factory=list)
+    uncovered_reason: str = ""
+
+
 class RiskReviewSchema(BaseModel):
     risks: list[RiskItem] = Field(default_factory=list)
     missing_info: list[MissingInfoItem] = Field(default_factory=list)
@@ -138,6 +145,16 @@ class VisualizationSchema(BaseModel):
     detected_framework: str = ""
 
 
+class ReviewStats(BaseModel):
+    review_depth_mode: str = "balanced"
+    review_depth_label: str = ""
+    total_atoms: int = 0
+    reviewed_atoms: int = 0
+    batches_run: int = 0
+    pro_calls: int = 0
+    flash_calls: int = 0
+
+
 class TaskResultSchema(BaseModel):
     summary: str = ""
     summary_bullets: list[str] = Field(default_factory=list)
@@ -150,6 +167,7 @@ class TaskResultSchema(BaseModel):
     head_index: ProjectIndexSchema | None = None
     detected_project_type: str = ""
     detected_framework: str = ""
+    review_stats: ReviewStats | None = None
 
 
 class CreateTaskRequest(BaseModel):
@@ -157,6 +175,7 @@ class CreateTaskRequest(BaseModel):
     value: str
     project_type: str | None = None
     framework: str | None = None
+    review_depth_mode: str | None = None
 
     @field_validator("value")
     @classmethod
@@ -193,6 +212,8 @@ class TaskRecord(BaseModel):
     rerun_used: bool = False
     rerun_context_paths: list[str] = Field(default_factory=list)
     rerun_focus_atoms: list[str] = Field(default_factory=list)
+    review_depth_mode: str = "balanced"
+    review_depth_label: str = ""
     result: TaskResultSchema | None = None
     pr_context: dict[str, Any] = Field(default_factory=dict)
 

@@ -97,6 +97,21 @@ def _normalize_risk_review(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _normalize_diff_atom(atom: dict[str, Any]) -> dict[str, Any]:
+    symbols = [str(x) for x in _ensure_list(atom.get("affected_symbols")) if str(x).strip()]
+    return {**atom, "affected_symbols": symbols}
+
+
+def _normalize_diff_compare(data: dict[str, Any]) -> dict[str, Any]:
+    out = dict(data)
+    for key in ("file_diffs", "function_diffs", "route_diffs", "dependency_diffs", "all_atoms"):
+        items = _ensure_list(data.get(key))
+        out[key] = [_normalize_diff_atom(x) if isinstance(x, dict) else x for x in items]
+    if isinstance(out.get("impact_diagram"), dict):
+        out["impact_diagram"] = _normalize_diagram(out["impact_diagram"])
+    return out
+
+
 def _normalize_diagram(data: dict[str, Any]) -> dict[str, Any]:
     nodes = _ensure_list(data.get("nodes"))
     normalized_nodes: list[dict[str, Any]] = []
@@ -154,7 +169,9 @@ def repair_model(model: type[T], data: dict[str, Any]) -> T:
     if not isinstance(data, dict):
         raise ValueError("非 dict 结果")
     model_name = model.__name__
-    if model_name == "AtomContextPlanBatch":
+    if model_name == "DiffCompareSchema":
+        data = _normalize_diff_compare(data)
+    elif model_name == "AtomContextPlanBatch":
         data = _normalize_atom_plan_batch(data)
     elif model_name == "RiskReviewSchema":
         data = _normalize_risk_review(data)
