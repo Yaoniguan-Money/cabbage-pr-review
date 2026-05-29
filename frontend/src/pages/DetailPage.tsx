@@ -112,6 +112,18 @@ export default function DetailPage() {
           </nav>
 
           <div>
+            {result.degradation_notes.length > 0 ? (
+              <div className="risk-item medium">
+                本次分析包含降级项，请优先查看「缺失信息」确认结果可靠性。
+              </div>
+            ) : null}
+
+            {result.risks.length === 0 && result.diff_atoms.length > 0 ? (
+              <div className="risk-item high">
+                当前未提取到风险项，但存在差异原子，可能是审阅结构化输出降级。建议查看「缺失信息」或发起一次重跑。
+              </div>
+            ) : null}
+
             {section === "overview" && (
               <div>
                 <SummaryBar result={result} />
