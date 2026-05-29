@@ -1,0 +1,30 @@
+{
+  "file_diffs": [
+    {
+      "id": "a1",
+      "file_path": "app/routes/api.py",
+      "change_type": "modified",
+      "symbol": "def health",
+      "summary": "modified app/routes/api.py"
+    }
+  ],
+  "function_diffs": [],
+  "route_diffs": [],
+  "dependency_diffs": [],
+  "impact_diagram": {
+    "diagram_type": "impact_overlay",
+    "nodes": [
+      {"id": "m0", "label": "app", "group": "module", "risk": "medium", "confidence": "medium"}
+    ],
+    "edges": []
+  },
+  "all_atoms": [
+    {
+      "id": "a1",
+      "file_path": "app/routes/api.py",
+      "change_type": "modified",
+      "symbol": "def health",
+      "summary": "modified app/routes/api.py"
+    }
+  ]
+}

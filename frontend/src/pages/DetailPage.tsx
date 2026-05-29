@@ -20,13 +20,13 @@ const DIAGRAM_TITLES: Record<string, string> = {
   path_compare: "关键路径前后对比图",
 };
 
-type Section = "summary" | "diagrams" | "risks" | "missing";
+type Section = "overview" | "summary" | "diagrams" | "risks" | "missing";
 
 export default function DetailPage() {
   const { taskId } = useParams<{ taskId: string }>();
   const [task, setTask] = useState<TaskRecord | null>(null);
   const [result, setResult] = useState<TaskResult | null>(null);
-  const [section, setSection] = useState<Section>("summary");
+  const [section, setSection] = useState<Section>("overview");
   const [error, setError] = useState("");
 
   const poll = useCallback(async () => {
@@ -66,6 +66,7 @@ export default function DetailPage() {
   if (!taskId) return <p>无效任务</p>;
 
   const nav: { id: Section; label: string }[] = [
+    { id: "overview", label: "总览（默认）" },
     { id: "summary", label: "摘要" },
     { id: "diagrams", label: "三张图" },
     { id: "risks", label: "风险列表" },
@@ -111,6 +112,21 @@ export default function DetailPage() {
           </nav>
 
           <div>
+            {section === "overview" && (
+              <div>
+                <SummaryBar result={result} />
+                <h3 style={{ marginTop: "1.5rem" }}>三张图（预览）</h3>
+                {result.diagrams.slice(0, 3).map((d, i) => (
+                  <div key={i}>
+                    <h4>{DIAGRAM_TITLES[d.diagram_type] || d.diagram_type}</h4>
+                    <MermaidDiagram code={d.mermaid} id={`${taskId}-ov-${i}`} />
+                  </div>
+                ))}
+                <h3 style={{ marginTop: "1.5rem" }}>风险列表（前 5 条）</h3>
+                <RiskList risks={result.risks.slice(0, 5)} />
+              </div>
+            )}
+
             {section === "summary" && <SummaryBar result={result} />}
 
             {section === "diagrams" && (

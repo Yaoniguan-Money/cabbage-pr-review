@@ -8,83 +8,91 @@ from app.agents.agent3_diff import run_agent3
 from app.agents.agent4_review import run_agent4
 from app.agents.agent5_visualize import run_agent5
 from app.graph.state import GraphState
+from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
+
+
+def _merge_notes(state: GraphState, notes: list[str]) -> list[str]:
+    all_notes = list(state.get("degradation_notes", []))
+    all_notes.extend(notes)
+    return all_notes
+
+
+def _empty_base() -> ProjectIndexSchema:
+    return ProjectIndexSchema(version="base", raw_summary="")
+
+
+def _empty_head() -> ProjectIndexSchema:
+    return ProjectIndexSchema(version="head", raw_summary="")
 
 
 def _node1(state: GraphState) -> GraphState:
     try:
-        base = run_agent1(state["pr_context"])
-        return {"base_index": base, "current_agent": 1, "degradation_notes": state.get("degradation_notes", [])}
+        base, notes = run_agent1(state["pr_context"])
+        return {"base_index": base, "current_agent": 1, "degradation_notes": _merge_notes(state, notes)}
     except Exception as e:
-        notes = list(state.get("degradation_notes", []))
-        notes.append(f"Agent1 局部降级: {e}")
-        from app.models.schemas import ProjectIndexSchema
-
-        return {"base_index": ProjectIndexSchema(raw_summary="降级"), "current_agent": 1, "degradation_notes": notes}
+        return {
+            "base_index": _empty_base(),
+            "current_agent": 1,
+            "degradation_notes": _merge_notes(state, [f"Agent1 局部降级: {e}"]),
+        }
 
 
 def _node2(state: GraphState) -> GraphState:
     try:
-        head = run_agent2(state["pr_context"])
-        return {"head_index": head, "current_agent": 2}
+        head, notes = run_agent2(state["pr_context"])
+        return {"head_index": head, "current_agent": 2, "degradation_notes": _merge_notes(state, notes)}
     except Exception as e:
-        notes = list(state.get("degradation_notes", []))
-        notes.append(f"Agent2 局部降级: {e}")
-        from app.models.schemas import ProjectIndexSchema
-
-        return {"head_index": ProjectIndexSchema(), "current_agent": 2, "degradation_notes": notes}
+        return {
+            "head_index": _empty_head(),
+            "current_agent": 2,
+            "degradation_notes": _merge_notes(state, [f"Agent2 局部降级: {e}"]),
+        }
 
 
 def _node3(state: GraphState) -> GraphState:
-    base = state.get("base_index")
-    head = state.get("head_index")
-    if not base or not head:
-        from app.models.schemas import DiffCompareSchema
-
-        return {"diff_result": DiffCompareSchema(), "current_agent": 3}
+    base = state.get("base_index") or _empty_base()
+    head = state.get("head_index") or _empty_head()
     try:
-        diff = run_agent3(base, head, state["pr_context"])
-        return {"diff_result": diff, "current_agent": 3}
+        diff, notes = run_agent3(base, head, state["pr_context"])
+        return {"diff_result": diff, "current_agent": 3, "degradation_notes": _merge_notes(state, notes)}
     except Exception as e:
-        notes = list(state.get("degradation_notes", []))
-        notes.append(f"Agent3 局部降级: {e}")
-        from app.models.schemas import DiffCompareSchema
-
-        return {"diff_result": DiffCompareSchema(), "current_agent": 3, "degradation_notes": notes}
+        return {
+            "diff_result": DiffCompareSchema(),
+            "current_agent": 3,
+            "degradation_notes": _merge_notes(state, [f"Agent3 局部降级: {e}"]),
+        }
 
 
 def _node4(state: GraphState) -> GraphState:
-    diff = state.get("diff_result")
-    if not diff:
-        from app.models.schemas import RiskReviewSchema
-
-        return {"review_result": RiskReviewSchema(), "current_agent": 4}
+    diff = state.get("diff_result") or DiffCompareSchema()
+    base = state.get("base_index") or _empty_base()
+    head = state.get("head_index") or _empty_head()
     try:
-        review = run_agent4(
+        review, notes = run_agent4(
             diff,
+            base,
+            head,
+            state["pr_context"],
             focus_atom_ids=state.get("focus_atom_ids"),
             extra_context_paths=state.get("extra_context_paths"),
+            git_ws=state.get("git_ws"),
         )
-        notes = list(state.get("degradation_notes", []))
-        notes.extend(review.degradation_notes)
-        review.degradation_notes = []
-        return {"review_result": review, "current_agent": 4, "degradation_notes": notes}
+        return {"review_result": review, "current_agent": 4, "degradation_notes": _merge_notes(state, notes)}
     except Exception as e:
-        notes = list(state.get("degradation_notes", []))
-        notes.append(f"Agent4 局部降级: {e}")
-        from app.models.schemas import RiskReviewSchema
-
-        return {"review_result": RiskReviewSchema(degradation_notes=notes), "current_agent": 4, "degradation_notes": notes}
+        return {
+            "review_result": RiskReviewSchema(degradation_notes=[str(e)]),
+            "current_agent": 4,
+            "degradation_notes": _merge_notes(state, [f"Agent4 局部降级: {e}"]),
+        }
 
 
 def _node5(state: GraphState) -> GraphState:
-    from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
-
-    base = state.get("base_index") or ProjectIndexSchema()
-    head = state.get("head_index") or ProjectIndexSchema()
+    base = state.get("base_index") or _empty_base()
+    head = state.get("head_index") or _empty_head()
     diff = state.get("diff_result") or DiffCompareSchema()
     review = state.get("review_result") or RiskReviewSchema()
     try:
-        result = run_agent5(
+        result, notes = run_agent5(
             base,
             head,
             diff,
@@ -93,17 +101,12 @@ def _node5(state: GraphState) -> GraphState:
             state.get("project_type"),
             state.get("framework"),
         )
-        notes = list(state.get("degradation_notes", []))
-        result.degradation_notes = notes + result.degradation_notes
-        return {"final_result": result, "current_agent": 5}
+        return {"final_result": result, "current_agent": 5, "degradation_notes": _merge_notes(state, notes)}
     except Exception as e:
-        notes = list(state.get("degradation_notes", []))
-        notes.append(f"Agent5 局部降级: {e}")
-
         return {
-            "final_result": TaskResultSchema(summary="分析部分完成", degradation_notes=notes),
+            "final_result": TaskResultSchema(summary="", degradation_notes=[str(e)]),
             "current_agent": 5,
-            "degradation_notes": notes,
+            "degradation_notes": _merge_notes(state, [f"Agent5 局部降级: {e}"]),
         }
 
 
@@ -124,3 +127,5 @@ def build_workflow():
 
 
 workflow_app = build_workflow()
+
+AGENT_NODE_ORDER = ["agent1", "agent2", "agent3", "agent4", "agent5"]

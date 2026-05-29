@@ -33,6 +33,13 @@ export default function RiskList({ risks }: { risks: RiskItem[] }) {
             风险: {r.risk_level} | 置信度: {r.confidence}
           </div>
           <p>{r.description}</p>
+          {r.evidence && (
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+              证据：{r.evidence.slice(0, 300)}
+              {r.evidence.length > 300 ? "…" : ""}
+            </p>
+          )}
+          {r.suggestion && <p style={{ fontSize: "0.85rem" }}>建议：{r.suggestion}</p>}
         </div>
       ))}
       {sorted.length === 0 && <p>暂无风险项</p>}

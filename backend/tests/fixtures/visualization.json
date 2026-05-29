@@ -1,0 +1,26 @@
+{
+  "summary": "测试 PR 摘要",
+  "summary_bullets": ["变更 1 个文件", "框架 FastAPI"],
+  "diagrams": [
+    {
+      "diagram_type": "architecture",
+      "nodes": [{"id": "root", "label": "入口", "group": "core", "confidence": "high"}],
+      "edges": []
+    },
+    {
+      "diagram_type": "impact_overlay",
+      "nodes": [{"id": "m0", "label": "app", "group": "module", "risk": "medium", "confidence": "medium"}],
+      "edges": []
+    },
+    {
+      "diagram_type": "path_compare",
+      "nodes": [
+        {"id": "b0", "label": "变更前", "group": "before", "confidence": "medium"},
+        {"id": "a0", "label": "变更后", "group": "after", "confidence": "high"}
+      ],
+      "edges": [{"source": "b0", "target": "a0", "label": "变更"}]
+    }
+  ],
+  "detected_project_type": "python-api",
+  "detected_framework": "FastAPI"
+}

@@ -1,27 +1,24 @@
 from __future__ import annotations
 
-from app.agents.base import extract_modules_from_paths, extract_routes_from_patches
-from app.local.mermaid_render import diagram_from_modules, render_diagram
+import json
+
+from app.agents.llm_helpers import call_flash_json
+from app.local.context_builder import build_version_scan_context
+from app.local.diagram_utils import attach_mermaid
 from app.models.schemas import ProjectIndexSchema
 
 
-def run_agent1(pr_context: dict) -> ProjectIndexSchema:
-    file_paths = pr_context.get("file_paths", [])
-    patches = pr_context.get("patches", [])
-    modules = extract_modules_from_paths(file_paths)
-    routes = extract_routes_from_patches(patches)
-    entry_files = [p for p in file_paths if any(h in p.lower() for h in ("main.py", "app.py", "index.ts", "server"))][:10]
-    flow_hints = [
-        f"PR 涉及 {pr_context.get('changed_files_count', len(file_paths))} 个文件",
-        f"base 分支: {pr_context.get('base_ref', 'main')}",
-    ]
-    arch = diagram_from_modules("architecture", modules, routes)
-    arch.mermaid = render_diagram(arch)
-    return ProjectIndexSchema(
-        modules=modules,
-        routes=routes,
-        entry_files=entry_files,
-        flow_hints=flow_hints,
-        architecture_diagram=arch,
-        raw_summary=f"原版本索引：{len(modules)} 个模块，{len(routes)} 条路由线索",
+def run_agent1(pr_context: dict) -> tuple[ProjectIndexSchema, list[str]]:
+    scan_ctx = build_version_scan_context(pr_context, version="base")
+    if pr_context.get("base_tree"):
+        scan_ctx["directory_tree"] = pr_context["base_tree"][:200]
+    system = (
+        "你是 Agent1 原版本扫描。根据 README、目录树、入口文件与 base 版本源代码（code_snippets），"
+        "输出完整 ProjectIndexSchema JSON。必须包含 architecture_diagram（nodes/edges，diagram_type=architecture），"
+        "version 固定为 base。不要输出 mermaid 字段。"
     )
+    user = json.dumps(scan_ctx, ensure_ascii=False)
+    result, notes = call_flash_json(system, user, ProjectIndexSchema)
+    result.version = "base"
+    result.architecture_diagram = attach_mermaid(result.architecture_diagram)
+    return result, notes
