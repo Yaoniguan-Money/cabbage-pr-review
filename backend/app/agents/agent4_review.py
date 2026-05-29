@@ -74,11 +74,23 @@ def run_agent4(
             "depth": depth,
             "instruction": (
                 "为每个 atom 输出 AtomContextPlan：判断 diff_type，指定 layer1_paths/layer2_paths，"
-                "need_deeper 与 new_concerns（新发现问题摘要，供下一层审阅）。"
+                "need_deeper 与 new_concerns（必须是字符串数组）。"
             ),
+            "json_contract": {
+                "plans": [
+                    {
+                        "atom_id": "a1",
+                        "diff_type": "route|function|dependency|file",
+                        "layer1_paths": ["path/a.py"],
+                        "layer2_paths": ["path/b.py"],
+                        "need_deeper": False,
+                        "new_concerns": ["concern text"],
+                    }
+                ]
+            },
         }
         plans_batch, n1 = call_pro_json(
-            "你是递进式审阅 Agent 第1步：仅输出 AtomContextPlanBatch。",
+            "你是递进式审阅 Agent 第1步：仅输出 AtomContextPlanBatch，严格遵守 JSON schema，禁止输出解释文本。",
             json.dumps(plan_payload, ensure_ascii=False),
             AtomContextPlanBatch,
         )
@@ -90,13 +102,43 @@ def run_agent4(
             "plans": [p.model_dump() for p in plans_batch.plans],
             "file_context": file_ctx,
             "depth": depth,
+            "json_contract": {
+                "risks": [
+                    {
+                        "id": "r1",
+                        "title": "风险标题",
+                        "description": "风险描述",
+                        "risk_level": "high|medium|low",
+                        "confidence": "high|medium|low",
+                        "evidence": "证据",
+                        "suggestion": "建议",
+                        "related_atoms": ["a1"],
+                        "file_paths": ["path/a.py"],
+                    }
+                ],
+                "missing_info": [],
+                "degradation_notes": [],
+            },
         }
         review_part, n2 = call_pro_json(
-            "你是递进式审阅 Agent 第2步：基于上下文输出 RiskReviewSchema（含 evidence、suggestion）。",
+            "你是递进式审阅 Agent 第2步：仅输出 RiskReviewSchema JSON（含 evidence、suggestion），不要输出额外字段。",
             json.dumps(review_payload, ensure_ascii=False),
             RiskReviewSchema,
         )
         notes.extend(n2)
+        if not review_part.risks and batch_atoms:
+            retry_payload = {
+                **review_payload,
+                "instruction": "仅修正为严格 RiskReviewSchema 结构，不改变语义结论。",
+            }
+            review_part2, n2_retry = call_pro_json(
+                "你是结构纠偏器：只输出严格 RiskReviewSchema JSON，不做额外解释。",
+                json.dumps(retry_payload, ensure_ascii=False),
+                RiskReviewSchema,
+            )
+            notes.extend(n2_retry)
+            if review_part2.risks:
+                review_part = review_part2
         all_risks.extend(review_part.risks)
         missing.extend(review_part.missing_info)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import httpx
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ class LLMClient:
     def _url(self) -> str:
         return f"{settings.deepseek_base_url.rstrip('/')}/chat/completions"
 
-    def complete_json_sync(self, model: str, system: str, user: str, schema: type[T]) -> T:
+    def complete_json_sync(self, model: str, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         if settings.use_mock_llm or not settings.llm_enabled:
             raise RuntimeError("mock_only")
 
@@ -41,10 +41,9 @@ class LLMClient:
             resp.raise_for_status()
             data = resp.json()
         content = data["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
-        return schema.model_validate(parsed)
+        return json.loads(content)
 
-    async def complete_json(self, model: str, system: str, user: str, schema: type[T]) -> T:
+    async def complete_json(self, model: str, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         if settings.use_mock_llm or not settings.llm_enabled:
             raise RuntimeError("mock_only")
 
@@ -62,19 +61,18 @@ class LLMClient:
             resp.raise_for_status()
             data = resp.json()
         content = data["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
-        return schema.model_validate(parsed)
+        return json.loads(content)
 
-    def flash_json_sync(self, system: str, user: str, schema: type[T]) -> T:
+    def flash_json_sync(self, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         return self.complete_json_sync(settings.deepseek_flash_model, system, user, schema)
 
-    def pro_json_sync(self, system: str, user: str, schema: type[T]) -> T:
+    def pro_json_sync(self, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         return self.complete_json_sync(settings.deepseek_pro_model, system, user, schema)
 
-    async def flash_json(self, system: str, user: str, schema: type[T]) -> T:
+    async def flash_json(self, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         return await self.complete_json(settings.deepseek_flash_model, system, user, schema)
 
-    async def pro_json(self, system: str, user: str, schema: type[T]) -> T:
+    async def pro_json(self, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         return await self.complete_json(settings.deepseek_pro_model, system, user, schema)
 
 

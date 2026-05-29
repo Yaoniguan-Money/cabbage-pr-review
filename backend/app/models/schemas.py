@@ -95,10 +95,10 @@ class DiffCompareSchema(BaseModel):
 
 class RiskItem(BaseModel):
     id: str
-    title: str
-    description: str
-    risk_level: RiskLevel
-    confidence: ConfidenceLevel
+    title: str = ""
+    description: str = ""
+    risk_level: RiskLevel = RiskLevel.MEDIUM
+    confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
     evidence: str = ""
     suggestion: str = ""
     related_atoms: list[str] = Field(default_factory=list)
