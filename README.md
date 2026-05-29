@@ -74,3 +74,13 @@ pytest tests/ -v
 - 补充：[AI_PR_Review_助手执行计划_定稿_v2.0.md](./AI_PR_Review_助手执行计划_定稿_v2.0.md)
 
 冲突时以 v2.0 为准。
+
+## 质量回归（v2.1）
+
+需 Docker + DeepSeek Key，详见 [docs/V2.1_QUALITY.md](./docs/V2.1_QUALITY.md)。
+
+```powershell
+.\scripts\quality_regression.ps1 -PrUrl "https://github.com/owner/repo/pull/N" -MinRisks 1 -MaxDegradationNotes 0
+```
+
+CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
