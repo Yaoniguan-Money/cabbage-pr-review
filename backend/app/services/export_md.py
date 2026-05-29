@@ -46,6 +46,10 @@ def export_markdown(record: TaskRecord) -> str:
         lines.append(
             f"- **[{r.risk_level.value.upper()}]** {r.title}（置信度: {r.confidence.value}）\n  {r.description}"
         )
+        if r.evidence:
+            lines.append(f"  - 证据: {r.evidence[:500]}")
+        if r.suggestion:
+            lines.append(f"  - 建议: {r.suggestion}")
     lines.append("")
 
     lines.append("## 缺失信息 / 受限条件")

@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-from app.agents.base import extract_modules_from_paths, extract_routes_from_patches
+import json
+
+from app.agents.llm_helpers import call_flash_json
+from app.local.context_builder import build_version_scan_context
 from app.models.schemas import ProjectIndexSchema
 
 
-def run_agent2(pr_context: dict) -> ProjectIndexSchema:
-    file_paths = pr_context.get("file_paths", [])
-    patches = pr_context.get("patches", [])
-    modules = extract_modules_from_paths(file_paths)
-    routes = extract_routes_from_patches(patches)
-    entry_files = [p for p in file_paths if any(h in p.lower() for h in ("main.py", "app.py", "index.ts", "server"))][:10]
-    return ProjectIndexSchema(
-        modules=modules,
-        routes=routes,
-        entry_files=entry_files,
-        flow_hints=[f"head 分支: {pr_context.get('head_ref', 'feature')}", f"PR 标题: {pr_context.get('title', '')[:80]}"],
-        raw_summary=f"PR 后版本索引：{len(modules)} 个模块，{len(routes)} 条路由线索",
+def run_agent2(pr_context: dict) -> tuple[ProjectIndexSchema, list[str]]:
+    scan_ctx = build_version_scan_context(pr_context, version="head")
+    if pr_context.get("head_tree"):
+        scan_ctx["directory_tree"] = pr_context["head_tree"][:200]
+    system = (
+        "你是 Agent2 PR 后版本扫描。根据 README、目录树、入口文件与 head 版本源代码（code_snippets），"
+        "输出完整 ProjectIndexSchema JSON，version 固定为 head。不要输出 mermaid 字段。"
     )
+    user = json.dumps(scan_ctx, ensure_ascii=False)
+    result, notes = call_flash_json(system, user, ProjectIndexSchema)
+    result.version = "head"
+    return result, notes

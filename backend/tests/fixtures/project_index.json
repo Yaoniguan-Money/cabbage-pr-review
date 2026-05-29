@@ -1,0 +1,18 @@
+{
+  "version": "base",
+  "modules": ["app"],
+  "routes": ["GET /health"],
+  "entry_files": ["app/main.py"],
+  "flow_hints": ["主流程"],
+  "readme_excerpt": "# Demo",
+  "directory_tree": ["app/", "app/main.py"],
+  "code_snippets": {"app/main.py": "from fastapi import FastAPI\napp = FastAPI()"},
+  "architecture_diagram": {
+    "diagram_type": "architecture",
+    "nodes": [
+      {"id": "root", "label": "应用入口", "group": "core", "confidence": "high"}
+    ],
+    "edges": []
+  },
+  "raw_summary": "测试索引"
+}

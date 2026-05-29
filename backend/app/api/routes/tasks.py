@@ -8,6 +8,7 @@ from fastapi.responses import PlainTextResponse
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
 from app.services.export_md import export_markdown
 from app.services.github import GitHubService
+from app.services.llm_guard import ensure_llm_for_api
 from app.services.task_runner import run_task_background
 from app.services.task_store import task_store
 
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/api", tags=["tasks"])
 
 @router.post("/tasks", response_model=TaskRecord)
 async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks):
+    ensure_llm_for_api()
     if body.input_type == InputType.PR_URL and not GitHubService.is_valid_pr_url(body.value):
         raise HTTPException(status_code=400, detail="无效的 GitHub PR URL")
     record = TaskRecord(
@@ -55,6 +57,7 @@ async def get_task_result(task_id: str):
 
 @router.post("/tasks/{task_id}/rerun", response_model=TaskRecord)
 async def rerun_task(task_id: str, body: RerunRequest, background_tasks: BackgroundTasks):
+    ensure_llm_for_api()
     record = task_store.get(task_id)
     if not record:
         raise HTTPException(status_code=404, detail="任务不存在")

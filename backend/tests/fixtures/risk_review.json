@@ -1,0 +1,17 @@
+{
+  "risks": [
+    {
+      "id": "r1",
+      "title": "路由变更",
+      "description": "新增 health 路由需确认鉴权",
+      "risk_level": "medium",
+      "confidence": "high",
+      "evidence": "app/routes/api.py patch",
+      "suggestion": "补充集成测试",
+      "related_atoms": ["a1"],
+      "file_paths": ["app/routes/api.py"]
+    }
+  ],
+  "missing_info": [],
+  "degradation_notes": []
+}

@@ -35,6 +35,8 @@ export interface RiskItem {
   description: string;
   risk_level: "high" | "medium" | "low";
   confidence: "high" | "medium" | "low";
+  evidence?: string;
+  suggestion?: string;
   related_atoms: string[];
   file_paths: string[];
 }

@@ -58,28 +58,3 @@ def _render_path_compare(data: DiagramData) -> str:
     for edge in data.edges[:20]:
         lines.append(f"  {edge.source} --> {edge.target}")
     return "\n".join(lines)
-
-
-def diagram_from_modules(
-    diagram_type: str,
-    modules: list[str],
-    routes: list[str],
-    impacted: set[str] | None = None,
-) -> DiagramData:
-    nodes: list[GraphNode] = []
-    edges: list[GraphEdge] = []
-    impacted = impacted or set()
-    root_id = "root"
-    nodes.append(GraphNode(id=root_id, label="应用入口", group="core"))
-    for i, mod in enumerate(modules[:12]):
-        nid = f"m{i}"
-        risk = RiskLevel.HIGH if mod in impacted else None
-        nodes.append(GraphNode(id=nid, label=mod, group="module", risk=risk))
-        edges.append(GraphEdge(source=root_id, target=nid, label="包含"))
-    for j, route in enumerate(routes[:8]):
-        rid = f"r{j}"
-        risk = RiskLevel.MEDIUM if route in impacted else None
-        nodes.append(GraphNode(id=rid, label=route, group="route", risk=risk))
-        target = f"m{j % max(len(modules), 1)}" if modules else root_id
-        edges.append(GraphEdge(source=target, target=rid, label="路由"))
-    return DiagramData(diagram_type=diagram_type, nodes=nodes, edges=edges)

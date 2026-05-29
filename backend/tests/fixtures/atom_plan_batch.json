@@ -1,0 +1,12 @@
+{
+  "plans": [
+    {
+      "atom_id": "a1",
+      "diff_type": "route",
+      "layer1_paths": ["app/routes/api.py"],
+      "layer2_paths": ["app/main.py"],
+      "need_deeper": false,
+      "new_concerns": []
+    }
+  ]
+}

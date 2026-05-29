@@ -7,6 +7,7 @@ from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReview
 
 class GraphState(TypedDict, total=False):
     pr_context: dict[str, Any]
+    git_ws: Any
     project_type: str | None
     framework: str | None
     focus_atom_ids: list[str]

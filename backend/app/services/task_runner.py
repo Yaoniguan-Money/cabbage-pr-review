@@ -2,31 +2,37 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.graph.workflow import workflow_app
+from app.graph.workflow import AGENT_NODE_ORDER, workflow_app
 from app.local.file_io import parse_patch_text, read_local_repo
 from app.models.schemas import InputType, TaskRecord, TaskStatus
 from app.services.github import github_service
+from app.services.git_workspace import GitWorkspace, enrich_context_with_git
 from app.services.task_store import task_store
 
+NODE_TO_AGENT = {name: i + 1 for i, name in enumerate(AGENT_NODE_ORDER)}
 
-async def _prepare_context(record: TaskRecord) -> dict:
+
+async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | None]:
     if record.input_type == InputType.PR_URL:
-        return await github_service.fetch_pr_context(record.input_value)
-    if record.input_type == InputType.PATCH:
+        ctx = await github_service.fetch_pr_context(record.input_value)
+    elif record.input_type == InputType.PATCH:
         patches = parse_patch_text(record.input_value)
         paths = [p["filename"] for p in patches]
-        return {
+        ctx = {
             "title": "Patch 分析",
             "file_paths": paths,
             "patches": patches,
             "changed_files_count": len(patches),
             "base_ref": "base",
             "head_ref": "head",
+            "readme": "",
+            "tree": sorted({p.split("/")[0] for p in paths if p}),
         }
-    if record.input_type == InputType.LOCAL_PATH:
+    elif record.input_type == InputType.LOCAL_PATH:
         local = read_local_repo(record.input_value)
-        return {
+        ctx = {
             "title": f"本地仓库 {local['root']}",
+            "local_root": local["root"],
             "file_paths": local["file_paths"],
             "patches": [{"filename": p, "status": "modified", "patch": ""} for p in local["file_paths"][:30]],
             "changed_files_count": len(local["file_paths"]),
@@ -36,7 +42,11 @@ async def _prepare_context(record: TaskRecord) -> dict:
             "base_ref": "local",
             "head_ref": "local",
         }
-    raise ValueError("不支持的输入类型")
+    else:
+        raise ValueError("不支持的输入类型")
+
+    ctx, git_ws = await enrich_context_with_git(ctx)
+    return ctx, git_ws
 
 
 def _set_agent_status(record: TaskRecord, agent_id: int, status: str, message: str = "") -> None:
@@ -57,15 +67,20 @@ async def execute_task(
 ) -> None:
     record.status = TaskStatus.RUNNING
     record.error_message = None
+    for ap in record.agent_progress:
+        ap.status = "pending"
+        ap.message = ""
     task_store.update(record)
 
+    git_ws: GitWorkspace | None = None
     try:
-        pr_context = await _prepare_context(record)
+        pr_context, git_ws = await _prepare_context(record)
         record.pr_context = pr_context
         task_store.update(record)
 
         state = {
             "pr_context": pr_context,
+            "git_ws": git_ws,
             "project_type": record.project_type,
             "framework": record.framework,
             "focus_atom_ids": focus_atom_ids or record.rerun_focus_atoms or [],
@@ -73,21 +88,32 @@ async def execute_task(
             "degradation_notes": [],
         }
 
-        for i in range(1, 6):
-            _set_agent_status(record, i, "running")
+        final_state = dict(state)
+        async for event in workflow_app.astream(state):
+            for node_name, update in event.items():
+                agent_id = NODE_TO_AGENT.get(node_name, 0)
+                if agent_id:
+                    _set_agent_status(record, agent_id, "running")
+                if isinstance(update, dict):
+                    final_state.update(update)
+                    if final_state.get("degradation_notes"):
+                        record.pr_context["degradation_notes"] = final_state["degradation_notes"]
+                if agent_id:
+                    _set_agent_status(record, agent_id, "completed")
 
-        final_state = await workflow_app.ainvoke(state)
-
-        for i in range(1, 6):
-            _set_agent_status(record, i, "completed")
-
-        record.result = final_state.get("final_result")
+        result = final_state.get("final_result")
+        if result and final_state.get("degradation_notes"):
+            result.degradation_notes = list(final_state["degradation_notes"]) + list(result.degradation_notes)
+        record.result = result
         record.status = TaskStatus.COMPLETED
     except Exception as e:
         record.status = TaskStatus.FAILED
         record.error_message = str(e)
         if record.current_agent:
             _set_agent_status(record, record.current_agent, "failed", str(e))
+    finally:
+        if git_ws:
+            git_ws.cleanup()
     record.updated_at = datetime.utcnow()
     task_store.update(record)
 

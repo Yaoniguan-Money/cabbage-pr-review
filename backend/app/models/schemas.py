@@ -45,6 +45,7 @@ class GraphNode(BaseModel):
     label: str
     group: str = "default"
     risk: RiskLevel | None = None
+    confidence: ConfidenceLevel | None = None
 
 
 class GraphEdge(BaseModel):
@@ -61,10 +62,14 @@ class DiagramData(BaseModel):
 
 
 class ProjectIndexSchema(BaseModel):
+    version: Literal["base", "head"] = "base"
     modules: list[str] = Field(default_factory=list)
     routes: list[str] = Field(default_factory=list)
     entry_files: list[str] = Field(default_factory=list)
     flow_hints: list[str] = Field(default_factory=list)
+    readme_excerpt: str = ""
+    directory_tree: list[str] = Field(default_factory=list)
+    code_snippets: dict[str, str] = Field(default_factory=dict)
     architecture_diagram: DiagramData | None = None
     raw_summary: str = ""
 
@@ -94,6 +99,8 @@ class RiskItem(BaseModel):
     description: str
     risk_level: RiskLevel
     confidence: ConfidenceLevel
+    evidence: str = ""
+    suggestion: str = ""
     related_atoms: list[str] = Field(default_factory=list)
     file_paths: list[str] = Field(default_factory=list)
 
@@ -102,6 +109,19 @@ class MissingInfoItem(BaseModel):
     module: str
     reason: str
     suggestion: str = ""
+
+
+class AtomContextPlan(BaseModel):
+    atom_id: str
+    diff_type: str = ""
+    layer1_paths: list[str] = Field(default_factory=list)
+    layer2_paths: list[str] = Field(default_factory=list)
+    need_deeper: bool = False
+    new_concerns: list[str] = Field(default_factory=list)
+
+
+class AtomContextPlanBatch(BaseModel):
+    plans: list[AtomContextPlan] = Field(default_factory=list)
 
 
 class RiskReviewSchema(BaseModel):
