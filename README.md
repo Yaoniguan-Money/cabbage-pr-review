@@ -84,3 +84,7 @@ pytest tests/ -v
 ```
 
 CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
+
+## 审阅深度（PR #4）
+
+首页可选 **快速 / 标准 / 深度** 三档（文案由 `GET /api/review-depth-options` 下发）。环境变量 `REVIEW_DEPTH_MODE` 为服务端默认档。详见 [docs/V2.1_QUALITY.md](./docs/V2.1_QUALITY.md)。

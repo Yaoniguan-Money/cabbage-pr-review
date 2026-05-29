@@ -3,14 +3,22 @@ import { useNavigate } from "react-router-dom";
 import {
   createTask,
   fetchExamples,
+  fetchReviewDepthOptions,
   type ExamplePR,
   type InputType,
+  type ReviewDepthOption,
 } from "../api/client";
 
 type Tab = InputType;
 
 const PROJECT_TYPES = ["python-api", "node-api", "frontend", "python", "typescript", "unknown"];
 const FRAMEWORKS = ["FastAPI", "Express", "React/Vite", "Python", "TypeScript/JavaScript", "unknown"];
+
+const COST_LABEL: Record<string, string> = {
+  low: "Token：省",
+  medium: "Token：适中",
+  high: "Token：高",
+};
 
 export default function InputPage() {
   const navigate = useNavigate();
@@ -21,10 +29,21 @@ export default function InputPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [examples, setExamples] = useState<ExamplePR[]>([]);
+  const [depthOptions, setDepthOptions] = useState<ReviewDepthOption[]>([]);
+  const [selectedDepth, setSelectedDepth] = useState<string>("");
 
   useEffect(() => {
     fetchExamples().then(setExamples).catch(() => {});
+    fetchReviewDepthOptions()
+      .then((data) => {
+        setDepthOptions(data.options);
+        const def = data.options.find((o) => o.default) ?? data.options[0];
+        if (def) setSelectedDepth(def.id);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "无法加载审阅深度选项"));
   }, []);
+
+  const activeDepth = depthOptions.find((o) => o.id === selectedDepth);
 
   const submit = async () => {
     setLoading(true);
@@ -35,6 +54,7 @@ export default function InputPage() {
         value,
         project_type: projectType !== "unknown" ? projectType : undefined,
         framework: framework !== "unknown" ? framework : undefined,
+        review_depth_mode: selectedDepth || undefined,
       });
       navigate(`/tasks/${task.id}`);
     } catch (e) {
@@ -67,7 +87,34 @@ export default function InputPage() {
       </div>
 
       <div className="card" style={{ marginTop: "1rem" }}>
-        <label>输入内容</label>
+        <label>审阅深度（任务开始前选择，运行中不可改）</label>
+        <div className="card-grid" style={{ marginTop: "0.5rem" }}>
+          {depthOptions.map((opt) => (
+            <div
+              key={opt.id}
+              className={`card ${selectedDepth === opt.id ? "active" : ""}`}
+              onClick={() => setSelectedDepth(opt.id)}
+              role="button"
+            >
+              <h3>{opt.label}</h3>
+              <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
+                {opt.estimated_time} · {COST_LABEL[opt.cost_tier] ?? opt.cost_tier}
+              </p>
+            </div>
+          ))}
+        </div>
+        {activeDepth && (
+          <div style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "var(--muted)" }}>
+            <p>{activeDepth.summary}</p>
+            <ul style={{ margin: "0.5rem 0 0 1rem" }}>
+              {activeDepth.detail_bullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <label style={{ marginTop: "1rem" }}>输入内容</label>
         {tab === "patch" ? (
           <textarea value={value} onChange={(e) => setValue(e.target.value)} rows={8} placeholder="diff --git ..." />
         ) : (
@@ -98,7 +145,7 @@ export default function InputPage() {
         </div>
 
         {error && <div className="error">{error}</div>}
-        <button onClick={submit} disabled={loading || !value.trim()}>
+        <button onClick={submit} disabled={loading || !value.trim() || !selectedDepth}>
           {loading ? "创建任务中…" : "开始分析"}
         </button>
       </div>

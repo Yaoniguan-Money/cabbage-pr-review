@@ -14,4 +14,5 @@ async def health():
         "model_profile": "v4_flash_pro_via_env",
         "deepseek_flash_model": settings.deepseek_flash_model,
         "deepseek_pro_model": settings.deepseek_pro_model,
+        "default_review_depth_mode": settings.review_depth_mode,
     }

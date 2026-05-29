@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     deepseek_pro_model: str = "deepseek-reasoner"
     github_token: str = ""
     use_mock_llm: bool = False
+    review_depth_mode: str = "balanced"
 
     @property
     def llm_enabled(self) -> bool:

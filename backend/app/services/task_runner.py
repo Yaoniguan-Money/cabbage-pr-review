@@ -85,6 +85,7 @@ async def execute_task(
             "framework": record.framework,
             "focus_atom_ids": focus_atom_ids or record.rerun_focus_atoms or [],
             "extra_context_paths": extra_context_paths or record.rerun_context_paths or [],
+            "review_depth_mode": record.review_depth_mode,
             "degradation_notes": [],
         }
 

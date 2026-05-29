@@ -5,6 +5,8 @@ import asyncio
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import PlainTextResponse
 
+from app.local.review_depth import get_review_depth_option, normalize_review_depth_mode
+from app.config import settings
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
 from app.services.export_md import export_markdown
 from app.services.github import GitHubService
@@ -20,11 +22,17 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
     ensure_llm_for_api()
     if body.input_type == InputType.PR_URL and not GitHubService.is_valid_pr_url(body.value):
         raise HTTPException(status_code=400, detail="无效的 GitHub PR URL")
+    mode = normalize_review_depth_mode(body.review_depth_mode, settings.review_depth_mode)
+    if body.review_depth_mode and body.review_depth_mode not in {"conservative", "balanced", "aggressive"}:
+        raise HTTPException(status_code=400, detail="无效的审阅深度模式")
+    depth_opt = get_review_depth_option(mode, settings.review_depth_mode)
     record = TaskRecord(
         input_type=body.input_type,
         input_value=body.value,
         project_type=body.project_type,
         framework=body.framework,
+        review_depth_mode=mode,
+        review_depth_label=depth_opt.label,
     )
     await task_store.create(record)
     background_tasks.add_task(_start_task, record.id)

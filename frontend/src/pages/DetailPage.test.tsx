@@ -14,6 +14,8 @@ vi.mock("../api/client", () => ({
     current_agent: 5,
     agent_progress: [],
     rerun_used: false,
+    review_depth_mode: "balanced",
+    review_depth_label: "标准审阅",
   })),
   getTaskResult: vi.fn(async () => ({
     summary: "s",
@@ -25,6 +27,15 @@ vi.mock("../api/client", () => ({
     diff_atoms: [{ id: "a1", file_path: "x.py", change_type: "modified", symbol: "", summary: "x" }],
     detected_project_type: "python-api",
     detected_framework: "FastAPI",
+    review_stats: {
+      review_depth_mode: "balanced",
+      review_depth_label: "标准审阅",
+      total_atoms: 2,
+      reviewed_atoms: 1,
+      batches_run: 1,
+      pro_calls: 2,
+      flash_calls: 1,
+    },
   })),
   rerunTask: vi.fn(),
 }));
@@ -43,5 +54,7 @@ describe("DetailPage", () => {
       expect(screen.getByText(/本次分析包含降级项/)).toBeInTheDocument();
     });
     expect(screen.getByText(/当前未提取到风险项/)).toBeInTheDocument();
+    expect(screen.getByText(/已扫描 1\/2 个差异点/)).toBeInTheDocument();
+    expect(screen.getByText(/Pro ×2 · Flash ×1/)).toBeInTheDocument();
   });
 });

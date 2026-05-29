@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
+from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, ReviewStats, RiskReviewSchema, TaskResultSchema
 
 
 class GraphState(TypedDict, total=False):
@@ -19,3 +19,5 @@ class GraphState(TypedDict, total=False):
     final_result: TaskResultSchema | None
     degradation_notes: list[str]
     current_agent: int
+    review_depth_mode: str | None
+    review_stats: ReviewStats | None

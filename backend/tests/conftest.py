@@ -8,6 +8,7 @@ import pytest
 
 from app.models.schemas import (
     AtomContextPlanBatch,
+    AtomPriorityBatch,
     DiffCompareSchema,
     ProjectIndexSchema,
     RiskReviewSchema,
@@ -33,6 +34,8 @@ def _mock_flash(_system: str, _user: str, schema: type):
         return ProjectIndexSchema.model_validate(data)
     if name == "DiffCompareSchema":
         return DiffCompareSchema.model_validate(_load_json("diff_compare.json"))
+    if name == "AtomPriorityBatch":
+        return AtomPriorityBatch.model_validate(_load_json("atom_priority.json"))
     if name == "VisualizationSchema":
         return VisualizationSchema.model_validate(_load_json("visualization.json"))
     raise ValueError(f"未准备的 Flash schema: {name}")

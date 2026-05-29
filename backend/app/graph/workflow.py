@@ -68,7 +68,7 @@ def _node4(state: GraphState) -> GraphState:
     base = state.get("base_index") or _empty_base()
     head = state.get("head_index") or _empty_head()
     try:
-        review, notes = run_agent4(
+        review, notes, review_stats = run_agent4(
             diff,
             base,
             head,
@@ -76,8 +76,14 @@ def _node4(state: GraphState) -> GraphState:
             focus_atom_ids=state.get("focus_atom_ids"),
             extra_context_paths=state.get("extra_context_paths"),
             git_ws=state.get("git_ws"),
+            review_depth_mode=state.get("review_depth_mode") or "balanced",
         )
-        return {"review_result": review, "current_agent": 4, "degradation_notes": _merge_notes(state, notes)}
+        return {
+            "review_result": review,
+            "review_stats": review_stats,
+            "current_agent": 4,
+            "degradation_notes": _merge_notes(state, notes),
+        }
     except Exception as e:
         return {
             "review_result": RiskReviewSchema(degradation_notes=[str(e)]),
@@ -100,6 +106,7 @@ def _node5(state: GraphState) -> GraphState:
             state["pr_context"],
             state.get("project_type"),
             state.get("framework"),
+            review_stats=state.get("review_stats"),
         )
         return {"final_result": result, "current_agent": 5, "degradation_notes": _merge_notes(state, notes)}
     except Exception as e:
