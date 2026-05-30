@@ -44,6 +44,7 @@ def rules_node3(state: GraphState) -> GraphState:
             state["pr_context"],
             ignore_patterns=pack_config.scope.ignore_path_patterns,
             max_atoms=pack_config.scope.max_atoms_per_run,
+            split_patch_hunks=pack_config.scope.split_patch_hunks,
         )
         return {"diff_result": diff, "current_agent": 3, "degradation_notes": merge_notes(state, notes)}
     except Exception as exc:

@@ -8,7 +8,17 @@ from pathlib import Path
 
 import yaml
 
+from app.rules.rule_pattern import compile_pattern
 from app.rules.rule_schema import IndexHintsDocument, RuleDefinition, RulePackConfig, RulePackDocument
+
+_METADATA_THRESHOLD_KEYS = (
+    "min_added_lines",
+    "min_removed_lines",
+    "min_changed_lines",
+    "min_removed_ratio",
+    "min_removed_over_added",
+    "requires_removed_signal",
+)
 
 _RULES_MODULE_DIR = Path(__file__).resolve().parent
 _DEFAULT_PACK_DIR = _RULES_MODULE_DIR / "packs" / "default"
@@ -72,6 +82,60 @@ def load_rule_pack(pack_dir: Path | None = None) -> tuple[list[RuleDefinition], 
     return merged_rules, merged_config
 
 
+def lint_rules(
+    rules: list[RuleDefinition],
+    pack_config: RulePackConfig | None = None,
+) -> list[str]:
+    """校验规则包：regex 可编译、id 唯一、至少有一种匹配机制。"""
+    issues: list[str] = []
+    seen_ids: set[str] = set()
+    allowed_meta = set(pack_config.metadata_allowed_keys) if pack_config else set()
+
+    for rule in rules:
+        if rule.id in seen_ids:
+            issues.append(f"规则 id 重复: {rule.id}")
+        seen_ids.add(rule.id)
+
+        has_clauses = bool(rule.match.any or rule.match.all)
+        has_threshold = any(key in rule.metadata for key in _METADATA_THRESHOLD_KEYS)
+        if not has_clauses and not has_threshold:
+            issues.append(f"{rule.id}: 缺少 match 子句或 metadata 阈值")
+
+        if allowed_meta:
+            for key in rule.metadata:
+                if key not in allowed_meta:
+                    issues.append(
+                        f"{rule.id}: 未知 metadata 键 `{key}`（允许: {', '.join(sorted(allowed_meta))}）"
+                    )
+
+        for clause in rule.match.any + rule.match.all:
+            if clause.matcher_type == "ast":
+                if not clause.ast_query.strip():
+                    issues.append(f"{rule.id}: ast 匹配器缺少 ast-query")
+                continue
+            if not clause.pattern_regex.strip():
+                issues.append(f"{rule.id}: 空 pattern-regex")
+            elif compile_pattern(clause.pattern_regex) is None:
+                issues.append(f"{rule.id}: 无效 pattern-regex")
+    return issues
+
+
+def load_rule_pack_with_lint(
+    pack_dir: Path | None = None,
+) -> tuple[list[RuleDefinition], RulePackConfig, list[str]]:
+    rules, config = load_rule_pack(pack_dir)
+    return rules, config, lint_rules(rules, pack_config=config)
+
+
+def list_rules_catalog(rules: list[RuleDefinition] | None = None) -> list[dict[str, str]]:
+    """返回规则目录（不含 pattern，避免泄露检测逻辑）。"""
+    items = rules if rules is not None else load_rule_pack()[0]
+    return [
+        {"id": rule.id, "message": rule.message, "severity": rule.severity}
+        for rule in items
+    ]
+
+
 def path_matches_glob(file_path: str, patterns: list[str]) -> bool:
     normalized = file_path.replace("\\", "/")
     if not patterns:
@@ -110,6 +174,8 @@ def infer_language(file_path: str) -> str:
     if lower.endswith(".json"):
         return "json"
     if lower.endswith((".md", ".toml", ".env", ".ini", ".cfg")):
+        return "config"
+    if lower.endswith(".txt") and "requirements" in lower:
         return "config"
     if "dockerfile" in lower:
         return "docker"

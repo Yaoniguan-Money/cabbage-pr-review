@@ -13,6 +13,7 @@ def test_health_includes_rules_diagnostics():
     assert body["llm_mode_count"] == 4
     assert body["rules_pack_loaded"] is True
     assert body["rules_count"] >= 10
+    assert body["rules_invalid_count"] == 0
 
 
 def test_create_task_includes_visualization_mode():

@@ -25,7 +25,11 @@ export const mockClientMeta: ClientMetaResponse = {
     fetch_diagram_meta: "fetch-diagram-err",
     fetch_input_page_meta: "fetch-input-err",
     fetch_client_meta: "fetch-client-err",
+    fetch_demo_patches: "fetch-demo-err",
+    fetch_rules_catalog: "fetch-catalog-err",
   },
+  use_mock_llm: false,
+  mock_mode_banner: "",
 };
 
 export const mockDiagramMeta: DiagramMetaResponse = {
@@ -52,6 +56,7 @@ export const mockRulesMeta = {
   visualization_mode: "markdown",
   ui_strings: {
     nav_report: "规则报告",
+    nav_rule_hits: "规则命中",
     nav_overview: "总览（默认）",
     nav_summary: "摘要",
     nav_risks: "风险列表",
@@ -68,9 +73,18 @@ export const mockRulesMeta = {
       "当前未提取到风险项，但存在差异原子，可能是审阅结构化输出降级。建议查看「缺失信息」或发起一次重跑。",
     missing_section_title: "缺失信息 / 受限条件",
     empty_missing: "无",
+    empty_rule_hits: "无规则命中。",
+    section_rule_hits: "规则命中",
+    overview_rules_hint: "完整 Markdown 报告与结构化命中见「规则报告」页签。",
+    rules_mode_note: "本报告由本地 YAML 规则引擎生成，不含 LLM 推理与 Mermaid 架构图。",
+    group_by_rule_id_label: "按规则分组",
+    collapse_low_severity_label: "折叠 LOW",
+    hit_count_label: "命中 {count} 次",
   },
   table_change_headers: [],
-  table_hit_headers: [],
+  table_hit_headers: ["规则 ID", "严重级别", "文件", "证据摘要", "规则说明"],
+  group_by_rule_id_default: true,
+  collapse_low_default: false,
 };
 
 export const mockInputPageMeta: InputPageMetaResponse = {

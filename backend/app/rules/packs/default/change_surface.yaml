@@ -2,10 +2,10 @@ rules:
   - id: large-patch-hunk
     message: 单文件变更行数较多，建议拆分为更小 PR 便于审阅
     severity: LOW
-    match:
-      any:
-        - pattern-regex: '^.{200,}$'
-          target: patch_hunk
+    metadata:
+      min_changed_lines: 100
+      suggestion: 若变更确有必要，请在 PR 描述中说明范围与拆分计划；否则建议拆成多个小 PR。
+    match: {}
 
   - id: ci-config-changed
     message: CI/工作流配置发生变更，请确认流水线与安全权限
@@ -28,12 +28,28 @@ rules:
         - pattern-regex: '.+'
           target: file_path
 
+  - id: dockerfile-root-user
+    message: Dockerfile 新增 USER root，存在特权运行风险
+    severity: HIGH
+    languages: [docker, config]
+    paths:
+      include: ["**/Dockerfile", "**/Dockerfile.*"]
+    match:
+      all:
+        - pattern-regex: '.+'
+          target: file_path
+        - pattern-regex: 'USER\s+root'
+          target: patch_hunk
+          patch_scope: added_only
+
   - id: test-file-removed
     message: 测试相关文件被删除或大量移除，请确认测试覆盖未回退
     severity: MEDIUM
     paths:
       include: ["**/test/**", "**/tests/**", "**/*_test.*", "**/*.test.*", "**/*.spec.*"]
-    match:
-      any:
-        - pattern-regex: '^-{3,}'
-          target: patch_hunk
+    metadata:
+      min_removed_lines: 10
+      min_removed_ratio: 0.25
+      requires_removed_signal: true
+      suggestion: 确认删除测试是否 intentional；若覆盖回退请补测试或说明原因。
+    match: {}

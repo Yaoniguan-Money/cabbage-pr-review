@@ -6,15 +6,33 @@ rules:
     paths:
       include: ["**/*"]
       exclude: ["**/*.test.*", "**/tests/**"]
+    metadata:
+      min_changed_lines: 3
+      suggestion: 核对新增/变更路由是否已挂载鉴权、限流与向后兼容策略。
     match:
-      any:
+      all:
+        - pattern-regex: '.+'
+          target: file_path
         - pattern-regex: '(?i)(@app\.(get|post|put|delete|patch)|router\.(get|post|put|delete|patch)|Route\s*\()'
           target: patch_hunk
+          patch_scope: added_only
 
   - id: auth-middleware-touched
     message: 认证/中间件相关代码变更，请复核权限边界
     severity: MEDIUM
+    languages: [python, typescript, javascript]
+    paths:
+      include:
+        - "**/middleware/**"
+        - "**/middleware.*"
+        - "**/auth/**"
+        - "**/auth.*"
+        - "**/security/**"
+      exclude: ["**/*.test.*", "**/tests/**"]
+    metadata:
+      suggestion: 复核认证链路与权限边界，确认无默认放行或权限提升。
     match:
       any:
         - pattern-regex: '(?i)(middleware|authenticate|authorize|jwt|oauth|session)'
           target: patch_hunk
+          patch_scope: added_only
