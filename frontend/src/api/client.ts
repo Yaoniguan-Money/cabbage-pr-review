@@ -197,6 +197,28 @@ export interface ExamplePR {
 
 export interface ClientMetaResponse {
   error_messages: Record<string, string>;
+  use_mock_llm?: boolean;
+  mock_mode_banner?: string;
+}
+
+export interface DemoPatchScenario {
+  id: string;
+  title: string;
+  description: string;
+  expected_rule_ids: string[];
+  patch_text: string;
+}
+
+export interface RulesCatalogEntry {
+  id: string;
+  message: string;
+  severity: string;
+}
+
+export interface RulesCatalogResponse {
+  rules_count: number;
+  rules_invalid_count: number;
+  rules: RulesCatalogEntry[];
 }
 
 export interface InputPageTabMeta {
@@ -361,6 +383,19 @@ export async function fetchExamples(): Promise<ExamplePR[]> {
   const res = await fetch(`${API}/examples`);
   const data = await res.json();
   return data.examples;
+}
+
+export async function fetchDemoPatches(): Promise<DemoPatchScenario[]> {
+  const res = await fetch(`${API}/demo-patches`);
+  if (!res.ok) await throwApiError(res, "fetch_demo_patches");
+  const data = await res.json();
+  return data.scenarios;
+}
+
+export async function fetchRulesCatalog(): Promise<RulesCatalogResponse> {
+  const res = await fetch(`${API}/rules-catalog`);
+  if (!res.ok) await throwApiError(res, "fetch_rules_catalog");
+  return res.json();
 }
 
 export function exportUrl(taskId: string): string {

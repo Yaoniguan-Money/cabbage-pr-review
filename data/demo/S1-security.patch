@@ -1,0 +1,11 @@
+diff --git a/config.py b/config.py
+--- a/config.py
++++ b/config.py
+@@ -1,2 +1,3 @@
++password = "hardcoded123456"
+
+diff --git a/run.py b/run.py
+--- a/run.py
++++ b/run.py
+@@ -1,2 +1,3 @@
++eval(user_code)

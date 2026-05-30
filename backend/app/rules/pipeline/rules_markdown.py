@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.local.rule_meta import TABLE_CHANGE_HEADERS, TABLE_HIT_HEADERS, get_ui_strings
-from app.models.schemas import DiffCompareSchema, RiskReviewSchema, TaskResultSchema
+from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
 from app.rules.rule_schema import RuleHitRecord
 
 
@@ -18,6 +18,8 @@ def build_markdown_report(
     review: RiskReviewSchema,
     hits: list[RuleHitRecord],
     extra_notes: list[str] | None = None,
+    base_index: ProjectIndexSchema | None = None,
+    head_index: ProjectIndexSchema | None = None,
 ) -> str:
     ui = get_ui_strings()
     lines: list[str] = [
@@ -48,6 +50,17 @@ def build_markdown_report(
             )
     else:
         lines.append(ui["empty_changes"])
+
+    if base_index or head_index:
+        lines.extend(["", f"## {ui['section_index']}", ""])
+        if base_index and base_index.entry_files:
+            lines.append(f"- base 入口：{', '.join(base_index.entry_files[:10])}")
+        if head_index and head_index.entry_files:
+            lines.append(f"- head 入口：{', '.join(head_index.entry_files[:10])}")
+        if base_index and base_index.modules:
+            lines.append(f"- base 顶层模块：{', '.join(base_index.modules[:10])}")
+        if head_index and head_index.modules:
+            lines.append(f"- head 顶层模块：{', '.join(head_index.modules[:10])}")
 
     lines.extend(["", f"## {ui['section_rule_hits']}", ""])
     if hits:
@@ -118,6 +131,8 @@ def run_rules_finalize(
     project_type: str | None,
     framework: str | None,
     extra_notes: list[str] | None = None,
+    base_index: ProjectIndexSchema | None = None,
+    head_index: ProjectIndexSchema | None = None,
 ) -> TaskResultSchema:
     summary, bullets = build_summary_from_hits(diff, hits, len(review.risks))
     markdown = build_markdown_report(
@@ -126,6 +141,8 @@ def run_rules_finalize(
         review=review,
         hits=hits,
         extra_notes=extra_notes,
+        base_index=base_index,
+        head_index=head_index,
     )
     return TaskResultSchema(
         summary=summary,
@@ -135,8 +152,11 @@ def run_rules_finalize(
         missing_info=review.missing_info,
         degradation_notes=list(review.degradation_notes) + list(extra_notes or []),
         diff_atoms=diff.all_atoms,
+        base_index=base_index,
+        head_index=head_index,
         detected_project_type=project_type or "",
         detected_framework=framework or "",
         review_stats=review_stats,
         markdown_report=markdown,
+        rule_hits=hits,
     )

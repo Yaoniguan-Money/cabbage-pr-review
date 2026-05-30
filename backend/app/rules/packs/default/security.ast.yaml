@@ -1,0 +1,26 @@
+rules:
+  - id: python-bare-except
+    message: 新增 bare except 捕获所有异常，可能掩盖错误，建议指定异常类型
+    severity: MEDIUM
+    languages: [python]
+    match:
+      any:
+        - matcher-type: ast
+          ast-query: |
+            (except_clause) @clause
+          ast-filter: bare_except
+          target: patch_hunk
+          patch_scope: added_only
+
+  - id: python-wildcard-import
+    message: 新增 from ... import * 通配符导入，易造成命名空间污染
+    severity: LOW
+    languages: [python]
+    match:
+      any:
+        - matcher-type: ast
+          ast-query: |
+            (import_from_statement) @clause
+          ast-filter: wildcard_import
+          target: patch_hunk
+          patch_scope: added_only

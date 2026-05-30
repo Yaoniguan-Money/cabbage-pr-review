@@ -6,6 +6,8 @@ import {
 
   createTask,
 
+  fetchDemoPatches,
+
   fetchExamples,
 
   fetchInputPageMeta,
@@ -13,6 +15,10 @@ import {
   fetchLlmModeOptions,
 
   fetchReviewDepthOptions,
+
+  fetchRulesCatalog,
+
+  type DemoPatchScenario,
 
   type ExamplePR,
 
@@ -25,6 +31,8 @@ import {
   type ReviewDepthOption,
 
   type LlmAvailabilityHints,
+
+  type RulesCatalogResponse,
 
 } from "../api/client";
 
@@ -70,6 +78,12 @@ export default function InputPage() {
 
   const [examples, setExamples] = useState<ExamplePR[]>([]);
 
+  const [demoPatches, setDemoPatches] = useState<DemoPatchScenario[]>([]);
+
+  const [rulesCatalog, setRulesCatalog] = useState<RulesCatalogResponse | null>(null);
+
+  const [rulesCatalogOpen, setRulesCatalogOpen] = useState(false);
+
   const [depthOptions, setDepthOptions] = useState<ReviewDepthOption[]>([]);
 
   const [selectedDepth, setSelectedDepth] = useState<string>("");
@@ -111,6 +125,10 @@ export default function InputPage() {
       .catch((e) => setError(e instanceof Error ? e.message : ""));
 
     fetchExamples().then(setExamples).catch(() => {});
+
+    fetchDemoPatches().then(setDemoPatches).catch(() => {});
+
+    fetchRulesCatalog().then(setRulesCatalog).catch(() => {});
 
     fetchReviewDepthOptions()
 
@@ -631,6 +649,31 @@ export default function InputPage() {
 
 
 
+      {demoPatches.length > 0 && (
+        <div className="examples card">
+          <h3>{ui.demo_patches_heading}</h3>
+          {ui.demo_patches_hint ? (
+            <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+              {ui.demo_patches_hint}
+            </p>
+          ) : null}
+          {demoPatches.map((scenario) => (
+            <button
+              key={scenario.id}
+              className="secondary example-chip"
+              type="button"
+              title={scenario.description}
+              onClick={() => {
+                setTab("patch");
+                setValue(scenario.patch_text);
+              }}
+            >
+              {scenario.title}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="examples card">
 
         <h3>{ui.examples_heading}</h3>
@@ -662,6 +705,33 @@ export default function InputPage() {
         ))}
 
       </div>
+
+      {rulesCatalog && ui.rules_catalog_heading && (
+        <div className="card" style={{ marginTop: "1rem" }}>
+          <h3>{ui.rules_catalog_heading}</h3>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setRulesCatalogOpen((open) => !open)}
+          >
+            {rulesCatalogOpen ? ui.rules_catalog_toggle_hide : ui.rules_catalog_toggle_show}
+          </button>
+          {rulesCatalogOpen && (
+            <div style={{ marginTop: "0.75rem" }}>
+              <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
+                {(ui.rules_catalog_count_label || "").replace("{count}", String(rulesCatalog.rules_count))}
+              </p>
+              <ul style={{ margin: "0.5rem 0 0 1rem", fontSize: "0.9rem" }}>
+                {rulesCatalog.rules.map((rule) => (
+                  <li key={rule.id}>
+                    <strong>{rule.id}</strong> · {rule.severity} — {rule.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
 

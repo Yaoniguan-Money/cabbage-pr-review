@@ -8,7 +8,18 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.schemas import ConfidenceLevel, RiskLevel
 
-MatchTarget = Literal["patch_hunk", "file_path", "diff_atom"]
+MatchTarget = Literal[
+    "patch_hunk",
+    "file_path",
+    "diff_atom",
+    "change_type",
+    "removed_lines",
+    "pr_title",
+    "pr_body",
+]
+PatchScope = Literal["added_only", "removed_only", "full_patch"]
+MatcherType = Literal["regex", "ast"]
+AstFilter = Literal["", "bare_except", "wildcard_import"]
 
 
 class RulePathFilter(BaseModel):
@@ -20,7 +31,11 @@ class RuleMatchClause(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     pattern_regex: str = Field(default="", alias="pattern-regex")
+    matcher_type: MatcherType = Field(default="regex", alias="matcher-type")
+    ast_query: str = Field(default="", alias="ast-query")
+    ast_filter: str = Field(default="", alias="ast-filter")
     target: MatchTarget = "patch_hunk"
+    patch_scope: PatchScope = "added_only"
 
 
 class RuleMatchGroup(BaseModel):
@@ -48,10 +63,20 @@ class RuleDefinition(BaseModel):
 class RulePackScope(BaseModel):
     ignore_path_patterns: list[str] = Field(default_factory=list)
     max_atoms_per_run: int = 200
+    split_patch_hunks: bool = True
+
+
+class RulePackReporting(BaseModel):
+    group_risks_by_rule_id: bool = True
+    max_files_listed_per_risk: int = 15
+    evidence_include_atom_summary: bool = True
+    grouped_evidence_suffix: str = "等共 {count} 个文件"
 
 
 class RulePackConfig(BaseModel):
     scope: RulePackScope = Field(default_factory=RulePackScope)
+    metadata_allowed_keys: list[str] = Field(default_factory=list)
+    reporting: RulePackReporting = Field(default_factory=RulePackReporting)
 
 
 class RulePackDocument(BaseModel):

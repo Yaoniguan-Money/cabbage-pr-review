@@ -92,6 +92,9 @@ class DiffAtom(BaseModel):
     dependency_hint: str = ""
     summary: str = ""
     patch_excerpt: str = ""
+    hunk_patch: str = ""
+    added_line_count: int = 0
+    removed_line_count: int = 0
     affected_symbols: list[str] = Field(default_factory=list)
 
 
@@ -202,6 +205,9 @@ class ReviewStats(BaseModel):
     flash_calls: int = 0
 
 
+from app.rules.rule_schema import RuleHitRecord
+
+
 class TaskResultSchema(BaseModel):
     summary: str = ""
     summary_bullets: list[str] = Field(default_factory=list)
@@ -216,6 +222,7 @@ class TaskResultSchema(BaseModel):
     detected_framework: str = ""
     review_stats: ReviewStats | None = None
     markdown_report: str = ""
+    rule_hits: list[RuleHitRecord] = Field(default_factory=list)
 
 
 class CreateTaskRequest(BaseModel):
@@ -229,6 +236,7 @@ class CreateTaskRequest(BaseModel):
     local_model: str | None = None
     cloud_flash_model: str | None = None
     cloud_pro_model: str | None = None
+    rules_preflight_enabled: bool | None = None
 
     @field_validator("value")
     @classmethod
@@ -275,6 +283,7 @@ class TaskRecord(BaseModel):
     local_model: str = ""
     cloud_flash_model: str = ""
     cloud_pro_model: str = ""
+    rules_preflight_enabled: bool = False
     compress_stats: CompressStatsSchema | None = None
     token_stats: TaskTokenStatsSchema | None = None
     result: TaskResultSchema | None = None

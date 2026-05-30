@@ -105,6 +105,32 @@ CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
 
 首页可选 **纯规则** 第四档（`rules_only`）：零 LLM，YAML 规则引擎 + Markdown 报告；无需 Cloud/Ollama。详见 [docs/V2.4_RULES_MODE.md](./docs/V2.4_RULES_MODE.md)。
 
+## 评委三步体验（推荐）
+
+面向零配置演示：**真实规则引擎**为主路径，无需 API Key / Ollama。
+
+1. `docker compose -f docker-compose.demo.yml up --build` → 打开 http://localhost:8080
+2. 首页点击 **S1 / S2 / S3** 演示 Patch 一键加载 → 确认推理模式为 **纯规则**
+3. **开始分析** → 查看 **规则报告** 页签（含 Markdown 报告与结构化规则命中），对照 [docs/JUDGE_DEMO.md](./docs/JUDGE_DEMO.md) 中的 `rule_id`
+
+启动后可用 `GET /health` 验收规则包是否就绪（demo  compose 默认 `LLM_MODE=rules_only`）：
+
+```bash
+curl http://localhost:8000/health
+```
+
+| 字段 | 期望（demo / 纯规则） | 说明 |
+|------|----------------------|------|
+| `llm_mode` | `rules_only` | 当前推理模式 |
+| `use_mock_llm` | `false` | demo 主路径不走 Mock LLM |
+| `rules_pack_loaded` | `true` | 默认规则包已成功加载 |
+| `rules_count` | `> 0`（当前约 16） | 有效规则条数 |
+| `rules_invalid_count` | `0` | YAML lint 失败条数；非 0 表示规则包需修复 |
+
+`rules_invalid_count > 0` 时任务仍可运行，但应优先修复 `backend/app/rules/packs/default/` 下对应 YAML，再跑 `pytest backend/tests/test_rules_lint.py`。
+
+可选：[`docker-compose.demo-mock.yml`](./docker-compose.demo-mock.yml) 展示 Mock LLM 四图 UI（附录，见 JUDGE_DEMO）。
+
 ### 开源借鉴与许可证
 
 | 来源 | 许可证 | 本项目用法 |
