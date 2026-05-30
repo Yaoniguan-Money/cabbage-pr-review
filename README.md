@@ -92,3 +92,7 @@ CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
 ## 推理模式（v2.2）
 
 首页可选 **纯云端 / 混合 / 纯本地**（文案由 `GET /api/llm-mode-options` 下发）。混合模式默认 **开启本地输入压缩**；审阅结论仍由云端 Flash/Pro 生成。详见 [docs/V2.2_LLM_PROVIDER.md](./docs/V2.2_LLM_PROVIDER.md) 与 [docs/LOCAL_LLM_SETUP.md](./docs/LOCAL_LLM_SETUP.md)。
+
+## Token 统计（v2.2+）
+
+每个任务完成后，`GET /api/tasks/{id}` 返回 `token_stats`（云端/本地 prompt·completion·合计及 `display_segments` 展示文案）。Markdown 导出含 Token 小节。详见 [docs/TOKEN_STATS.md](./docs/TOKEN_STATS.md)。

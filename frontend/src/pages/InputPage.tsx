@@ -16,12 +16,6 @@ type Tab = InputType;
 const PROJECT_TYPES = ["python-api", "node-api", "frontend", "python", "typescript", "unknown"];
 const FRAMEWORKS = ["FastAPI", "Express", "React/Vite", "Python", "TypeScript/JavaScript", "unknown"];
 
-const COST_LABEL: Record<string, string> = {
-  low: "Token：省",
-  medium: "Token：适中",
-  high: "Token：高",
-};
-
 export default function InputPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("pr_url");
@@ -199,7 +193,7 @@ export default function InputPage() {
             >
               <h3>{opt.label}</h3>
               <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-                {opt.estimated_time} · {COST_LABEL[opt.cost_tier] ?? opt.cost_tier}
+                {opt.estimated_time} · {opt.cost_tier_label}
               </p>
             </div>
           ))}

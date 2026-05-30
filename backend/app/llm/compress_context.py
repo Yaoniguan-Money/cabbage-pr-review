@@ -68,10 +68,12 @@ def compress_text(content: str, *, path: str, ctx: TaskLLMContext | None = None)
     global _compress_stats
     _compress_stats.chars_before += len(content)
     try:
+        user_msg = f"文件路径: {path}\n\n---\n{truncate(content, 12000)}"
         summary = _ollama.complete_text_sync(
             model=task_ctx.local_model,
             system=_COMPRESS_SYSTEM,
-            user=f"文件路径: {path}\n\n---\n{truncate(content, 12000)}",
+            user=user_msg,
+            tier="local_compress",
         )
         out = summary.strip() or content
         _compress_stats.compress_calls += 1

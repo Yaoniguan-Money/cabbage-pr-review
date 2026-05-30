@@ -14,12 +14,34 @@ RISK_CLASS = {
 
 INVALID_ID = re.compile(r"[^a-zA-Z0-9_]")
 
+# Mermaid flowchart 保留字（节点 ID 不可直接使用，见 mermaid-js #4182 / #4645）
+RESERVED_NODE_IDS: frozenset[str] = frozenset(
+    {
+        "graph",
+        "flowchart",
+        "flowchart-v2",
+        "flowchart_v2",
+        "end",
+        "class",
+        "classdef",
+        "style",
+        "linkstyle",
+        "click",
+        "call",
+        "subgraph",
+        "default",
+        "interpolate",
+        "flowchart-tb",
+        "flowchart-lr",
+    }
+)
+
 
 def _safe_id(raw: str, fallback: str) -> str:
     value = INVALID_ID.sub("_", (raw or "").strip())
     if not value:
         return fallback
-    if value[0].isdigit():
+    if value[0].isdigit() or value.lower() in RESERVED_NODE_IDS:
         return f"n_{value}"
     return value
 

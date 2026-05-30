@@ -12,6 +12,7 @@ const mockDepthOptions = {
       detail_bullets: ["bullet-fast"],
       estimated_time: "3-5",
       cost_tier: "low" as const,
+      cost_tier_label: "Token：省",
       default: false,
     },
     {
@@ -21,6 +22,7 @@ const mockDepthOptions = {
       detail_bullets: ["bullet-balanced"],
       estimated_time: "4-7",
       cost_tier: "medium" as const,
+      cost_tier_label: "Token：适中",
       default: true,
     },
   ],

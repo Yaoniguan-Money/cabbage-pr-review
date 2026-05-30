@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.llm.token_usage import parse_ollama_usage, record_token_usage
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,34 @@ class OllamaProvider:
             logger.warning("列举 Ollama 模型失败: %s", e)
             return []
 
-    def complete_json_sync(self, *, model: str, system: str, user: str) -> dict[str, Any]:
+    def _record_ollama_usage(
+        self,
+        *,
+        tier: str | None,
+        data: dict,
+        prompt_text: str,
+        output_text: str,
+    ) -> None:
+        if not tier:
+            return
+        prompt, completion, estimated = parse_ollama_usage(
+            data, prompt_text=prompt_text, output_text=output_text
+        )
+        record_token_usage(
+            tier=tier,
+            prompt_tokens=prompt,
+            completion_tokens=completion,
+            estimated=estimated,
+        )
+
+    def complete_json_sync(
+        self,
+        *,
+        model: str,
+        system: str,
+        user: str,
+        tier: str | None = None,
+    ) -> dict[str, Any]:
         if not model.strip():
             raise RuntimeError("local_model_required")
         payload = {
@@ -67,10 +95,23 @@ class OllamaProvider:
             resp = client.post(f"{self._base}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()
-        content = data.get("message", {}).get("content", "")
+        content = str(data.get("message", {}).get("content", ""))
+        self._record_ollama_usage(
+            tier=tier,
+            data=data,
+            prompt_text=system + user,
+            output_text=content,
+        )
         return json.loads(content)
 
-    def complete_text_sync(self, *, model: str, system: str, user: str) -> str:
+    def complete_text_sync(
+        self,
+        *,
+        model: str,
+        system: str,
+        user: str,
+        tier: str | None = None,
+    ) -> str:
         """压缩层用：纯文本输出，非 JSON。"""
         if not model.strip():
             raise RuntimeError("local_model_required")
@@ -87,4 +128,11 @@ class OllamaProvider:
             resp = client.post(f"{self._base}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()
-        return str(data.get("message", {}).get("content", "")).strip()
+        content = str(data.get("message", {}).get("content", "")).strip()
+        self._record_ollama_usage(
+            tier=tier,
+            data=data,
+            prompt_text=system + user,
+            output_text=content,
+        )
+        return content

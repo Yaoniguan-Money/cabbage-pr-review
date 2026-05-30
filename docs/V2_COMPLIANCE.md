@@ -98,7 +98,7 @@
 |--------|------|
 | `backend/app/agents` 无 `RISK_KEYWORDS` / `_heuristic` / `diagram_from_modules` | 通过（`test_no_heuristics.py`） |
 | 无 `call_*_json(..., fallback=...)` | 通过（`llm_helpers.py`） |
-| `project_detect` 未接入主链路 | 通过（模块已 `NotImplementedError` 弃用） |
+| 无 `project_detect` 启发式模块 | 通过（已删除；类型/框架由 Agent5 `detected_*` 提供） |
 | base/head 文件来自 git | 通过（`git_workspace.py` + `task_runner`） |
 
 ---

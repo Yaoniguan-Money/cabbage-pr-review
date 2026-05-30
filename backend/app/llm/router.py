@@ -41,8 +41,11 @@ def complete_flash_json_sync(system: str, user: str, ctx: TaskLLMContext | None 
             model=task_ctx.local_model,
             system=system,
             user=user,
+            tier="local_flash",
         )
-    return _cloud_provider.complete_json_sync(model=model_cloud, system=system, user=user)
+    return _cloud_provider.complete_json_sync(
+        model=model_cloud, system=system, user=user, tier="flash"
+    )
 
 
 def complete_pro_json_sync(system: str, user: str, ctx: TaskLLMContext | None = None) -> dict[str, Any]:
@@ -53,5 +56,6 @@ def complete_pro_json_sync(system: str, user: str, ctx: TaskLLMContext | None = 
             model=task_ctx.local_model,
             system=system,
             user=user,
+            tier="local_pro",
         )
-    return _cloud_provider.complete_json_sync(model=model_cloud, system=system, user=user)
+    return _cloud_provider.complete_json_sync(model=model_cloud, system=system, user=user, tier="pro")

@@ -16,8 +16,8 @@ def _clear_ctx():
 def test_cloud_only_uses_cloud_provider(monkeypatch: pytest.MonkeyPatch):
     calls: list[str] = []
 
-    def fake_cloud(*, model: str, system: str, user: str):
-        calls.append(f"cloud:{model}")
+    def fake_cloud(*, model: str, system: str, user: str, tier: str | None = None):
+        calls.append(f"cloud:{model}:{tier}")
         return {"ok": True}
 
     monkeypatch.setattr("app.llm.router._cloud_provider.complete_json_sync", fake_cloud)
@@ -32,14 +32,14 @@ def test_cloud_only_uses_cloud_provider(monkeypatch: pytest.MonkeyPatch):
     )
     complete_flash_json_sync("s", "u")
     complete_pro_json_sync("s", "u")
-    assert calls == ["cloud:flash-test", "cloud:pro-test"]
+    assert calls == ["cloud:flash-test:flash", "cloud:pro-test:pro"]
 
 
 def test_local_only_uses_local_provider(monkeypatch: pytest.MonkeyPatch):
     calls: list[str] = []
 
-    def fake_local(*, model: str, system: str, user: str):
-        calls.append(f"local:{model}")
+    def fake_local(*, model: str, system: str, user: str, tier: str | None = None):
+        calls.append(f"local:{model}:{tier}")
         return {"ok": True}
 
     monkeypatch.setattr("app.llm.router._local_provider.complete_json_sync", fake_local)
@@ -54,4 +54,4 @@ def test_local_only_uses_local_provider(monkeypatch: pytest.MonkeyPatch):
     )
     complete_flash_json_sync("s", "u")
     complete_pro_json_sync("s", "u")
-    assert calls == ["local:my-local", "local:my-local"]
+    assert calls == ["local:my-local:local_flash", "local:my-local:local_pro"]
