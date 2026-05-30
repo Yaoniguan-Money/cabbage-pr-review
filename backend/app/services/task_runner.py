@@ -3,6 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 
 from app.graph.workflow import AGENT_NODE_ORDER, workflow_app
+from app.llm.compress_context import (
+    get_compress_degradation_notes,
+    get_compress_stats,
+    reset_compress_stats,
+)
+from app.models.schemas import CompressStatsSchema
+from app.llm.task_context import build_task_llm_context, clear_task_llm_context, set_task_llm_context
 from app.local.file_io import parse_patch_text, read_local_repo
 from app.models.schemas import InputType, TaskRecord, TaskStatus
 from app.services.github import github_service
@@ -73,6 +80,15 @@ async def execute_task(
     task_store.update(record)
 
     git_ws: GitWorkspace | None = None
+    llm_ctx = build_task_llm_context(
+        llm_mode=record.llm_mode,
+        local_compress_enabled=record.local_compress_enabled,
+        local_model=record.local_model or None,
+        cloud_flash_model=record.cloud_flash_model or None,
+        cloud_pro_model=record.cloud_pro_model or None,
+    )
+    set_task_llm_context(llm_ctx)
+    reset_compress_stats()
     try:
         pr_context, git_ws = await _prepare_context(record)
         record.pr_context = pr_context
@@ -102,6 +118,20 @@ async def execute_task(
                 if agent_id:
                     _set_agent_status(record, agent_id, "completed")
 
+        compress_notes = get_compress_degradation_notes()
+        if compress_notes:
+            merged = list(compress_notes) + list(final_state.get("degradation_notes") or [])
+            final_state["degradation_notes"] = merged
+            record.pr_context["degradation_notes"] = merged
+
+        stats = get_compress_stats()
+        if stats.compress_calls > 0 or stats.chars_before > 0:
+            record.compress_stats = CompressStatsSchema(
+                compress_calls=stats.compress_calls,
+                chars_before=stats.chars_before,
+                chars_after=stats.chars_after,
+            )
+
         result = final_state.get("final_result")
         if result and final_state.get("degradation_notes"):
             result.degradation_notes = list(final_state["degradation_notes"]) + list(result.degradation_notes)
@@ -115,6 +145,7 @@ async def execute_task(
     finally:
         if git_ws:
             git_ws.cleanup()
+        clear_task_llm_context()
     record.updated_at = datetime.utcnow()
     task_store.update(record)
 

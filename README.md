@@ -22,9 +22,9 @@ DEEPSEEK_PRO_MODEL=deepseek-reasoner
 USE_MOCK_LLM=false
 ```
 
-启动后访问 http://localhost:8000/health ，应看到 `llm_enabled: true`、`use_mock_llm: false`、`model_profile: v4_flash_pro_via_env`。
+启动后访问 http://localhost:8000/health ，应看到 `llm_enabled: true`、`model_profile: v22_provider_via_env`。
 
-未配置 Key 且 `USE_MOCK_LLM=false` 时，`POST /api/tasks` 返回 **503**（不再使用关键词/启发式 fallback 生成业务结论）。
+未配置 Key 且 `USE_MOCK_LLM=false` 时，**纯云端**模式下 `POST /api/tasks` 返回 **503**。
 
 **依赖**：本机与 Docker 镜像均需安装 **git**（PR URL / 本地仓库路径用于 `git show` 读取 base/head 文件）。
 
@@ -88,3 +88,7 @@ CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
 ## 审阅深度（PR #4）
 
 首页可选 **快速 / 标准 / 深度** 三档（文案由 `GET /api/review-depth-options` 下发）。环境变量 `REVIEW_DEPTH_MODE` 为服务端默认档。详见 [docs/V2.1_QUALITY.md](./docs/V2.1_QUALITY.md)。
+
+## 推理模式（v2.2）
+
+首页可选 **纯云端 / 混合 / 纯本地**（文案由 `GET /api/llm-mode-options` 下发）。混合模式默认 **开启本地输入压缩**；审阅结论仍由云端 Flash/Pro 生成。详见 [docs/V2.2_LLM_PROVIDER.md](./docs/V2.2_LLM_PROVIDER.md) 与 [docs/LOCAL_LLM_SETUP.md](./docs/LOCAL_LLM_SETUP.md)。

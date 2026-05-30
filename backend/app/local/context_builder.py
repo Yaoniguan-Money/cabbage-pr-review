@@ -5,6 +5,11 @@ from typing import Any
 
 from app.local.file_io import build_directory_tree, find_entry_files, read_readme
 from app.local.text_preprocess import truncate
+from app.llm.compress_context import compress_file_map
+
+
+def _changed_paths_from_patches(patches: list[dict]) -> set[str]:
+    return {str(p.get("filename", "")).replace("\\", "/") for p in patches if p.get("filename")}
 
 
 def build_version_scan_context(pr_context: dict[str, Any], *, version: str) -> dict[str, Any]:
@@ -49,6 +54,14 @@ def build_version_scan_context(pr_context: dict[str, Any], *, version: str) -> d
             for p in version_paths
             if any(h in p.lower() for h in ("main.py", "app.py", "index.ts", "index.tsx", "server"))
         ][:15]
+
+    entry_set = {p.replace("\\", "/") for p in entry_files}
+    changed = _changed_paths_from_patches(patches)
+    file_contents = compress_file_map(
+        file_contents,
+        changed_paths=changed,
+        entry_files=entry_set,
+    )
 
     return {
         "version": version,
@@ -108,7 +121,13 @@ def load_extra_context_files(
             for child in list(path.rglob("*.py"))[:5] + list(path.rglob("*.ts"))[:5]:
                 rel = str(child.relative_to(path)).replace("\\", "/")
                 loaded[rel] = truncate(child.read_text(encoding="utf-8", errors="ignore"), 12000)
-    return loaded
+    patches = pr_context.get("patches", [])
+    entry_files = {str(p).replace("\\", "/") for p in pr_context.get("entry_files", [])}
+    return compress_file_map(
+        loaded,
+        changed_paths=_changed_paths_from_patches(patches),
+        entry_files=entry_files,
+    )
 
 
 async def load_extra_context_files_async(
@@ -137,4 +156,10 @@ async def load_extra_context_files_async(
             for child in list(path.rglob("*.py"))[:5] + list(path.rglob("*.ts"))[:5]:
                 rel = str(child.relative_to(path)).replace("\\", "/")
                 loaded[rel] = truncate(child.read_text(encoding="utf-8", errors="ignore"), 12000)
-    return loaded
+    patches = pr_context.get("patches", [])
+    entry_files = {str(p).replace("\\", "/") for p in pr_context.get("entry_files", [])}
+    return compress_file_map(
+        loaded,
+        changed_paths=_changed_paths_from_patches(patches),
+        entry_files=entry_files,
+    )

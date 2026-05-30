@@ -19,6 +19,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 os.environ.setdefault("DEEPSEEK_API_KEY", "pytest-key")
 os.environ.setdefault("USE_MOCK_LLM", "false")
+os.environ.setdefault("LLM_MODE", "cloud_only")
 
 
 def _load_json(name: str) -> dict:
