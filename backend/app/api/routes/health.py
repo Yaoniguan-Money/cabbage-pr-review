@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.config import settings
+from app.llm.router import cloud_available, list_local_models, local_available
 
 router = APIRouter(tags=["health"])
 
@@ -11,8 +12,16 @@ async def health():
         "status": "ok",
         "llm_enabled": settings.llm_enabled,
         "use_mock_llm": settings.use_mock_llm,
-        "model_profile": "v4_flash_pro_via_env",
-        "deepseek_flash_model": settings.deepseek_flash_model,
-        "deepseek_pro_model": settings.deepseek_pro_model,
+        "model_profile": "v22_provider_via_env",
+        "llm_mode": settings.llm_mode,
+        "cloud_available": cloud_available(),
+        "local_available": local_available(),
+        "cloud_flash_model": settings.cloud_flash_model_resolved,
+        "cloud_pro_model": settings.cloud_pro_model_resolved,
+        "local_llm_base_url": settings.local_llm_base_url,
+        "local_compress_enabled_default": settings.local_compress_enabled,
         "default_review_depth_mode": settings.review_depth_mode,
+        # 兼容旧客户端
+        "deepseek_flash_model": settings.cloud_flash_model_resolved,
+        "deepseek_pro_model": settings.cloud_pro_model_resolved,
     }

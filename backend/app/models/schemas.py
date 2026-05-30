@@ -145,6 +145,14 @@ class VisualizationSchema(BaseModel):
     detected_framework: str = ""
 
 
+class CompressStatsSchema(BaseModel):
+    """混合模式本地压缩统计（字段名供 API/前端契约使用）。"""
+
+    compress_calls: int = 0
+    chars_before: int = 0
+    chars_after: int = 0
+
+
 class ReviewStats(BaseModel):
     review_depth_mode: str = "balanced"
     review_depth_label: str = ""
@@ -176,6 +184,11 @@ class CreateTaskRequest(BaseModel):
     project_type: str | None = None
     framework: str | None = None
     review_depth_mode: str | None = None
+    llm_mode: str | None = None
+    local_compress_enabled: bool | None = None
+    local_model: str | None = None
+    cloud_flash_model: str | None = None
+    cloud_pro_model: str | None = None
 
     @field_validator("value")
     @classmethod
@@ -214,6 +227,13 @@ class TaskRecord(BaseModel):
     rerun_focus_atoms: list[str] = Field(default_factory=list)
     review_depth_mode: str = "balanced"
     review_depth_label: str = ""
+    llm_mode: str = "cloud_only"
+    llm_mode_label: str = ""
+    local_compress_enabled: bool = False
+    local_model: str = ""
+    cloud_flash_model: str = ""
+    cloud_pro_model: str = ""
+    compress_stats: CompressStatsSchema | None = None
     result: TaskResultSchema | None = None
     pr_context: dict[str, Any] = Field(default_factory=dict)
 

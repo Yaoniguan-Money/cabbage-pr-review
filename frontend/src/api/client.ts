@@ -27,6 +27,25 @@ export interface ReviewDepthOption {
   default: boolean;
 }
 
+export interface LlmModeCompressToggle {
+  default_enabled: boolean;
+  label: string;
+  hint_off: string;
+}
+
+export interface LlmModeOption {
+  id: string;
+  label: string;
+  summary: string;
+  detail_bullets: string[];
+  requires_cloud: boolean;
+  requires_local: boolean;
+  quality_warning: boolean;
+  default: boolean;
+  available: boolean;
+  compress_toggle?: LlmModeCompressToggle;
+}
+
 export interface TaskRecord {
   id: string;
   input_type: InputType;
@@ -40,6 +59,15 @@ export interface TaskRecord {
   rerun_used: boolean;
   review_depth_mode?: string;
   review_depth_label?: string;
+  llm_mode?: string;
+  llm_mode_label?: string;
+  local_compress_enabled?: boolean;
+  local_model?: string;
+  compress_stats?: {
+    compress_calls: number;
+    chars_before: number;
+    chars_after: number;
+  } | null;
   result?: TaskResult | null;
 }
 
@@ -104,6 +132,11 @@ export async function createTask(body: {
   project_type?: string;
   framework?: string;
   review_depth_mode?: string;
+  llm_mode?: string;
+  local_compress_enabled?: boolean;
+  local_model?: string;
+  cloud_flash_model?: string;
+  cloud_pro_model?: string;
 }): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
@@ -148,6 +181,20 @@ export async function fetchReviewDepthOptions(): Promise<{
 }> {
   const res = await fetch(`${API}/review-depth-options`);
   if (!res.ok) throw new Error("无法加载审阅深度选项");
+  return res.json();
+}
+
+export async function fetchLlmModeOptions(): Promise<{
+  options: LlmModeOption[];
+  default_llm_mode: string;
+  default_local_compress_enabled: boolean;
+  cloud_available: boolean;
+  local_available: boolean;
+  local_models: string[];
+  default_local_model: string;
+}> {
+  const res = await fetch(`${API}/llm-mode-options`);
+  if (!res.ok) throw new Error("无法加载推理模式选项");
   return res.json();
 }
 

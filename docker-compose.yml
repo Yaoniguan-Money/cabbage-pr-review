@@ -5,11 +5,14 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # 其余变量（含 GITHUB_TOKEN）仅从 env_file: .env 注入，避免宿主机空变量覆盖 .env
     environment:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       - USE_MOCK_LLM=${USE_MOCK_LLM:-false}
+      - LOCAL_LLM_BASE_URL=${LOCAL_LLM_BASE_URL:-http://host.docker.internal:11434}
     volumes:
       - ./backend/app:/app/app
 

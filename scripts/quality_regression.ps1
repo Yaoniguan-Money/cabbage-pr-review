@@ -2,6 +2,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PrUrl,
     [string]$ApiBase = "http://localhost:8000",
+    [ValidateSet("cloud_only", "hybrid", "local_only", "")]
+    [string]$LlmMode = "",
+    [Nullable[bool]]$LocalCompress = $null,
     [int]$MinRisks = 1,
     [int]$MaxDegradationNotes = 0,
     [bool]$RequireAllDiagramTypes = $true,
@@ -40,8 +43,13 @@ if ($env:QUALITY_THRESHOLDS_JSON) {
 Write-Output "PR_URL=$PrUrl"
 Write-Output "API_BASE=$ApiBase"
 Write-Output "THRESHOLDS min_risks=$MinRisks max_degradation_notes=$MaxDegradationNotes"
+if ($LlmMode) { Write-Output "LLM_MODE=$LlmMode" }
+if ($null -ne $LocalCompress) { Write-Output "LOCAL_COMPRESS=$LocalCompress" }
 
-$body = @{ input_type = "pr_url"; value = $PrUrl } | ConvertTo-Json
+$body = @{ input_type = "pr_url"; value = $PrUrl }
+if ($LlmMode) { $body["llm_mode"] = $LlmMode }
+if ($null -ne $LocalCompress) { $body["local_compress_enabled"] = $LocalCompress }
+$body = $body | ConvertTo-Json
 $task = Invoke-RestMethod -Uri "$ApiBase/api/tasks" -Method Post -ContentType "application/json" -Body $body
 $taskId = $task.id
 Write-Output "TASK_ID=$taskId"

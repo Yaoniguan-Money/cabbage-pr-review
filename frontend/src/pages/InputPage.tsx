@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import {
   createTask,
   fetchExamples,
+  fetchLlmModeOptions,
   fetchReviewDepthOptions,
   type ExamplePR,
   type InputType,
+  type LlmModeOption,
   type ReviewDepthOption,
 } from "../api/client";
 
@@ -31,6 +33,11 @@ export default function InputPage() {
   const [examples, setExamples] = useState<ExamplePR[]>([]);
   const [depthOptions, setDepthOptions] = useState<ReviewDepthOption[]>([]);
   const [selectedDepth, setSelectedDepth] = useState<string>("");
+  const [llmOptions, setLlmOptions] = useState<LlmModeOption[]>([]);
+  const [selectedLlmMode, setSelectedLlmMode] = useState<string>("");
+  const [compressEnabled, setCompressEnabled] = useState(true);
+  const [localModel, setLocalModel] = useState("");
+  const [localModels, setLocalModels] = useState<string[]>([]);
 
   useEffect(() => {
     fetchExamples().then(setExamples).catch(() => {});
@@ -41,9 +48,23 @@ export default function InputPage() {
         if (def) setSelectedDepth(def.id);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "无法加载审阅深度选项"));
+    fetchLlmModeOptions()
+      .then((data) => {
+        setLlmOptions(data.options);
+        setLocalModels(data.local_models);
+        setCompressEnabled(data.default_local_compress_enabled);
+        const def = data.options.find((o) => o.default) ?? data.options[0];
+        if (def) setSelectedLlmMode(def.id);
+        if (data.default_local_model) setLocalModel(data.default_local_model);
+        else if (data.local_models[0]) setLocalModel(data.local_models[0]);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "无法加载推理模式选项"));
   }, []);
 
   const activeDepth = depthOptions.find((o) => o.id === selectedDepth);
+  const activeLlm = llmOptions.find((o) => o.id === selectedLlmMode);
+  const needsLocal = selectedLlmMode === "hybrid" || selectedLlmMode === "local_only";
+  const showCompress = selectedLlmMode === "hybrid" && activeLlm?.compress_toggle;
 
   const submit = async () => {
     setLoading(true);
@@ -55,6 +76,9 @@ export default function InputPage() {
         project_type: projectType !== "unknown" ? projectType : undefined,
         framework: framework !== "unknown" ? framework : undefined,
         review_depth_mode: selectedDepth || undefined,
+        llm_mode: selectedLlmMode || undefined,
+        local_compress_enabled: selectedLlmMode === "hybrid" ? compressEnabled : undefined,
+        local_model: needsLocal ? localModel || undefined : undefined,
       });
       navigate(`/tasks/${task.id}`);
     } catch (e) {
@@ -69,6 +93,14 @@ export default function InputPage() {
     { id: "patch", title: "Patch / Diff", hint: "粘贴 diff 或 patch 文本" },
     { id: "local_path", title: "本地仓库路径", hint: "例如 C:\\projects\\my-app" },
   ];
+
+  const canSubmit =
+    !loading &&
+    value.trim() &&
+    selectedDepth &&
+    selectedLlmMode &&
+    (!needsLocal || localModel.trim()) &&
+    (activeLlm?.available !== false);
 
   return (
     <div>
@@ -87,7 +119,76 @@ export default function InputPage() {
       </div>
 
       <div className="card" style={{ marginTop: "1rem" }}>
-        <label>审阅深度（任务开始前选择，运行中不可改）</label>
+        <label>推理模式（任务开始前选择，运行中不可改）</label>
+        <div className="card-grid" style={{ marginTop: "0.5rem" }}>
+          {llmOptions.map((opt) => (
+            <div
+              key={opt.id}
+              className={`card ${selectedLlmMode === opt.id ? "active" : ""} ${opt.available === false ? "disabled" : ""}`}
+              onClick={() => opt.available !== false && setSelectedLlmMode(opt.id)}
+              role="button"
+              style={opt.available === false ? { opacity: 0.5, pointerEvents: "none" } : undefined}
+            >
+              <h3>{opt.label}</h3>
+              <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>{opt.summary}</p>
+            </div>
+          ))}
+        </div>
+        {activeLlm && (
+          <div style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "var(--muted)" }}>
+            <ul style={{ margin: "0.5rem 0 0 1rem" }}>
+              {activeLlm.detail_bullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+            {activeLlm.quality_warning && (
+              <p className="error" style={{ marginTop: "0.5rem" }}>
+                {activeLlm.summary}
+              </p>
+            )}
+          </div>
+        )}
+
+        {showCompress && activeLlm?.compress_toggle && (
+          <div style={{ marginTop: "1rem" }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={compressEnabled}
+                onChange={(e) => setCompressEnabled(e.target.checked)}
+              />{" "}
+              {activeLlm.compress_toggle.label}
+            </label>
+            {!compressEnabled && (
+              <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                {activeLlm.compress_toggle.hint_off}
+              </p>
+            )}
+          </div>
+        )}
+
+        {needsLocal && (
+          <div style={{ marginTop: "1rem" }}>
+            <label>本地模型（Ollama）</label>
+            {localModels.length > 0 ? (
+              <select value={localModel} onChange={(e) => setLocalModel(e.target.value)}>
+                {localModels.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={localModel}
+                onChange={(e) => setLocalModel(e.target.value)}
+                placeholder="输入本机 Ollama 已安装的模型名"
+              />
+            )}
+          </div>
+        )}
+
+        <label style={{ marginTop: "1rem" }}>审阅深度（任务开始前选择，运行中不可改）</label>
         <div className="card-grid" style={{ marginTop: "0.5rem" }}>
           {depthOptions.map((opt) => (
             <div
@@ -145,7 +246,7 @@ export default function InputPage() {
         </div>
 
         {error && <div className="error">{error}</div>}
-        <button onClick={submit} disabled={loading || !value.trim() || !selectedDepth}>
+        <button onClick={submit} disabled={!canSubmit}>
           {loading ? "创建任务中…" : "开始分析"}
         </button>
       </div>
