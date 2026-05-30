@@ -35,4 +35,3 @@ def test_mermaid_diagram_has_no_inline_error_strings():
     forbidden = ["图表渲染失败", "展开查看原始 Mermaid", "FALLBACK_UI", "render error"]
     for token in forbidden:
         assert token not in text, f"MermaidDiagram 发现禁止的内联文案: {token}"
-
