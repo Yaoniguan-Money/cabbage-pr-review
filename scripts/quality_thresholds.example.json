@@ -3,5 +3,10 @@
   "max_degradation_notes": 0,
   "require_all_diagram_types": true,
   "min_risks_evidence_coverage": 0.0,
-  "require_missing_info_when_no_risks": true
+  "require_missing_info_when_no_risks": true,
+  "min_diagrams_count": 4,
+  "min_diagram_nodes": 2,
+  "require_path_compare_groups": true,
+  "require_global_compare_groups": false,
+  "max_arch_impact_jaccard": 0.95
 }

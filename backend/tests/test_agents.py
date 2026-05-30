@@ -3,6 +3,7 @@ from app.agents.agent2_head_scan import run_agent2
 from app.agents.agent3_diff import run_agent3
 from app.agents.agent4_review import run_agent4
 from app.agents.agent5_visualize import run_agent5
+from app.local.diagram_meta import SCHEMA_DIAGRAM_TYPES
 from app.models.schemas import ProjectIndexSchema
 
 
@@ -42,5 +43,9 @@ def test_agent_pipeline_schema():
     assert stats.reviewed_atoms >= 1
     result, _ = run_agent5(base, head, diff, review, SAMPLE_CONTEXT, None, None, review_stats=stats)
     assert result.summary
-    assert len(result.diagrams) >= 1
+    assert len(result.diagrams) == len(SCHEMA_DIAGRAM_TYPES)
+    diagram_types = {d.diagram_type for d in result.diagrams}
+    assert diagram_types == set(SCHEMA_DIAGRAM_TYPES)
+    for diagram in result.diagrams:
+        assert diagram.mermaid.strip()
     assert result.detected_framework

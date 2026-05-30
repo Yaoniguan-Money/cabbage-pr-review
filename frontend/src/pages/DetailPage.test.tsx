@@ -6,6 +6,19 @@ import DetailPage from "./DetailPage";
 
 vi.mock("../api/client", () => ({
   exportUrl: (taskId: string) => `/api/tasks/${taskId}/export.md`,
+  fetchDiagramMeta: vi.fn(async () => ({
+    section_label: "三张图",
+    section_preview_label: "三张图（预览）",
+    empty_diagrams: "暂无图表",
+    ui_strings: {
+      render_error_title: "图表渲染失败",
+      render_error_hint: "展开查看原始 Mermaid",
+      unnamed_node: "未命名节点",
+      empty_structure: "暂无结构数据",
+    },
+    default_legend: [],
+    diagram_types: [],
+  })),
   getTask: vi.fn(async () => ({
     id: "t1",
     input_type: "pr_url",

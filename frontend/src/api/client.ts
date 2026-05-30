@@ -109,8 +109,41 @@ export interface RiskItem {
   file_paths: string[];
 }
 
+export interface DiagramLegendItem {
+  key: string;
+  label: string;
+  color: string;
+}
+
+export interface DiagramUiStrings {
+  render_error_title: string;
+  render_error_hint: string;
+  unnamed_node: string;
+  empty_structure: string;
+}
+
+export interface DiagramTypeMeta {
+  id: string;
+  default_title: string;
+  description: string;
+  layout: string;
+}
+
+export interface DiagramMetaResponse {
+  section_label: string;
+  section_preview_label: string;
+  empty_diagrams: string;
+  diagram_count?: number;
+  ui_strings: DiagramUiStrings;
+  default_legend: DiagramLegendItem[];
+  diagram_types: DiagramTypeMeta[];
+}
+
 export interface DiagramData {
   diagram_type: string;
+  title?: string;
+  caption?: string;
+  legend?: DiagramLegendItem[];
   mermaid: string;
   nodes: unknown[];
   edges: unknown[];
@@ -213,6 +246,12 @@ export async function fetchLlmModeOptions(): Promise<{
 }> {
   const res = await fetch(`${API}/llm-mode-options`);
   if (!res.ok) throw new Error("无法加载推理模式选项");
+  return res.json();
+}
+
+export async function fetchDiagramMeta(): Promise<DiagramMetaResponse> {
+  const res = await fetch(`${API}/diagram-meta`);
+  if (!res.ok) throw new Error("无法加载图表元数据");
   return res.json();
 }
 

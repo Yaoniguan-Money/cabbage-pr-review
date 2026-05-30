@@ -1,19 +1,40 @@
 {
   "summary": "测试 PR 摘要",
   "summary_bullets": ["变更 1 个文件", "框架 FastAPI"],
+  "structural_notes": [],
   "diagrams": [
     {
       "diagram_type": "architecture",
-      "nodes": [{"id": "root", "label": "入口", "group": "core", "confidence": "high"}],
+      "title": "Base 架构",
+      "caption": "变更前模块与入口关系",
+      "legend": [],
+      "nodes": [{"id": "root", "label": "入口", "group": "entry", "confidence": "high"}],
       "edges": []
     },
     {
       "diagram_type": "impact_overlay",
+      "title": "PR 影响",
+      "caption": "变更波及模块",
+      "legend": [],
       "nodes": [{"id": "m0", "label": "app", "group": "module", "risk": "medium", "confidence": "medium"}],
       "edges": []
     },
     {
+      "diagram_type": "global_compare",
+      "title": "全局对比",
+      "caption": "架构级变更前后",
+      "legend": [],
+      "nodes": [
+        {"id": "bm0", "label": "app", "group": "before", "confidence": "medium"},
+        {"id": "am0", "label": "app", "group": "after", "risk": "medium", "confidence": "high"}
+      ],
+      "edges": [{"source": "bm0", "target": "am0", "label": "变更"}]
+    },
+    {
       "diagram_type": "path_compare",
+      "title": "路径对比",
+      "caption": "关键路径前后",
+      "legend": [],
       "nodes": [
         {"id": "b0", "label": "变更前", "group": "before", "confidence": "medium"},
         {"id": "a0", "label": "变更后", "group": "after", "confidence": "high"}

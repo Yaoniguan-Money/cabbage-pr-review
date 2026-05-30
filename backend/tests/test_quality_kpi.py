@@ -39,6 +39,10 @@ def test_evaluate_passes_with_default_thresholds():
             "diagrams": [
                 {"diagram_type": "architecture", "mermaid": "flowchart TB\n  A-->B"},
                 {"diagram_type": "impact_overlay", "mermaid": "flowchart TB\n  A-->B"},
+                {
+                    "diagram_type": "global_compare",
+                    "mermaid": "flowchart LR\n  A-->B",
+                },
                 {"diagram_type": "path_compare", "mermaid": "flowchart TB\n  A-->B"},
             ],
             "degradation_notes": [],
@@ -110,3 +114,104 @@ def test_evidence_coverage_threshold():
     )
     assert ok is False
     assert any("risks_evidence_coverage" in f for f in failures)
+
+
+def test_evaluate_diagram_node_and_path_compare_thresholds():
+    metrics = compute_metrics(
+        {
+            "risks": [{"id": "r1", "evidence": "x"}],
+            "diagrams": [
+                {
+                    "diagram_type": "architecture",
+                    "mermaid": "x",
+                    "nodes": [{"id": "n1"}, {"id": "n2"}],
+                },
+                {
+                    "diagram_type": "impact_overlay",
+                    "mermaid": "x",
+                    "nodes": [{"id": "n1"}],
+                },
+                {
+                    "diagram_type": "global_compare",
+                    "mermaid": "x",
+                    "nodes": [
+                        {"id": "gb1", "group": "before"},
+                        {"id": "ga1", "group": "after"},
+                    ],
+                },
+                {
+                    "diagram_type": "path_compare",
+                    "mermaid": "x",
+                    "nodes": [
+                        {"id": "b1", "group": "before"},
+                        {"id": "a1", "group": "after"},
+                    ],
+                },
+            ],
+            "degradation_notes": [],
+            "diff_atoms": [],
+            "missing_info": [],
+        }
+    )
+    assert metrics.path_compare_has_before_after is True
+    assert metrics.global_compare_has_before_after is True
+    ok, failures = evaluate_metrics(
+        metrics,
+        QualityThresholds(
+            min_risks=1,
+            require_all_diagram_types=False,
+            min_diagram_nodes=2,
+        ),
+    )
+    assert ok is False
+    assert any("impact_overlay" in f for f in failures)
+
+
+def test_jaccard_threshold():
+    metrics = compute_metrics(
+        {
+            "risks": [{"id": "r1", "evidence": "x"}],
+            "diagrams": [
+                {
+                    "diagram_type": "architecture",
+                    "mermaid": "x",
+                    "nodes": [{"id": "n1"}, {"id": "n2"}],
+                },
+                {
+                    "diagram_type": "impact_overlay",
+                    "mermaid": "x",
+                    "nodes": [{"id": "n1"}, {"id": "n2"}],
+                },
+                {
+                    "diagram_type": "global_compare",
+                    "mermaid": "x",
+                    "nodes": [
+                        {"id": "gb1", "group": "before"},
+                        {"id": "ga1", "group": "after"},
+                    ],
+                },
+                {
+                    "diagram_type": "path_compare",
+                    "mermaid": "x",
+                    "nodes": [
+                        {"id": "b1", "group": "before"},
+                        {"id": "a1", "group": "after"},
+                    ],
+                },
+            ],
+            "degradation_notes": [],
+            "diff_atoms": [],
+            "missing_info": [],
+        }
+    )
+    assert metrics.arch_impact_node_jaccard == 1.0
+    ok, failures = evaluate_metrics(
+        metrics,
+        QualityThresholds(
+            min_risks=1,
+            require_all_diagram_types=False,
+            max_arch_impact_jaccard=0.95,
+        ),
+    )
+    assert ok is False
+    assert any("arch_impact_node_jaccard" in f for f in failures)

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 
 from app.agents.llm_helpers import call_flash_json
-from app.local.diagram_utils import attach_mermaid
 from app.models.schemas import DiffCompareSchema, ProjectIndexSchema
 
 
@@ -27,5 +26,4 @@ def run_agent3(
     )
     user = json.dumps(payload, ensure_ascii=False)
     result, notes = call_flash_json(system, user, DiffCompareSchema)
-    result.impact_diagram = attach_mermaid(result.impact_diagram)
     return result, notes

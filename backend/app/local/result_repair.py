@@ -133,31 +133,73 @@ def _normalize_diagram(data: dict[str, Any]) -> dict[str, Any]:
                 else None,
             }
         )
+    node_ids = {n["id"] for n in normalized_nodes}
     edges = _ensure_list(data.get("edges"))
     normalized_edges: list[dict[str, Any]] = []
+    dropped_edges = 0
     for edge in edges:
         if not isinstance(edge, dict):
             continue
         source = edge.get("source") or edge.get("from")
         target = edge.get("target") or edge.get("to")
         if source is None or target is None:
+            dropped_edges += 1
+            continue
+        source_s = str(source)
+        target_s = str(target)
+        if source_s not in node_ids or target_s not in node_ids:
+            dropped_edges += 1
             continue
         normalized_edges.append(
             {
-                "source": str(source),
-                "target": str(target),
+                "source": source_s,
+                "target": target_s,
                 "label": str(edge.get("label") or ""),
             }
         )
-    return {**data, "nodes": normalized_nodes, "edges": normalized_edges}
+    legend = _ensure_list(data.get("legend"))
+    normalized_legend: list[dict[str, Any]] = []
+    for item in legend:
+        if isinstance(item, dict) and item.get("key") and item.get("label"):
+            normalized_legend.append(
+                {
+                    "key": str(item["key"]),
+                    "label": str(item["label"]),
+                    "color": str(item.get("color") or ""),
+                }
+            )
+    out = {
+        **data,
+        "title": str(data.get("title") or ""),
+        "caption": str(data.get("caption") or ""),
+        "legend": normalized_legend,
+        "nodes": normalized_nodes,
+        "edges": normalized_edges,
+    }
+    if dropped_edges:
+        notes = _ensure_list(data.get("_repair_notes"))
+        notes.append(f"result_repair 丢弃无效边 {dropped_edges} 条（端点不在 nodes 内）")
+        out["_repair_notes"] = notes
+    return out
 
 
 def _normalize_visualization(data: dict[str, Any]) -> dict[str, Any]:
     diagrams = _ensure_list(data.get("diagrams"))
-    normalized_diagrams = [_normalize_diagram(d) for d in diagrams if isinstance(d, dict)]
+    structural_notes = [str(x) for x in _ensure_list(data.get("structural_notes")) if str(x).strip()]
+    normalized_diagrams: list[dict[str, Any]] = []
+    for d in diagrams:
+        if not isinstance(d, dict):
+            continue
+        nd = _normalize_diagram(d)
+        for note in _ensure_list(nd.pop("_repair_notes", None)):
+            text = str(note).strip()
+            if text:
+                structural_notes.append(text)
+        normalized_diagrams.append(nd)
     return {
         **data,
         "diagrams": normalized_diagrams,
+        "structural_notes": structural_notes,
         "summary_bullets": [str(x) for x in _ensure_list(data.get("summary_bullets")) if str(x).strip()],
         "detected_project_type": str(data.get("detected_project_type") or ""),
         "detected_framework": str(data.get("detected_framework") or ""),

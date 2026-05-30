@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import examples, health, llm_mode, review_depth, tasks
+from app.api.routes import diagram_meta, examples, health, llm_mode, review_depth, tasks
 
 app = FastAPI(title="AI PR Review 助手", version="0.1.0")
 
@@ -14,6 +14,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(diagram_meta.router)
 app.include_router(review_depth.router)
 app.include_router(llm_mode.router)
 app.include_router(examples.router)

@@ -96,3 +96,7 @@ CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
 ## Token 统计（v2.2+）
 
 每个任务完成后，`GET /api/tasks/{id}` 返回 `token_stats`（云端/本地 prompt·completion·合计及 `display_segments` 展示文案）。Markdown 导出含 Token 小节。详见 [docs/TOKEN_STATS.md](./docs/TOKEN_STATS.md)。
+
+## 图表可视化（v2.3）
+
+三图差异化渲染、title/caption/图例、节点 risk/confidence 展示；文案与样式由 `GET /api/diagram-meta` 单源下发。详见 [docs/V2.3_DIAGRAMS.md](./docs/V2.3_DIAGRAMS.md)。
