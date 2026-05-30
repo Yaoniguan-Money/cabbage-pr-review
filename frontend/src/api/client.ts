@@ -174,6 +174,14 @@ export interface MissingInfoItem {
   suggestion: string;
 }
 
+export interface RuleHitRecord {
+  rule_id: string;
+  severity: string;
+  file_path: string;
+  evidence: string;
+  message: string;
+}
+
 export interface TaskResult {
   summary: string;
   summary_bullets: string[];
@@ -186,6 +194,7 @@ export interface TaskResult {
   detected_framework: string;
   review_stats?: ReviewStats | null;
   markdown_report?: string;
+  rule_hits?: RuleHitRecord[];
 }
 
 export interface ExamplePR {
@@ -247,6 +256,8 @@ export interface RulesMetaResponse {
   ui_strings: Record<string, string>;
   table_change_headers: string[];
   table_hit_headers: string[];
+  group_by_rule_id_default?: boolean;
+  collapse_low_default?: boolean;
 }
 
 const API = "/api";
