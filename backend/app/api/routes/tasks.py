@@ -8,11 +8,13 @@ from fastapi.responses import PlainTextResponse
 from app.config import settings
 from app.local.llm_mode import (
     VALID_LLM_MODES,
+    HINT_RERUN_NOT_SUPPORTED,
     format_llm_mode_label,
     get_llm_mode_option,
+    is_rules_only_mode,
     normalize_llm_mode,
 )
-from app.local.review_depth import get_review_depth_option, normalize_review_depth_mode
+from app.local.review_depth import VALID_MODES, get_review_depth_option, normalize_review_depth_mode
 from app.llm.task_context import build_task_llm_context
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
 from app.services.export_md import export_markdown
@@ -32,6 +34,7 @@ def _resolve_llm_fields(body: CreateTaskRequest) -> dict:
         cloud_flash_model=body.cloud_flash_model,
         cloud_pro_model=body.cloud_pro_model,
     )
+    opt = get_llm_mode_option(llm_ctx.llm_mode, settings.llm_mode)
     return {
         "llm_mode": llm_ctx.llm_mode,
         "llm_mode_label": format_llm_mode_label(
@@ -40,6 +43,8 @@ def _resolve_llm_fields(body: CreateTaskRequest) -> dict:
             local_model=llm_ctx.local_model,
             fallback=settings.llm_mode,
         ),
+        "visualization_mode": opt.visualization_mode,
+        "rerun_supported": opt.rerun_supported,
         "local_compress_enabled": llm_ctx.local_compress_enabled,
         "local_model": llm_ctx.local_model,
         "cloud_flash_model": llm_ctx.cloud_flash_model,
@@ -60,7 +65,7 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
     if body.input_type == InputType.PR_URL and not GitHubService.is_valid_pr_url(body.value):
         raise HTTPException(status_code=400, detail="无效的 GitHub PR URL")
     mode = normalize_review_depth_mode(body.review_depth_mode, settings.review_depth_mode)
-    if body.review_depth_mode and body.review_depth_mode not in {"conservative", "balanced", "aggressive"}:
+    if body.review_depth_mode and body.review_depth_mode not in VALID_MODES:
         raise HTTPException(status_code=400, detail="无效的审阅深度模式")
     depth_opt = get_review_depth_option(mode, settings.review_depth_mode)
     record = TaskRecord(
@@ -106,6 +111,8 @@ async def rerun_task(task_id: str, body: RerunRequest, background_tasks: Backgro
     record = task_store.get(task_id)
     if not record:
         raise HTTPException(status_code=404, detail="任务不存在")
+    if is_rules_only_mode(record.llm_mode):
+        raise HTTPException(status_code=400, detail=HINT_RERUN_NOT_SUPPORTED)
     ensure_llm_for_api(
         llm_mode=record.llm_mode,
         local_compress_enabled=record.local_compress_enabled,

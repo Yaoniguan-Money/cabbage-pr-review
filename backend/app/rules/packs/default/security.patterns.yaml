@@ -1,0 +1,29 @@
+rules:
+  - id: sql-string-concat
+    message: 检测到 SQL 字符串拼接，存在注入风险，请使用参数化查询
+    severity: HIGH
+    languages: [python, javascript, typescript]
+    match:
+      any:
+        - pattern-regex: '(?i)(execute|query|raw)\s*\([^)]*(\+|f["'']|%s.*\+)'
+          target: patch_hunk
+
+  - id: eval-or-exec
+    message: 使用 eval/exec 类动态执行，存在代码注入风险
+    severity: HIGH
+    languages: [python, javascript, typescript]
+    match:
+      any:
+        - pattern-regex: '\b(eval|exec)\s*\('
+          target: patch_hunk
+
+  - id: dangerous-html-react
+    message: 使用 dangerouslySetInnerHTML，需确认 XSS 防护
+    severity: MEDIUM
+    languages: [typescript, javascript]
+    paths:
+      include: ["**/*.{tsx,jsx,ts,js}"]
+    match:
+      any:
+        - pattern-regex: 'dangerouslySetInnerHTML'
+          target: patch_hunk
