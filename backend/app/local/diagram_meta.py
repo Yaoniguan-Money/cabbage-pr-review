@@ -54,6 +54,9 @@ class UiStrings:
     confidence_suffix_low: str
     degradation_path_compare_missing_groups: str
     degradation_global_compare_missing_groups: str
+    node_summary_label: str
+    node_risk_prefix: str
+    node_confidence_prefix: str
 
 
 _UI = UiStrings(
@@ -75,6 +78,9 @@ _UI = UiStrings(
     confidence_suffix_low="低置信",
     degradation_path_compare_missing_groups="path_compare 图缺少 before/after 分组节点，路径对比可能不完整",
     degradation_global_compare_missing_groups="global_compare 图缺少 before/after 分组节点，全局架构对比可能不完整",
+    node_summary_label="节点摘要",
+    node_risk_prefix="风险",
+    node_confidence_prefix="置信",
 )
 
 _TYPE_META: tuple[DiagramTypeMeta, ...] = (
@@ -158,6 +164,8 @@ MAX_GLOBAL_NODES_PER_GROUP = 20
 MAX_GLOBAL_EDGES = 30
 MAX_PATH_NODES_PER_GROUP = 15
 MAX_PATH_EDGES = 20
+
+OVERVIEW_RISK_PREVIEW_COUNT = 5
 
 
 def get_ui_strings() -> UiStrings:
@@ -250,11 +258,15 @@ def list_diagram_meta() -> dict:
         "section_preview_label": _UI.section_preview_label,
         "empty_diagrams": _UI.empty_diagrams,
         "diagram_count": len(_TYPE_META),
+        "overview_risk_preview_count": OVERVIEW_RISK_PREVIEW_COUNT,
         "ui_strings": {
             "render_error_title": _UI.render_error_title,
             "render_error_hint": _UI.render_error_hint,
             "unnamed_node": _UI.unnamed_node,
             "empty_structure": _UI.empty_structure,
+            "node_summary_label": _UI.node_summary_label,
+            "node_risk_prefix": _UI.node_risk_prefix,
+            "node_confidence_prefix": _UI.node_confidence_prefix,
         },
         "default_legend": build_default_legend(),
         "diagram_types": [
