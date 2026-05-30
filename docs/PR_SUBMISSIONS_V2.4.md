@@ -102,13 +102,13 @@ curl http://localhost:8000/api/client-meta
 
 ### 标题
 
-feat(v2.4): 前端规则报告联动与 LLM 模式可用性
+feat(v2.4): 规则模式信噪比优化与规则命中前端联动
 
 ### 功能描述
 
-- 详情页：`rules_only` 任务展示 Markdown 规则报告；降级与空风险告警条
-- 输入页：混合/纯本地模式不可用时仍可点选并展示 API 提示；默认模式由 `pickInitialLlmMode` 推导
-- 全部表单/导航/错误文案消费 meta API，移除中文硬编码兜底
+- **信噪比（零硬编码）**：调高 `large-patch-hunk` 阈值、收紧 `test-file-removed`、收窄 `route-decorator-changed`；按 `rule_id` 聚合 `risks`；证据拼接 `atom.summary`
+- **引擎**：metadata 比率键、`rules_aggregate`、可选 `rules_preflight`；`rules_only` KPI 与 `quality_thresholds.rules_only.example.json`
+- **前端**：`RuleHitsPanel` 按规则分组/折叠 LOW；`rules_only` Markdown 报告；输入页 meta 联动
 
 ### 实现思路
 
