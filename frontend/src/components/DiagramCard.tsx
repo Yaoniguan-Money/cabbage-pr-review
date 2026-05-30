@@ -47,14 +47,14 @@ export default function DiagramCard({
       {nodes.length > 0 ? (
         <details style={{ marginTop: "0.75rem" }}>
           <summary style={{ cursor: "pointer", color: "var(--muted)", fontSize: "0.9rem" }}>
-            节点摘要（{nodes.length}）
+            {uiStrings.node_summary_label}（{nodes.length}）
           </summary>
           <ul style={{ fontSize: "0.85rem", paddingLeft: "1.2rem" }}>
             {nodes.slice(0, 50).map((node, idx) => (
               <li key={node.id || idx}>
                 {node.label || node.id}
-                {node.risk ? ` · 风险 ${node.risk}` : ""}
-                {node.confidence ? ` · 置信 ${node.confidence}` : ""}
+                {node.risk ? ` · ${uiStrings.node_risk_prefix} ${node.risk}` : ""}
+                {node.confidence ? ` · ${uiStrings.node_confidence_prefix} ${node.confidence}` : ""}
                 {node.group && node.group !== "default" ? ` · ${node.group}` : ""}
               </li>
             ))}

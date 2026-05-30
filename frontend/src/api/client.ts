@@ -34,6 +34,14 @@ export interface LlmModeCompressToggle {
   hint_off: string;
 }
 
+export interface LlmAvailabilityHints {
+  cloud_unavailable: string;
+  local_unavailable: string;
+  local_for_compress: string;
+  compress_model_required: string;
+  local_model_required: string;
+}
+
 export interface LlmModeOption {
   id: string;
   label: string;
@@ -41,9 +49,14 @@ export interface LlmModeOption {
   detail_bullets: string[];
   requires_cloud: boolean;
   requires_local: boolean;
+  requires_llm: boolean;
   quality_warning: boolean;
+  visualization_mode: "diagrams" | "markdown";
+  rerun_supported: boolean;
+  hide_token_stats: boolean;
   default: boolean;
   available: boolean;
+  unavailable_hint?: string | null;
   compress_toggle?: LlmModeCompressToggle;
 }
 
@@ -62,6 +75,8 @@ export interface TaskRecord {
   review_depth_label?: string;
   llm_mode?: string;
   llm_mode_label?: string;
+  visualization_mode?: "diagrams" | "markdown";
+  rerun_supported?: boolean;
   local_compress_enabled?: boolean;
   local_model?: string;
   compress_stats?: {
@@ -120,6 +135,9 @@ export interface DiagramUiStrings {
   render_error_hint: string;
   unnamed_node: string;
   empty_structure: string;
+  node_summary_label: string;
+  node_risk_prefix: string;
+  node_confidence_prefix: string;
 }
 
 export interface DiagramTypeMeta {
@@ -134,6 +152,7 @@ export interface DiagramMetaResponse {
   section_preview_label: string;
   empty_diagrams: string;
   diagram_count?: number;
+  overview_risk_preview_count?: number;
   ui_strings: DiagramUiStrings;
   default_legend: DiagramLegendItem[];
   diagram_types: DiagramTypeMeta[];
@@ -166,6 +185,7 @@ export interface TaskResult {
   detected_project_type: string;
   detected_framework: string;
   review_stats?: ReviewStats | null;
+  markdown_report?: string;
 }
 
 export interface ExamplePR {
@@ -175,7 +195,79 @@ export interface ExamplePR {
   description: string;
 }
 
+export interface ClientMetaResponse {
+  error_messages: Record<string, string>;
+}
+
+export interface InputPageTabMeta {
+  id: InputType;
+  title: string;
+  hint: string;
+}
+
+export interface InputPageSelectOption {
+  id: string;
+  label: string;
+}
+
+export interface InputPageMetaResponse {
+  default_project_type: string;
+  default_framework: string;
+  project_types: InputPageSelectOption[];
+  frameworks: InputPageSelectOption[];
+  input_tabs: InputPageTabMeta[];
+  ui_strings: Record<string, string>;
+}
+
+export interface RulesMetaResponse {
+  rules_pack_version: string;
+  visualization_mode: string;
+  ui_strings: Record<string, string>;
+  table_change_headers: string[];
+  table_hit_headers: string[];
+}
+
 const API = "/api";
+
+let clientMetaCache: ClientMetaResponse | null = null;
+let clientMetaPromise: Promise<ClientMetaResponse> | null = null;
+
+export async function fetchClientMeta(): Promise<ClientMetaResponse> {
+  if (clientMetaCache) return clientMetaCache;
+  if (!clientMetaPromise) {
+    clientMetaPromise = fetch(`${API}/client-meta`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("fetch_client_meta");
+        return res.json() as Promise<ClientMetaResponse>;
+      })
+      .then((data) => {
+        clientMetaCache = data;
+        return data;
+      });
+  }
+  return clientMetaPromise;
+}
+
+async function resolveClientError(key: string, detail?: string): Promise<string> {
+  if (detail) return detail;
+  try {
+    const meta = await fetchClientMeta();
+    return meta.error_messages[key] || key;
+  } catch {
+    return key;
+  }
+}
+
+async function throwApiError(res: Response, key: string): Promise<never> {
+  let detail: string | undefined;
+  try {
+    const data = await res.json();
+    if (typeof data.detail === "string") detail = data.detail;
+  } catch {
+    /* ignore */
+  }
+  throw new Error(await resolveClientError(key, detail));
+}
 
 export async function createTask(body: {
   input_type: InputType;
@@ -194,19 +286,19 @@ export async function createTask(body: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error((await res.json()).detail || "创建任务失败");
+  if (!res.ok) await throwApiError(res, "create_task");
   return res.json();
 }
 
 export async function getTask(id: string): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks/${id}`);
-  if (!res.ok) throw new Error("获取任务失败");
+  if (!res.ok) await throwApiError(res, "get_task");
   return res.json();
 }
 
 export async function getTaskResult(id: string): Promise<TaskResult> {
   const res = await fetch(`${API}/tasks/${id}/result`);
-  if (!res.ok) throw new Error("结果尚未就绪");
+  if (!res.ok) await throwApiError(res, "get_task_result");
   return res.json();
 }
 
@@ -219,10 +311,7 @@ export async function rerunTask(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.detail || "重跑失败");
-  }
+  if (!res.ok) await throwApiError(res, "rerun_task");
   return res.json();
 }
 
@@ -231,7 +320,7 @@ export async function fetchReviewDepthOptions(): Promise<{
   default_review_depth_mode: string;
 }> {
   const res = await fetch(`${API}/review-depth-options`);
-  if (!res.ok) throw new Error("无法加载审阅深度选项");
+  if (!res.ok) await throwApiError(res, "fetch_review_depth");
   return res.json();
 }
 
@@ -243,15 +332,28 @@ export async function fetchLlmModeOptions(): Promise<{
   local_available: boolean;
   local_models: string[];
   default_local_model: string;
+  availability_hints: LlmAvailabilityHints;
 }> {
   const res = await fetch(`${API}/llm-mode-options`);
-  if (!res.ok) throw new Error("无法加载推理模式选项");
+  if (!res.ok) await throwApiError(res, "fetch_llm_mode");
+  return res.json();
+}
+
+export async function fetchRulesMeta(): Promise<RulesMetaResponse> {
+  const res = await fetch(`${API}/rules-meta`);
+  if (!res.ok) await throwApiError(res, "fetch_rules_meta");
   return res.json();
 }
 
 export async function fetchDiagramMeta(): Promise<DiagramMetaResponse> {
   const res = await fetch(`${API}/diagram-meta`);
-  if (!res.ok) throw new Error("无法加载图表元数据");
+  if (!res.ok) await throwApiError(res, "fetch_diagram_meta");
+  return res.json();
+}
+
+export async function fetchInputPageMeta(): Promise<InputPageMetaResponse> {
+  const res = await fetch(`${API}/input-page-meta`);
+  if (!res.ok) await throwApiError(res, "fetch_input_page_meta");
   return res.json();
 }
 
@@ -263,4 +365,10 @@ export async function fetchExamples(): Promise<ExamplePR[]> {
 
 export function exportUrl(taskId: string): string {
   return `${API}/tasks/${taskId}/export.md`;
+}
+
+/** 测试用：重置 client meta 缓存 */
+export function resetClientMetaCache(): void {
+  clientMetaCache = null;
+  clientMetaPromise = null;
 }
