@@ -1,0 +1,39 @@
+rules:
+  - id: large-patch-hunk
+    message: 单文件变更行数较多，建议拆分为更小 PR 便于审阅
+    severity: LOW
+    match:
+      any:
+        - pattern-regex: '^.{200,}$'
+          target: patch_hunk
+
+  - id: ci-config-changed
+    message: CI/工作流配置发生变更，请确认流水线与安全权限
+    severity: MEDIUM
+    paths:
+      include: [".github/**", "**/gitlab-ci.yml", "**/azure-pipelines.yml"]
+    match:
+      any:
+        - pattern-regex: '.+'
+          target: file_path
+
+  - id: dockerfile-changed
+    message: Dockerfile 变更可能影响镜像安全与构建，请复核基础镜像与权限
+    severity: MEDIUM
+    languages: [docker, config]
+    paths:
+      include: ["**/Dockerfile", "**/Dockerfile.*"]
+    match:
+      any:
+        - pattern-regex: '.+'
+          target: file_path
+
+  - id: test-file-removed
+    message: 测试相关文件被删除或大量移除，请确认测试覆盖未回退
+    severity: MEDIUM
+    paths:
+      include: ["**/test/**", "**/tests/**", "**/*_test.*", "**/*.test.*", "**/*.spec.*"]
+    match:
+      any:
+        - pattern-regex: '^-{3,}'
+          target: patch_hunk

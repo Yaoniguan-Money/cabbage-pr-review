@@ -215,6 +215,7 @@ class TaskResultSchema(BaseModel):
     detected_project_type: str = ""
     detected_framework: str = ""
     review_stats: ReviewStats | None = None
+    markdown_report: str = ""
 
 
 class CreateTaskRequest(BaseModel):
@@ -268,6 +269,8 @@ class TaskRecord(BaseModel):
     review_depth_label: str = ""
     llm_mode: str = "cloud_only"
     llm_mode_label: str = ""
+    visualization_mode: str = "diagrams"
+    rerun_supported: bool = True
     local_compress_enabled: bool = False
     local_model: str = ""
     cloud_flash_model: str = ""

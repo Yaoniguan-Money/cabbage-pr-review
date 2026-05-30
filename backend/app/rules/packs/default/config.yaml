@@ -1,0 +1,9 @@
+config:
+  scope:
+    ignore_path_patterns:
+      - "**/node_modules/**"
+      - "**/.git/**"
+      - "**/__pycache__/**"
+      - "**/dist/**"
+      - "**/build/**"
+    max_atoms_per_run: 200

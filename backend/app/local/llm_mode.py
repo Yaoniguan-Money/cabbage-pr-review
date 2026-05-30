@@ -5,11 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-LlmMode = Literal["cloud_only", "hybrid", "local_only"]
+LlmMode = Literal["cloud_only", "hybrid", "local_only", "rules_only"]
 
-VALID_LLM_MODES: frozenset[str] = frozenset({"cloud_only", "hybrid", "local_only"})
+VALID_LLM_MODES: frozenset[str] = frozenset({"cloud_only", "hybrid", "local_only", "rules_only"})
 
-# 503/400 错误文案单源（guard、validate、llm_helpers 均引用，禁止在业务处拼接）
 HINT_CLOUD_UNAVAILABLE = (
     "当前未配置云端 API，请在 .env 设置 CLOUD_API_KEY 或 DEEPSEEK_API_KEY"
 )
@@ -20,6 +19,7 @@ HINT_HYBRID_LOCAL_FOR_COMPRESS = (
 HINT_COMPRESS_MODEL_REQUIRED = "混合模式启用压缩时需选择本地模型"
 HINT_LOCAL_MODEL_REQUIRED = "纯本地模式需选择本地模型"
 HINT_LOCAL_ONLY_BACKEND = "纯本地模式需要可用的 Ollama 与本地模型"
+HINT_RERUN_NOT_SUPPORTED = "纯规则模式不支持补上下文重跑"
 
 
 @dataclass(frozen=True)
@@ -31,14 +31,19 @@ class CompressToggleMeta:
 
 @dataclass(frozen=True)
 class LlmModeOption:
-    id: LlmMode
+    id: str
     label: str
     summary: str
     detail_bullets: tuple[str, ...]
     requires_cloud: bool
     requires_local: bool
+    requires_llm: bool
     quality_warning: bool
+    visualization_mode: Literal["diagrams", "markdown"]
+    rerun_supported: bool
+    hide_token_stats: bool
     default: bool
+    local_model_required: bool = False
     compress_toggle: CompressToggleMeta | None = None
 
 
@@ -54,7 +59,11 @@ _OPTIONS: tuple[LlmModeOption, ...] = (
         ),
         requires_cloud=True,
         requires_local=False,
+        requires_llm=True,
         quality_warning=False,
+        visualization_mode="diagrams",
+        rerun_supported=True,
+        hide_token_stats=False,
         default=True,
     ),
     LlmModeOption(
@@ -68,7 +77,11 @@ _OPTIONS: tuple[LlmModeOption, ...] = (
         ),
         requires_cloud=True,
         requires_local=True,
+        requires_llm=True,
         quality_warning=False,
+        visualization_mode="diagrams",
+        rerun_supported=True,
+        hide_token_stats=False,
         default=False,
         compress_toggle=CompressToggleMeta(
             default_enabled=True,
@@ -87,17 +100,44 @@ _OPTIONS: tuple[LlmModeOption, ...] = (
         ),
         requires_cloud=False,
         requires_local=True,
+        requires_llm=True,
         quality_warning=True,
+        visualization_mode="diagrams",
+        rerun_supported=True,
+        hide_token_stats=False,
+        default=False,
+        local_model_required=True,
+    ),
+    LlmModeOption(
+        id="rules_only",
+        label="纯规则",
+        summary="零 LLM，由内置 YAML 规则引擎审阅并以 Markdown 报告展示。",
+        detail_bullets=(
+            "无需 Cloud API Key 与 Ollama",
+            "规则来自可配置 YAML 包，命中结果可审计",
+            "覆盖范围取决于规则包，不含语义级架构图",
+        ),
+        requires_cloud=False,
+        requires_local=False,
+        requires_llm=False,
+        quality_warning=True,
+        visualization_mode="markdown",
+        rerun_supported=False,
+        hide_token_stats=True,
         default=False,
     ),
 )
 
 
-def normalize_llm_mode(mode: str | None, fallback: str = "cloud_only") -> LlmMode:
+def is_rules_only_mode(mode: str | None) -> bool:
+    return normalize_llm_mode(mode) == "rules_only"
+
+
+def normalize_llm_mode(mode: str | None, fallback: str = "cloud_only") -> str:
     if mode and mode in VALID_LLM_MODES:
-        return mode  # type: ignore[return-value]
+        return mode
     if fallback in VALID_LLM_MODES:
-        return fallback  # type: ignore[return-value]
+        return fallback
     return "cloud_only"
 
 
@@ -126,6 +166,71 @@ def format_llm_mode_label(
     return opt.label
 
 
+def get_availability_hints() -> dict[str, str]:
+    """前端推导运行时可用性时使用的提示文案单源。"""
+    return {
+        "cloud_unavailable": HINT_CLOUD_UNAVAILABLE,
+        "local_unavailable": HINT_LOCAL_UNAVAILABLE,
+        "local_for_compress": HINT_HYBRID_LOCAL_FOR_COMPRESS,
+        "compress_model_required": HINT_COMPRESS_MODEL_REQUIRED,
+        "local_model_required": HINT_LOCAL_MODEL_REQUIRED,
+    }
+
+
+def needs_local_model_at_runtime(opt: LlmModeOption, compress_enabled: bool) -> bool:
+    if opt.local_model_required:
+        return True
+    if opt.compress_toggle is not None and compress_enabled:
+        return True
+    return False
+
+
+def needs_local_at_runtime(opt: LlmModeOption, compress_enabled: bool) -> bool:
+    if not opt.requires_local:
+        return False
+    if opt.compress_toggle is not None:
+        return compress_enabled
+    return True
+
+
+def is_mode_runtime_available(
+    opt: LlmModeOption,
+    *,
+    cloud_available: bool,
+    local_available: bool,
+    compress_enabled: bool,
+) -> bool:
+    if opt.requires_cloud and not cloud_available:
+        return False
+    if needs_local_at_runtime(opt, compress_enabled) and not local_available:
+        return False
+    return True
+
+
+def mode_unavailable_hint(
+    opt: LlmModeOption,
+    *,
+    cloud_available: bool,
+    local_available: bool,
+    compress_enabled: bool,
+    local_model: str = "",
+) -> str | None:
+    if is_mode_runtime_available(
+        opt,
+        cloud_available=cloud_available,
+        local_available=local_available,
+        compress_enabled=compress_enabled,
+    ):
+        return None
+    return validate_task_llm_config(
+        llm_mode=opt.id,
+        local_compress_enabled=compress_enabled if opt.compress_toggle is not None else False,
+        local_model=local_model or None,
+        cloud_available=cloud_available,
+        local_available=local_available,
+    )
+
+
 def list_llm_mode_options(
     *,
     default_mode: str = "cloud_only",
@@ -138,6 +243,12 @@ def list_llm_mode_options(
     norm_default = normalize_llm_mode(default_mode)
     options: list[dict[str, Any]] = []
     for opt in _OPTIONS:
+        available = is_mode_runtime_available(
+            opt,
+            cloud_available=cloud_available,
+            local_available=local_available,
+            compress_enabled=default_compress_enabled,
+        )
         item: dict[str, Any] = {
             "id": opt.id,
             "label": opt.label,
@@ -145,9 +256,20 @@ def list_llm_mode_options(
             "detail_bullets": list(opt.detail_bullets),
             "requires_cloud": opt.requires_cloud,
             "requires_local": opt.requires_local,
+            "requires_llm": opt.requires_llm,
             "quality_warning": opt.quality_warning,
+            "visualization_mode": opt.visualization_mode,
+            "rerun_supported": opt.rerun_supported,
+            "hide_token_stats": opt.hide_token_stats,
             "default": opt.id == norm_default,
-            "available": _mode_available(opt.id, cloud_available, local_available),
+            "available": available,
+            "unavailable_hint": mode_unavailable_hint(
+                opt,
+                cloud_available=cloud_available,
+                local_available=local_available,
+                compress_enabled=default_compress_enabled,
+                local_model=default_local_model,
+            ),
         }
         if opt.compress_toggle is not None:
             item["compress_toggle"] = {
@@ -164,17 +286,8 @@ def list_llm_mode_options(
         "local_available": local_available,
         "local_models": list(local_models or []),
         "default_local_model": default_local_model,
+        "availability_hints": get_availability_hints(),
     }
-
-
-def _mode_available(mode_id: str, cloud_available: bool, local_available: bool) -> bool:
-    if mode_id == "cloud_only":
-        return cloud_available
-    if mode_id == "hybrid":
-        return cloud_available and local_available
-    if mode_id == "local_only":
-        return local_available
-    return False
 
 
 def validate_task_llm_config(
@@ -186,20 +299,18 @@ def validate_task_llm_config(
     local_available: bool,
 ) -> str | None:
     """返回 None 表示合法，否则为错误说明。"""
-    mode = normalize_llm_mode(llm_mode)
-    opt = get_llm_mode_option(mode)
-    if opt.requires_cloud and not cloud_available:
-        return HINT_CLOUD_UNAVAILABLE
-    if mode == "hybrid":
-        if local_compress_enabled:
-            if not local_available:
-                return HINT_HYBRID_LOCAL_FOR_COMPRESS
-            if not (local_model or "").strip():
-                return HINT_COMPRESS_MODEL_REQUIRED
+    opt = get_llm_mode_option(llm_mode)
+    if not opt.requires_llm:
         return None
-    if mode == "local_only":
-        if not local_available:
-            return HINT_LOCAL_UNAVAILABLE
-        if not (local_model or "").strip():
-            return HINT_LOCAL_MODEL_REQUIRED
+    hints = get_availability_hints()
+    if opt.requires_cloud and not cloud_available:
+        return hints["cloud_unavailable"]
+    if needs_local_at_runtime(opt, local_compress_enabled) and not local_available:
+        if opt.compress_toggle is not None and local_compress_enabled:
+            return hints["local_for_compress"]
+        return hints["local_unavailable"]
+    if needs_local_model_at_runtime(opt, local_compress_enabled) and not (local_model or "").strip():
+        if opt.compress_toggle is not None:
+            return hints["compress_model_required"]
+        return hints["local_model_required"]
     return None

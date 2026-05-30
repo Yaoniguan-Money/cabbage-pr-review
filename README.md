@@ -100,3 +100,17 @@ CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
 ## 图表可视化（v2.3）
 
 三图差异化渲染、title/caption/图例、节点 risk/confidence 展示；文案与样式由 `GET /api/diagram-meta` 单源下发。详见 [docs/V2.3_DIAGRAMS.md](./docs/V2.3_DIAGRAMS.md)。
+
+## 纯规则模式（v2.4）
+
+首页可选 **纯规则** 第四档（`rules_only`）：零 LLM，YAML 规则引擎 + Markdown 报告；无需 Cloud/Ollama。详见 [docs/V2.4_RULES_MODE.md](./docs/V2.4_RULES_MODE.md)。
+
+### 开源借鉴与许可证
+
+| 来源 | 许可证 | 本项目用法 |
+|------|--------|------------|
+| [Semgrep](https://github.com/semgrep/semgrep) | LGPL-2.1 | **仅借鉴** YAML 规则字段设计，未引入引擎或 semgrep-rules 规则包 |
+| [reviewdog](https://github.com/reviewdog/reviewdog) | MIT | **仅借鉴** diff 范围运行与 severity 分级思路 |
+| [Danger](https://github.com/danger/danger) | MIT | **仅借鉴** PR 上下文变量与 fail/warn 分级映射 |
+
+默认规则包位于 `backend/app/rules/packs/default/`（随 Docker `COPY app` 一并打包）。

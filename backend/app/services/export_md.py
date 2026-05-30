@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from app.local.diagram_meta import get_ui_strings, resolve_diagram_title
+from app.local.llm_mode import is_rules_only_mode
+from app.local.rule_meta import RULES_MODE_NOTE
 from app.models.schemas import TaskRecord, TaskResultSchema
 
 _UI = get_ui_strings()
@@ -9,15 +11,21 @@ _UI = get_ui_strings()
 def export_markdown(record: TaskRecord) -> str:
     result: TaskResultSchema | None = record.result
     lines = [
-        f"# AI PR Review 报告",
+        "# AI PR Review 报告",
         "",
         f"- 任务 ID: `{record.id}`",
         f"- 输入类型: {record.input_type.value}",
+        f"- 推理模式: {record.llm_mode_label or record.llm_mode}",
         f"- 输入: {record.input_value[:200]}",
         "",
     ]
     if not result:
         lines.append("> 暂无分析结果")
+        return "\n".join(lines)
+
+    if is_rules_only_mode(record.llm_mode) and result.markdown_report.strip():
+        lines.append(result.markdown_report.strip())
+        lines.append("")
         return "\n".join(lines)
 
     lines.append("## 摘要")
@@ -67,5 +75,7 @@ def export_markdown(record: TaskRecord) -> str:
         lines.append(f"- **{m.module}**: {m.reason}。{m.suggestion}")
     for n in result.degradation_notes:
         lines.append(f"- {n}")
+    if is_rules_only_mode(record.llm_mode):
+        lines.append(f"- {RULES_MODE_NOTE}")
     lines.append("")
     return "\n".join(lines)

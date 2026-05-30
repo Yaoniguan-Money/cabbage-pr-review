@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     local_llm_default_model: str = ""
     local_llm_timeout_sec: int = 180
     local_compress_enabled: bool = True
+    rules_pack_path: str = ""
 
     @property
     def cloud_api_base_resolved(self) -> str:

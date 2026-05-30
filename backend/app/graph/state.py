@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, ReviewStats, RiskReviewSchema, TaskResultSchema
+from app.rules.rule_schema import RuleHitRecord
 
 
 class GraphState(TypedDict, total=False):
@@ -21,3 +22,5 @@ class GraphState(TypedDict, total=False):
     current_agent: int
     review_depth_mode: str | None
     review_stats: ReviewStats | None
+    llm_mode: str
+    rule_hits: list[RuleHitRecord]

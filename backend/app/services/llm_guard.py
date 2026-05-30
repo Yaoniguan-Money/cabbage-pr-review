@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from app.agents.llm_helpers import LLMRequiredError
 from app.config import settings
-from app.local.llm_mode import HINT_CLOUD_UNAVAILABLE, normalize_llm_mode, validate_task_llm_config
+from app.local.llm_mode import HINT_CLOUD_UNAVAILABLE, is_rules_only_mode, normalize_llm_mode, validate_task_llm_config
 from app.llm.router import cloud_available, local_available
 
 
@@ -16,6 +16,9 @@ def ensure_llm_for_api(
         return
 
     mode = normalize_llm_mode(llm_mode, settings.llm_mode)
+    if is_rules_only_mode(mode):
+        return
+
     compress = settings.local_compress_enabled if local_compress_enabled is None else local_compress_enabled
     if mode != "hybrid":
         compress = False
