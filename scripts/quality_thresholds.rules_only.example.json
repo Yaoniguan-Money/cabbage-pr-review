@@ -1,0 +1,11 @@
+{
+  "min_risks": 0,
+  "max_degradation_notes": 0,
+  "require_all_diagram_types": false,
+  "min_risks_evidence_coverage": 0.5,
+  "require_missing_info_when_no_risks": false,
+  "min_diagrams_count": 0,
+  "min_diagram_nodes": 0,
+  "min_distinct_risk_titles_ratio": 0.3,
+  "max_single_title_duplicate": 3
+}

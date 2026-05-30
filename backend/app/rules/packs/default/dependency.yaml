@@ -18,10 +18,10 @@ rules:
   - id: requirements-unpinned
     message: requirements 新增依赖未固定版本，建议锁定版本
     severity: LOW
-    languages: [python]
     paths:
       include: ["**/requirements*.txt"]
     match:
       any:
-        - pattern-regex: '^\+[a-zA-Z0-9_-]+(==|>=|<=|~=)?\s*$'
+        - pattern-regex: '^[a-zA-Z0-9_][a-zA-Z0-9_.\[\]-]*\s*$'
           target: patch_hunk
+          patch_scope: added_only

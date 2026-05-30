@@ -15,7 +15,7 @@ def _parse_status(raw: str) -> str:
     return "modified"
 
 
-def _summarize_patch(patch_text: str) -> tuple[str, str]:
+def _summarize_patch(patch_text: str) -> tuple[str, str, int, int]:
     added = removed = 0
     for line in patch_text.splitlines():
         if line.startswith("+") and not line.startswith("+++"):
@@ -30,7 +30,7 @@ def _summarize_patch(patch_text: str) -> tuple[str, str]:
             break
     excerpt = "\n".join(excerpt_lines)[:500]
     summary = f"变更 +{added}/-{removed} 行"
-    return summary, excerpt
+    return summary, excerpt, added, removed
 
 
 def run_rules_diff(
@@ -53,7 +53,10 @@ def run_rules_diff(
             continue
         status = _parse_status(str(patch.get("status") or "modified"))
         patch_text = str(patch.get("patch") or "")
-        summary, excerpt = _summarize_patch(patch_text) if patch_text else ("文件级变更", "")
+        if patch_text:
+            summary, excerpt, added, removed = _summarize_patch(patch_text)
+        else:
+            summary, excerpt, added, removed = "文件级变更", "", 0, 0
 
         atom_id = f"atom_{idx + 1}"
         atoms.append(
@@ -64,6 +67,8 @@ def run_rules_diff(
                 symbol="",
                 summary=summary,
                 patch_excerpt=excerpt,
+                added_line_count=added,
+                removed_line_count=removed,
             )
         )
 

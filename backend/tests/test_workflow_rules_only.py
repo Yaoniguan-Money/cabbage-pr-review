@@ -34,3 +34,6 @@ async def test_workflow_rules_only_produces_markdown_report():
     assert result is not None
     assert result.markdown_report.strip()
     assert result.summary.strip()
+    assert len(result.rule_hits) >= 1
+    assert result.base_index is not None
+    assert result.head_index is not None

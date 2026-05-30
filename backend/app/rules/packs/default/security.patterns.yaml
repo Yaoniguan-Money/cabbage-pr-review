@@ -22,8 +22,9 @@ rules:
     severity: MEDIUM
     languages: [typescript, javascript]
     paths:
-      include: ["**/*.{tsx,jsx,ts,js}"]
+      include: ["**/*.tsx", "**/*.jsx", "**/*.ts", "**/*.js"]
     match:
       any:
         - pattern-regex: 'dangerouslySetInnerHTML'
           target: patch_hunk
+          patch_scope: added_only

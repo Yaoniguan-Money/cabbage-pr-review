@@ -30,6 +30,13 @@ class CompressToggleMeta:
 
 
 @dataclass(frozen=True)
+class RulesPreflightToggleMeta:
+    default_enabled: bool
+    label: str
+    hint_off: str
+
+
+@dataclass(frozen=True)
 class LlmModeOption:
     id: str
     label: str
@@ -45,6 +52,7 @@ class LlmModeOption:
     default: bool
     local_model_required: bool = False
     compress_toggle: CompressToggleMeta | None = None
+    rules_preflight_toggle: RulesPreflightToggleMeta | None = None
 
 
 _OPTIONS: tuple[LlmModeOption, ...] = (
@@ -65,6 +73,11 @@ _OPTIONS: tuple[LlmModeOption, ...] = (
         rerun_supported=True,
         hide_token_stats=False,
         default=True,
+        rules_preflight_toggle=RulesPreflightToggleMeta(
+            default_enabled=False,
+            label="启用 YAML 规则预检",
+            hint_off="关闭后 Agent4 不注入静态规则命中上下文",
+        ),
     ),
     LlmModeOption(
         id="hybrid",
@@ -87,6 +100,11 @@ _OPTIONS: tuple[LlmModeOption, ...] = (
             default_enabled=True,
             label="启用本地输入压缩",
             hint_off="关闭后与纯云端行为相同，本地不参与分析",
+        ),
+        rules_preflight_toggle=RulesPreflightToggleMeta(
+            default_enabled=False,
+            label="启用 YAML 规则预检",
+            hint_off="关闭后 Agent4 不注入静态规则命中上下文",
         ),
     ),
     LlmModeOption(
@@ -235,6 +253,7 @@ def list_llm_mode_options(
     *,
     default_mode: str = "cloud_only",
     default_compress_enabled: bool = True,
+    default_rules_preflight_enabled: bool = False,
     cloud_available: bool = False,
     local_available: bool = False,
     local_models: list[str] | None = None,
@@ -277,11 +296,18 @@ def list_llm_mode_options(
                 "label": opt.compress_toggle.label,
                 "hint_off": opt.compress_toggle.hint_off,
             }
+        if opt.rules_preflight_toggle is not None:
+            item["rules_preflight_toggle"] = {
+                "default_enabled": default_rules_preflight_enabled,
+                "label": opt.rules_preflight_toggle.label,
+                "hint_off": opt.rules_preflight_toggle.hint_off,
+            }
         options.append(item)
     return {
         "options": options,
         "default_llm_mode": norm_default,
         "default_local_compress_enabled": default_compress_enabled,
+        "default_rules_preflight_enabled": default_rules_preflight_enabled,
         "cloud_available": cloud_available,
         "local_available": local_available,
         "local_models": list(local_models or []),

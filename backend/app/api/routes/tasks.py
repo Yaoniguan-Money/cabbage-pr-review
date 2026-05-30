@@ -35,6 +35,12 @@ def _resolve_llm_fields(body: CreateTaskRequest) -> dict:
         cloud_pro_model=body.cloud_pro_model,
     )
     opt = get_llm_mode_option(llm_ctx.llm_mode, settings.llm_mode)
+    rules_preflight_enabled = False
+    if opt.rules_preflight_toggle is not None:
+        if body.rules_preflight_enabled is not None:
+            rules_preflight_enabled = body.rules_preflight_enabled
+        else:
+            rules_preflight_enabled = opt.rules_preflight_toggle.default_enabled
     return {
         "llm_mode": llm_ctx.llm_mode,
         "llm_mode_label": format_llm_mode_label(
@@ -49,6 +55,7 @@ def _resolve_llm_fields(body: CreateTaskRequest) -> dict:
         "local_model": llm_ctx.local_model,
         "cloud_flash_model": llm_ctx.cloud_flash_model,
         "cloud_pro_model": llm_ctx.cloud_pro_model,
+        "rules_preflight_enabled": rules_preflight_enabled,
     }
 
 

@@ -34,6 +34,12 @@ export interface LlmModeCompressToggle {
   hint_off: string;
 }
 
+export interface LlmModeRulesPreflightToggle {
+  default_enabled: boolean;
+  label: string;
+  hint_off: string;
+}
+
 export interface LlmAvailabilityHints {
   cloud_unavailable: string;
   local_unavailable: string;
@@ -58,6 +64,7 @@ export interface LlmModeOption {
   available: boolean;
   unavailable_hint?: string | null;
   compress_toggle?: LlmModeCompressToggle;
+  rules_preflight_toggle?: LlmModeRulesPreflightToggle;
 }
 
 export interface TaskRecord {
@@ -79,6 +86,7 @@ export interface TaskRecord {
   rerun_supported?: boolean;
   local_compress_enabled?: boolean;
   local_model?: string;
+  rules_preflight_enabled?: boolean;
   compress_stats?: {
     compress_calls: number;
     chars_before: number;
@@ -174,6 +182,14 @@ export interface MissingInfoItem {
   suggestion: string;
 }
 
+export interface RuleHitRecord {
+  rule_id: string;
+  severity: string;
+  file_path: string;
+  evidence: string;
+  message: string;
+}
+
 export interface TaskResult {
   summary: string;
   summary_bullets: string[];
@@ -186,6 +202,9 @@ export interface TaskResult {
   detected_framework: string;
   review_stats?: ReviewStats | null;
   markdown_report?: string;
+  rule_hits?: RuleHitRecord[];
+  base_index?: { entry_files?: string[]; modules?: string[] } | null;
+  head_index?: { entry_files?: string[]; modules?: string[] } | null;
 }
 
 export interface ExamplePR {
@@ -225,6 +244,8 @@ export interface RulesMetaResponse {
   ui_strings: Record<string, string>;
   table_change_headers: string[];
   table_hit_headers: string[];
+  group_by_rule_id_default?: boolean;
+  collapse_low_default?: boolean;
 }
 
 const API = "/api";
@@ -280,6 +301,7 @@ export async function createTask(body: {
   local_model?: string;
   cloud_flash_model?: string;
   cloud_pro_model?: string;
+  rules_preflight_enabled?: boolean;
 }): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
@@ -328,6 +350,7 @@ export async function fetchLlmModeOptions(): Promise<{
   options: LlmModeOption[];
   default_llm_mode: string;
   default_local_compress_enabled: boolean;
+  default_rules_preflight_enabled?: boolean;
   cloud_available: boolean;
   local_available: boolean;
   local_models: string[];

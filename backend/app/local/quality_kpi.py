@@ -42,6 +42,11 @@ class QualityMetrics:
     global_compare_has_before_after: bool = False
     arch_impact_node_jaccard: float = 0.0
     risks_with_evidence_count: int = 0
+    distinct_risk_titles_count: int = 0
+    distinct_risk_titles_ratio: float = 1.0
+    max_risk_title_duplicate_count: int = 0
+    rule_hits_count: int = 0
+    rule_hits_by_rule_id: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -57,6 +62,11 @@ class QualityMetrics:
             "arch_impact_node_jaccard": self.arch_impact_node_jaccard,
             "risks_with_evidence_count": self.risks_with_evidence_count,
             "risks_evidence_coverage": self.risks_evidence_coverage,
+            "distinct_risk_titles_count": self.distinct_risk_titles_count,
+            "distinct_risk_titles_ratio": self.distinct_risk_titles_ratio,
+            "max_risk_title_duplicate_count": self.max_risk_title_duplicate_count,
+            "rule_hits_count": self.rule_hits_count,
+            "rule_hits_by_rule_id": dict(self.rule_hits_by_rule_id),
         }
 
     @property
@@ -80,6 +90,8 @@ class QualityThresholds:
     require_path_compare_groups: bool = False
     require_global_compare_groups: bool = False
     max_arch_impact_jaccard: float = 1.0
+    min_distinct_risk_titles_ratio: float = 0.0
+    max_single_title_duplicate: int = 0
 
 
 def compute_metrics(result: dict[str, Any]) -> QualityMetrics:
@@ -126,6 +138,28 @@ def compute_metrics(result: dict[str, Any]) -> QualityMetrics:
         1 for r in risks if isinstance(r, dict) and bool((r.get("evidence") or "").strip())
     )
 
+    titles = [
+        str(r.get("title") or "").strip()
+        for r in risks
+        if isinstance(r, dict) and str(r.get("title") or "").strip()
+    ]
+    title_counts: dict[str, int] = {}
+    for title in titles:
+        title_counts[title] = title_counts.get(title, 0) + 1
+    distinct_count = len(title_counts)
+    risks_count = len(risks)
+    distinct_ratio = (distinct_count / risks_count) if risks_count else 1.0
+    max_dup = max(title_counts.values()) if title_counts else 0
+
+    rule_hits = result.get("rule_hits") or []
+    hits_by_rule: dict[str, int] = {}
+    for hit in rule_hits:
+        if not isinstance(hit, dict):
+            continue
+        rid = str(hit.get("rule_id") or "")
+        if rid:
+            hits_by_rule[rid] = hits_by_rule.get(rid, 0) + 1
+
     return QualityMetrics(
         risks_count=len(risks),
         degradation_notes_count=len(degradation_notes),
@@ -138,6 +172,11 @@ def compute_metrics(result: dict[str, Any]) -> QualityMetrics:
         global_compare_has_before_after=global_compare_has_before_after,
         arch_impact_node_jaccard=arch_impact_jaccard,
         risks_with_evidence_count=risks_with_evidence,
+        distinct_risk_titles_count=distinct_count,
+        distinct_risk_titles_ratio=distinct_ratio,
+        max_risk_title_duplicate_count=max_dup,
+        rule_hits_count=len(rule_hits),
+        rule_hits_by_rule_id=hits_by_rule,
     )
 
 
@@ -208,5 +247,19 @@ def evaluate_metrics(
         failures.append(
             "存在 diff_atoms 但 risks 为空，且 missing_info 与 degradation_notes 均未说明原因"
         )
+
+    if thresholds.min_distinct_risk_titles_ratio > 0:
+        if metrics.distinct_risk_titles_ratio < thresholds.min_distinct_risk_titles_ratio:
+            failures.append(
+                f"distinct_risk_titles_ratio={metrics.distinct_risk_titles_ratio:.2f} "
+                f"低于阈值 min_distinct_risk_titles_ratio={thresholds.min_distinct_risk_titles_ratio}"
+            )
+
+    if thresholds.max_single_title_duplicate > 0:
+        if metrics.max_risk_title_duplicate_count > thresholds.max_single_title_duplicate:
+            failures.append(
+                f"max_risk_title_duplicate_count={metrics.max_risk_title_duplicate_count} "
+                f"高于阈值 max_single_title_duplicate={thresholds.max_single_title_duplicate}"
+            )
 
     return len(failures) == 0, failures

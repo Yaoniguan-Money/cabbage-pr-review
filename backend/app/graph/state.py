@@ -24,3 +24,4 @@ class GraphState(TypedDict, total=False):
     review_stats: ReviewStats | None
     llm_mode: str
     rule_hits: list[RuleHitRecord]
+    rules_preflight_enabled: bool

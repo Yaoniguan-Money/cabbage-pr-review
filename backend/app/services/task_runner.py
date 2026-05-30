@@ -105,6 +105,7 @@ async def execute_task(
             "extra_context_paths": extra_context_paths or record.rerun_context_paths or [],
             "review_depth_mode": record.review_depth_mode,
             "llm_mode": record.llm_mode,
+            "rules_preflight_enabled": record.rules_preflight_enabled,
             "degradation_notes": [],
             "rule_hits": [],
         }

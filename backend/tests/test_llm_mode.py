@@ -41,6 +41,7 @@ _TOP_REQUIRED_KEYS = frozenset(
         "options",
         "default_llm_mode",
         "default_local_compress_enabled",
+        "default_rules_preflight_enabled",
         "cloud_available",
         "local_available",
         "local_models",
@@ -48,6 +49,7 @@ _TOP_REQUIRED_KEYS = frozenset(
         "availability_hints",
     }
 )
+_PREFLIGHT_TOGGLE_KEYS = frozenset({"default_enabled", "label", "hint_off"})
 _COMPRESS_TOGGLE_KEYS = frozenset({"default_enabled", "label", "hint_off"})
 
 
@@ -77,6 +79,10 @@ def test_list_llm_mode_options_structure():
     assert _OPTION_REQUIRED_KEYS <= set(hybrid.keys())
     assert hybrid["compress_toggle"] is not None
     assert _COMPRESS_TOGGLE_KEYS <= set(hybrid["compress_toggle"].keys())
+    assert hybrid["rules_preflight_toggle"] is not None
+    assert _PREFLIGHT_TOGGLE_KEYS <= set(hybrid["rules_preflight_toggle"].keys())
+    cloud = next(o for o in data["options"] if o["id"] == "cloud_only")
+    assert cloud["rules_preflight_toggle"] is not None
     assert hybrid["compress_toggle"]["default_enabled"] is True
     assert hybrid["available"] is False
     assert hybrid["unavailable_hint"] == HINT_HYBRID_LOCAL_FOR_COMPRESS

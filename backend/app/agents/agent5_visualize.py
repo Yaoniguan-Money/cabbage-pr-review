@@ -21,6 +21,7 @@ from app.models.schemas import (
     TaskResultSchema,
     VisualizationSchema,
 )
+from app.rules.rule_schema import RuleHitRecord
 
 
 def _atom_summary(atom: DiffAtom) -> dict:
@@ -42,6 +43,7 @@ def run_agent5(
     project_type: str | None,
     framework: str | None,
     review_stats: ReviewStats | None = None,
+    rule_hits: list[RuleHitRecord] | None = None,
 ) -> tuple[TaskResultSchema, list[str]]:
     payload = {
         "base_index": base.model_dump(),
@@ -95,6 +97,7 @@ def run_agent5(
             detected_project_type=viz.detected_project_type,
             detected_framework=viz.detected_framework,
             review_stats=review_stats,
+            rule_hits=list(rule_hits or []),
         ),
         notes,
     )

@@ -80,6 +80,8 @@ export default function InputPage() {
 
   const [compressEnabled, setCompressEnabled] = useState(true);
 
+  const [rulesPreflightEnabled, setRulesPreflightEnabled] = useState(false);
+
   const [localModel, setLocalModel] = useState("");
 
   const [localModels, setLocalModels] = useState<string[]>([]);
@@ -142,6 +144,8 @@ export default function InputPage() {
 
         setCompressEnabled(data.default_local_compress_enabled);
 
+        setRulesPreflightEnabled(data.default_rules_preflight_enabled ?? false);
+
         setSelectedLlmMode(
 
           pickInitialLlmMode(data.options, {
@@ -181,6 +185,8 @@ export default function InputPage() {
   const needsLocal = activeLlm ? needsLocalRuntime(activeLlm, compressEnabled) : false;
 
   const showCompress = Boolean(activeLlm?.compress_toggle);
+
+  const showRulesPreflight = Boolean(activeLlm?.rules_preflight_toggle);
 
   const showDepth = activeLlm?.requires_llm !== false;
 
@@ -237,6 +243,8 @@ export default function InputPage() {
         llm_mode: selectedLlmMode || undefined,
 
         local_compress_enabled: showCompress ? compressEnabled : undefined,
+
+        rules_preflight_enabled: showRulesPreflight ? rulesPreflightEnabled : undefined,
 
         local_model: needsLocal ? localModel || undefined : undefined,
 
@@ -431,6 +439,26 @@ export default function InputPage() {
 
           </div>
 
+        )}
+
+
+
+        {showRulesPreflight && activeLlm?.rules_preflight_toggle && (
+          <div style={{ marginTop: "1rem" }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={rulesPreflightEnabled}
+                onChange={(e) => setRulesPreflightEnabled(e.target.checked)}
+              />{" "}
+              {activeLlm.rules_preflight_toggle.label}
+            </label>
+            {!rulesPreflightEnabled && (
+              <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                {activeLlm.rules_preflight_toggle.hint_off}
+              </p>
+            )}
+          </div>
         )}
 
 

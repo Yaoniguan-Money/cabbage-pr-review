@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PrUrl,
     [string]$ApiBase = "http://localhost:8000",
-    [ValidateSet("cloud_only", "hybrid", "local_only", "")]
+    [ValidateSet("cloud_only", "hybrid", "local_only", "rules_only", "")]
     [string]$LlmMode = "",
     [Nullable[bool]]$LocalCompress = $null,
     [int]$MinRisks = 1,
@@ -14,6 +14,8 @@ param(
     [bool]$RequirePathCompareGroups = $false,
     [bool]$RequireGlobalCompareGroups = $false,
     [double]$MaxArchImpactJaccard = 1.0,
+    [double]$MinDistinctRiskTitlesRatio = 0.0,
+    [int]$MaxSingleTitleDuplicate = 0,
     [int]$TimeoutMinutes = 12
 )
 
@@ -33,6 +35,15 @@ function Get-ThresholdsFromJson {
         RequirePathCompareGroups     = if ($null -ne $raw.require_path_compare_groups) { [bool]$raw.require_path_compare_groups } else { $false }
         RequireGlobalCompareGroups   = if ($null -ne $raw.require_global_compare_groups) { [bool]$raw.require_global_compare_groups } else { $false }
         MaxArchImpactJaccard         = if ($null -ne $raw.max_arch_impact_jaccard) { [double]$raw.max_arch_impact_jaccard } else { 1.0 }
+        MinDistinctRiskTitlesRatio   = if ($null -ne $raw.min_distinct_risk_titles_ratio) { [double]$raw.min_distinct_risk_titles_ratio } else { 0.0 }
+        MaxSingleTitleDuplicate      = if ($null -ne $raw.max_single_title_duplicate) { [int]$raw.max_single_title_duplicate } else { 0 }
+    }
+}
+
+if ($LlmMode -eq "rules_only" -and -not $env:QUALITY_THRESHOLDS_JSON) {
+    $rulesOnlyDefaults = Join-Path $PSScriptRoot "quality_thresholds.rules_only.example.json"
+    if (Test-Path $rulesOnlyDefaults) {
+        $env:QUALITY_THRESHOLDS_JSON = $rulesOnlyDefaults
     }
 }
 
@@ -62,6 +73,12 @@ if ($env:QUALITY_THRESHOLDS_JSON) {
     }
     if ($PSBoundParameters.ContainsKey("MaxArchImpactJaccard") -eq $false) {
         $MaxArchImpactJaccard = $fromFile.MaxArchImpactJaccard
+    }
+    if ($PSBoundParameters.ContainsKey("MinDistinctRiskTitlesRatio") -eq $false) {
+        $MinDistinctRiskTitlesRatio = $fromFile.MinDistinctRiskTitlesRatio
+    }
+    if ($PSBoundParameters.ContainsKey("MaxSingleTitleDuplicate") -eq $false) {
+        $MaxSingleTitleDuplicate = $fromFile.MaxSingleTitleDuplicate
     }
 }
 
@@ -110,6 +127,8 @@ thresholds = QualityThresholds(
     require_path_compare_groups=$($RequirePathCompareGroups.ToString().ToLower()),
     require_global_compare_groups=$($RequireGlobalCompareGroups.ToString().ToLower()),
     max_arch_impact_jaccard=$MaxArchImpactJaccard,
+    min_distinct_risk_titles_ratio=$MinDistinctRiskTitlesRatio,
+    max_single_title_duplicate=$MaxSingleTitleDuplicate,
 )
 ok, failures = evaluate_metrics(metrics, thresholds)
 print(json.dumps({"ok": ok, "metrics": metrics.to_dict(), "failures": failures}, ensure_ascii=False))
@@ -126,6 +145,9 @@ Write-Output ("EVIDENCE_COVERAGE=" + $eval.metrics.risks_evidence_coverage)
 Write-Output ("PATH_COMPARE_GROUPS=" + $eval.metrics.path_compare_has_before_after)
 Write-Output ("GLOBAL_COMPARE_GROUPS=" + $eval.metrics.global_compare_has_before_after)
 Write-Output ("ARCH_IMPACT_JACCARD=" + $eval.metrics.arch_impact_node_jaccard)
+Write-Output ("DISTINCT_RISK_TITLES_RATIO=" + $eval.metrics.distinct_risk_titles_ratio)
+Write-Output ("MAX_RISK_TITLE_DUP=" + $eval.metrics.max_risk_title_duplicate_count)
+Write-Output ("RULE_HITS=" + $eval.metrics.rule_hits_count)
 
 foreach ($dtype in $eval.metrics.diagram_has_mermaid.PSObject.Properties.Name) {
     $has = $eval.metrics.diagram_has_mermaid.$dtype

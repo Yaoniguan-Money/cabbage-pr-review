@@ -52,6 +52,7 @@ export const mockRulesMeta = {
   visualization_mode: "markdown",
   ui_strings: {
     nav_report: "规则报告",
+    nav_rule_hits: "规则命中",
     nav_overview: "总览（默认）",
     nav_summary: "摘要",
     nav_risks: "风险列表",
@@ -123,6 +124,11 @@ export const mockLlmOptionsResponse = {
       hide_token_stats: false,
       default: true,
       available: true,
+      rules_preflight_toggle: {
+        default_enabled: false,
+        label: "启用 YAML 规则预检",
+        hint_off: "关闭后 Agent4 不注入静态规则命中上下文",
+      },
     },
     {
       id: "hybrid",
@@ -138,6 +144,16 @@ export const mockLlmOptionsResponse = {
       hide_token_stats: false,
       default: false,
       available: true,
+      compress_toggle: {
+        default_enabled: true,
+        label: "启用本地输入压缩",
+        hint_off: "关闭后与纯云端行为相同",
+      },
+      rules_preflight_toggle: {
+        default_enabled: false,
+        label: "启用 YAML 规则预检",
+        hint_off: "关闭后 Agent4 不注入静态规则命中上下文",
+      },
     },
     {
       id: "rules_only",
@@ -157,6 +173,7 @@ export const mockLlmOptionsResponse = {
   ],
   default_llm_mode: "cloud_only",
   default_local_compress_enabled: true,
+  default_rules_preflight_enabled: false,
   cloud_available: true,
   local_available: true,
   local_models: ["test-model:7b"],

@@ -18,6 +18,8 @@ from app.models.schemas import (
     RiskItem,
     RiskReviewSchema,
 )
+from app.rules.pipeline.rules_preflight import format_rule_hits_for_prompt
+from app.rules.rule_schema import RuleHitRecord
 
 
 def _select_focus_atoms(diff: DiffCompareSchema, focus_atom_ids: list[str] | None) -> list[DiffAtom]:
@@ -119,6 +121,7 @@ def _run_batch_review(
     profile: ReviewDepthProfile,
     stats: ReviewStats,
     notes: list[str],
+    rule_hits: list[RuleHitRecord] | None = None,
 ) -> tuple[RiskReviewSchema, list[AtomContextPlan]]:
     plan_payload = {
         "atoms": [a.model_dump() for a in batch_atoms],
@@ -174,6 +177,12 @@ def _run_batch_review(
             "degradation_notes": [],
         },
     }
+    if rule_hits:
+        review_payload["rule_preflight_hits"] = format_rule_hits_for_prompt(rule_hits)
+        review_payload["instruction"] = (
+            "结合 rule_preflight_hits 中的 YAML 静态发现，重点解释、补全或纠正相关风险；"
+            "须输出 RiskReviewSchema JSON（含 evidence、suggestion）。"
+        )
     review_part, n2 = call_pro_json(
         "你是递进式审阅 Agent 第2步：仅输出 RiskReviewSchema JSON（含 evidence、suggestion），不要输出额外字段。",
         json.dumps(review_payload, ensure_ascii=False),
@@ -230,6 +239,7 @@ def run_agent4(
     extra_context_paths: list[str] | None = None,
     git_ws: object | None = None,
     review_depth_mode: str = "balanced",
+    rule_hits: list[RuleHitRecord] | None = None,
 ) -> tuple[RiskReviewSchema, list[str], ReviewStats]:
     notes: list[str] = []
     profile = get_review_depth_profile(review_depth_mode)
@@ -288,6 +298,7 @@ def run_agent4(
                 profile,
                 stats,
                 notes,
+                rule_hits=rule_hits,
             )
             all_risks.extend(review_part.risks)
             missing.extend(review_part.missing_info)
