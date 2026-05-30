@@ -207,6 +207,32 @@ button:disabled {
   margin-top: 0.5rem;
 }
 
+.markdown-report {
+  margin-top: 1rem;
+}
+
+.markdown-section {
+  margin-bottom: 1.5rem;
+}
+
+.markdown-section h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.markdown-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  background: var(--card, #1a1d24);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .detail-layout {
     grid-template-columns: 1fr;

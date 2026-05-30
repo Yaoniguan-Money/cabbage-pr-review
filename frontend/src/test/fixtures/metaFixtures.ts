@@ -1,0 +1,218 @@
+import type {
+  ClientMetaResponse,
+  DiagramMetaResponse,
+  InputPageMetaResponse,
+  LlmAvailabilityHints,
+} from "../../api/client";
+
+export const mockAvailabilityHints: LlmAvailabilityHints = {
+  cloud_unavailable: "cloud-off-hint",
+  local_unavailable: "local-off-hint",
+  local_for_compress: "compress-local-hint",
+  compress_model_required: "compress-model-hint",
+  local_model_required: "local-model-hint",
+};
+
+export const mockClientMeta: ClientMetaResponse = {
+  error_messages: {
+    create_task: "create-task-err",
+    get_task: "get-task-err",
+    get_task_result: "get-result-err",
+    rerun_task: "rerun-err",
+    fetch_review_depth: "fetch-depth-err",
+    fetch_llm_mode: "fetch-llm-err",
+    fetch_rules_meta: "fetch-rules-err",
+    fetch_diagram_meta: "fetch-diagram-err",
+    fetch_input_page_meta: "fetch-input-err",
+    fetch_client_meta: "fetch-client-err",
+  },
+};
+
+export const mockDiagramMeta: DiagramMetaResponse = {
+  section_label: "三张图",
+  section_preview_label: "三张图（预览）",
+  empty_diagrams: "暂无图表",
+  diagram_count: 3,
+  overview_risk_preview_count: 5,
+  ui_strings: {
+    render_error_title: "图表渲染失败",
+    render_error_hint: "展开查看原始 Mermaid",
+    unnamed_node: "未命名节点",
+    empty_structure: "暂无结构数据",
+    node_summary_label: "节点摘要",
+    node_risk_prefix: "风险",
+    node_confidence_prefix: "置信",
+  },
+  default_legend: [],
+  diagram_types: [],
+};
+
+export const mockRulesMeta = {
+  rules_pack_version: "1.0.0",
+  visualization_mode: "markdown",
+  ui_strings: {
+    nav_report: "规则报告",
+    nav_overview: "总览（默认）",
+    nav_summary: "摘要",
+    nav_risks: "风险列表",
+    nav_missing: "缺失信息",
+    back_link: "← 返回输入",
+    export_markdown: "导出 Markdown",
+    invalid_task: "无效任务",
+    task_failed_fallback: "任务失败",
+    load_failed: "加载失败",
+    running_message: "分析进行中，请稍候…",
+    overview_risks_preview_title: "风险列表（前 5 条）",
+    degradation_banner: "本次分析包含降级项，请优先查看「缺失信息」确认结果可靠性。",
+    no_risks_but_atoms_banner:
+      "当前未提取到风险项，但存在差异原子，可能是审阅结构化输出降级。建议查看「缺失信息」或发起一次重跑。",
+    missing_section_title: "缺失信息 / 受限条件",
+    empty_missing: "无",
+  },
+  table_change_headers: [],
+  table_hit_headers: [],
+};
+
+export const mockInputPageMeta: InputPageMetaResponse = {
+  default_project_type: "unknown",
+  default_framework: "unknown",
+  project_types: [
+    { id: "python-api", label: "python-api" },
+    { id: "unknown", label: "unknown" },
+  ],
+  frameworks: [
+    { id: "FastAPI", label: "FastAPI" },
+    { id: "unknown", label: "unknown" },
+  ],
+  input_tabs: [
+    { id: "pr_url", title: "PR URL", hint: "https://github.com/owner/repo/pull/123" },
+    { id: "patch", title: "Patch / Diff", hint: "粘贴 diff 或 patch 文本" },
+    { id: "local_path", title: "本地仓库路径", hint: "例如 C:\\projects\\my-app" },
+  ],
+  ui_strings: {
+    llm_mode_label: "推理模式（任务开始前选择，运行中不可改）",
+    local_model_label: "本地模型（Ollama）",
+    local_model_placeholder: "输入本机 Ollama 已安装的模型名",
+    review_depth_label: "审阅深度（任务开始前选择，运行中不可改）",
+    input_content_label: "输入内容",
+    patch_placeholder: "diff --git ...",
+    project_type_label: "项目类型（可手动确认）",
+    framework_label: "框架（可手动切换）",
+    submit_loading: "创建任务中…",
+    submit_idle: "开始分析",
+    examples_heading: "官方示例 PR（一键填充）",
+    error_load_review_depth: "无法加载审阅深度选项",
+    error_load_llm_mode: "无法加载推理模式选项",
+    error_submit: "提交失败",
+  },
+};
+
+export const mockLlmOptionsResponse = {
+  options: [
+    {
+      id: "cloud_only",
+      label: "纯云端",
+      summary: "cloud-summary",
+      detail_bullets: ["cloud-bullet"],
+      requires_cloud: true,
+      requires_local: false,
+      requires_llm: true,
+      quality_warning: false,
+      visualization_mode: "diagrams" as const,
+      rerun_supported: true,
+      hide_token_stats: false,
+      default: true,
+      available: true,
+    },
+    {
+      id: "hybrid",
+      label: "混合",
+      summary: "hybrid-summary",
+      detail_bullets: ["hybrid-bullet"],
+      requires_cloud: true,
+      requires_local: true,
+      requires_llm: true,
+      quality_warning: false,
+      visualization_mode: "diagrams" as const,
+      rerun_supported: true,
+      hide_token_stats: false,
+      default: false,
+      available: true,
+    },
+    {
+      id: "rules_only",
+      label: "纯规则",
+      summary: "rules-summary",
+      detail_bullets: ["rules-bullet"],
+      requires_cloud: false,
+      requires_local: false,
+      requires_llm: false,
+      quality_warning: true,
+      visualization_mode: "markdown" as const,
+      rerun_supported: false,
+      hide_token_stats: true,
+      default: false,
+      available: true,
+    },
+  ],
+  default_llm_mode: "cloud_only",
+  default_local_compress_enabled: true,
+  cloud_available: true,
+  local_available: true,
+  local_models: ["test-model:7b"],
+  default_local_model: "",
+  availability_hints: mockAvailabilityHints,
+};
+
+export const mockDepthOptionsResponse = {
+  options: [
+    {
+      id: "conservative",
+      label: "快速审阅",
+      summary: "summary-fast",
+      detail_bullets: ["bullet-fast"],
+      estimated_time: "3-5",
+      cost_tier: "low" as const,
+      cost_tier_label: "Token：省",
+      default: false,
+    },
+    {
+      id: "balanced",
+      label: "标准审阅",
+      summary: "summary-balanced",
+      detail_bullets: ["bullet-balanced"],
+      estimated_time: "4-7",
+      cost_tier: "medium" as const,
+      cost_tier_label: "Token：适中",
+      default: true,
+    },
+  ],
+  default_review_depth_mode: "balanced",
+};
+
+export const mockDetailLlmOptions = {
+  options: [
+    {
+      id: "cloud_only",
+      label: "纯云端",
+      summary: "",
+      detail_bullets: [],
+      requires_cloud: true,
+      requires_local: false,
+      requires_llm: true,
+      quality_warning: false,
+      visualization_mode: "diagrams" as const,
+      rerun_supported: true,
+      hide_token_stats: false,
+      default: true,
+      available: true,
+    },
+  ],
+  default_llm_mode: "cloud_only",
+  default_local_compress_enabled: true,
+  cloud_available: true,
+  local_available: true,
+  local_models: [],
+  default_local_model: "",
+  availability_hints: mockAvailabilityHints,
+};
