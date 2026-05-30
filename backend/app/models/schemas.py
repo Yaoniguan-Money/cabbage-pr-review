@@ -153,6 +153,35 @@ class CompressStatsSchema(BaseModel):
     chars_after: int = 0
 
 
+class TokenUsageByTier(BaseModel):
+    tier: Literal["flash", "pro", "local_compress", "local_flash", "local_pro"]
+    calls: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+class TokenStatsDisplaySegment(BaseModel):
+    key: str
+    label: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+class TaskTokenStatsSchema(BaseModel):
+    cloud_prompt_tokens: int = 0
+    cloud_completion_tokens: int = 0
+    cloud_total_tokens: int = 0
+    local_prompt_tokens: int = 0
+    local_completion_tokens: int = 0
+    local_total_tokens: int = 0
+    total_tokens: int = 0
+    estimated: bool = False
+    by_tier: list[TokenUsageByTier] = Field(default_factory=list)
+    display_segments: list[TokenStatsDisplaySegment] = Field(default_factory=list)
+
+
 class ReviewStats(BaseModel):
     review_depth_mode: str = "balanced"
     review_depth_label: str = ""
@@ -234,6 +263,7 @@ class TaskRecord(BaseModel):
     cloud_flash_model: str = ""
     cloud_pro_model: str = ""
     compress_stats: CompressStatsSchema | None = None
+    token_stats: TaskTokenStatsSchema | None = None
     result: TaskResultSchema | None = None
     pr_context: dict[str, Any] = Field(default_factory=dict)
 

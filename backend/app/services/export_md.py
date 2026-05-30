@@ -30,6 +30,14 @@ def export_markdown(record: TaskRecord) -> str:
         lines.append(f"- {b}")
     lines.append("")
 
+    if record.token_stats and record.token_stats.display_segments:
+        lines.append("## Token 用量")
+        for seg in record.token_stats.display_segments:
+            lines.append(
+                f"- {seg.label}：prompt {seg.prompt_tokens} / completion {seg.completion_tokens} / 合计 {seg.total_tokens}"
+            )
+        lines.append("")
+
     lines.append("## 图表")
     for d in result.diagrams:
         title = DIAGRAM_TITLES.get(d.diagram_type, d.diagram_type)

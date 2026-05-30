@@ -86,7 +86,7 @@ export default function DetailPage() {
         <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
           推理模式：{task.llm_mode_label || task.llm_mode || "—"}
           {" · "}
-          本次审阅：{task.review_depth_label || task.review_depth_mode || "标准审阅"}
+          本次审阅：{task.review_depth_label || task.review_depth_mode || "—"}
           {result?.review_stats
             ? ` | 已扫描 ${result.review_stats.reviewed_atoms}/${result.review_stats.total_atoms} 个差异点`
             : ""}
@@ -95,6 +95,11 @@ export default function DetailPage() {
             : ""}
           {task.compress_stats && task.compress_stats.compress_calls > 0
             ? ` | 本地压缩 ${task.compress_stats.compress_calls} 次（${task.compress_stats.chars_before}→${task.compress_stats.chars_after} 字符）`
+            : ""}
+          {task.token_stats && task.token_stats.display_segments.length > 0
+            ? ` | Token：${task.token_stats.display_segments
+                .map((s) => `${s.label} ${s.total_tokens.toLocaleString()}`)
+                .join(" · ")}`
             : ""}
         </p>
       )}

@@ -24,6 +24,7 @@ export interface ReviewDepthOption {
   detail_bullets: string[];
   estimated_time: string;
   cost_tier: "low" | "medium" | "high";
+  cost_tier_label: string;
   default: boolean;
 }
 
@@ -67,6 +68,23 @@ export interface TaskRecord {
     compress_calls: number;
     chars_before: number;
     chars_after: number;
+  } | null;
+  token_stats?: {
+    cloud_prompt_tokens: number;
+    cloud_completion_tokens: number;
+    cloud_total_tokens: number;
+    local_prompt_tokens: number;
+    local_completion_tokens: number;
+    local_total_tokens: number;
+    total_tokens: number;
+    estimated: boolean;
+    display_segments: Array<{
+      key: string;
+      label: string;
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    }>;
   } | null;
   result?: TaskResult | null;
 }

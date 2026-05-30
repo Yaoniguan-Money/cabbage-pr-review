@@ -45,7 +45,7 @@
 | 3.2 | Web+详情；三卡片；左 nav；异步+轮询；单任务串行 | **已完成** | `InputPage`/`DetailPage`；`task_store.run_exclusive`；`astream` 逐步进度 |
 | 3.3 | 默认展示摘要+三图+风险 | **已完成** | `DetailPage` 默认「总览」含摘要+三图预览+风险前5条 |
 | 3.4 | Agent1-5 进度；路径图/风险置信度；缺失区块；图例统一；风险排序 | **部分完成** | `AgentProgressBar`；`RiskList` 排序；`mermaid_render` classDef；路径图节点 `confidence` **→ R-07** |
-| 3.5 | 自动识别+手动切换；1-3 差异点重跑；补上下文仅一次 | **已完成** | `project_detect.py`；`RerunPanel`；`tasks.py` `rerun_used` |
+| 3.5 | 自动识别+手动切换；1-3 差异点重跑；补上下文仅一次 | **已完成** | Agent5 `detected_*`；`RerunPanel`；`tasks.py` `rerun_used` |
 | 3.6 | 示例 PR；Markdown 导出 | **已完成** | `examples.py`；`export_md.py` |
 | 3.7 | GitHub 只读；内存态；无历史 | **已完成** | 无 comment API；`TaskStore` 内存；无 DB |
 
@@ -54,7 +54,7 @@
 | ID | 定稿要求 | 状态 | 证据 |
 |----|----------|------|------|
 | 4.1 | DS V4 主能力 | **部分完成** | `llm/client.py`；模型名见 **→ R-01** |
-| 4.1 | 本地能力为辅 | **已完成** | `local/*`；`local_model.py` 预留 |
+| 4.1 | 本地能力为辅 | **已完成** | `local/*`；`ollama_provider.py`（v2.2） |
 | 4.1 | LangGraph 编排 | **已完成** | `graph/workflow.py` |
 | 4.1 | 全 Agent 结构化 JSON | **部分完成** | Pydantic schema；无 Key 时启发式 **→ R-02** |
 | 4.1 | 局部降级 | **已完成** | `workflow.py` try/except；`llm_helpers` 降级 notes |
@@ -84,7 +84,7 @@
 |----|----------|------|------|
 | 7.1-7.2 | FastAPI/LangGraph/React/Vite | **已完成** | 工程结构 |
 | 7.3 | Flash:1/2/3/5 Pro:4 | **部分完成** | `llm_helpers.call_flash_json`/`call_pro_json`；模型名 **→ R-01** |
-| 7.4 | 本地层：缓存/规则/渲染/预留模型 | **部分完成** | `cache.py`/`mermaid_render`/`local_model.py`；无 result_repair 调用链 **→ R-05** |
+| 7.4 | 本地层：缓存/规则/渲染/预留模型 | **部分完成** | `cache.py`/`mermaid_render`/`ollama_provider.py`；无 result_repair 调用链 **→ R-05** |
 | 7.5-7.7 | 内存/MD/Docker | **部分完成** | 内存 OK；Docker **→ R-08** |
 
 ### §8 参考开源

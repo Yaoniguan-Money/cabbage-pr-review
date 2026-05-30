@@ -8,6 +8,7 @@ from app.llm.compress_context import (
     get_compress_stats,
     reset_compress_stats,
 )
+from app.llm.token_usage import get_task_token_stats, reset_task_token_usage
 from app.models.schemas import CompressStatsSchema
 from app.llm.task_context import build_task_llm_context, clear_task_llm_context, set_task_llm_context
 from app.local.file_io import parse_patch_text, read_local_repo
@@ -89,6 +90,7 @@ async def execute_task(
     )
     set_task_llm_context(llm_ctx)
     reset_compress_stats()
+    reset_task_token_usage()
     try:
         pr_context, git_ws = await _prepare_context(record)
         record.pr_context = pr_context
@@ -132,6 +134,8 @@ async def execute_task(
                 chars_after=stats.chars_after,
             )
 
+        record.token_stats = get_task_token_stats()
+
         result = final_state.get("final_result")
         if result and final_state.get("degradation_notes"):
             result.degradation_notes = list(final_state["degradation_notes"]) + list(result.degradation_notes)
@@ -142,6 +146,7 @@ async def execute_task(
         record.error_message = str(e)
         if record.current_agent:
             _set_agent_status(record, record.current_agent, "failed", str(e))
+        record.token_stats = get_task_token_stats()
     finally:
         if git_ws:
             git_ws.cleanup()

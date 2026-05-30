@@ -28,6 +28,7 @@ class ReviewDepthOption:
     detail_bullets: tuple[str, ...]
     estimated_time: str
     cost_tier: Literal["low", "medium", "high"]
+    cost_tier_label: str
     default: bool
 
 
@@ -70,6 +71,7 @@ _OPTIONS: tuple[ReviewDepthOption, ...] = (
         ),
         estimated_time="约 3–5 分钟",
         cost_tier="low",
+        cost_tier_label="Token：省",
         default=False,
     ),
     ReviewDepthOption(
@@ -83,6 +85,7 @@ _OPTIONS: tuple[ReviewDepthOption, ...] = (
         ),
         estimated_time="约 4–7 分钟",
         cost_tier="medium",
+        cost_tier_label="Token：适中",
         default=True,
     ),
     ReviewDepthOption(
@@ -96,6 +99,7 @@ _OPTIONS: tuple[ReviewDepthOption, ...] = (
         ),
         estimated_time="约 6–10 分钟",
         cost_tier="high",
+        cost_tier_label="Token：高",
         default=False,
     ),
 )
@@ -126,6 +130,7 @@ def list_review_depth_options(default_mode: str = "balanced") -> list[dict]:
                 "detail_bullets": list(opt.detail_bullets),
                 "estimated_time": opt.estimated_time,
                 "cost_tier": opt.cost_tier,
+                "cost_tier_label": opt.cost_tier_label,
                 "default": opt.id == norm_default,
             }
         )
