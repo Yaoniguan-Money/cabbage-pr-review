@@ -1,33 +1,48 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   exportUrl,
+  fetchDiagramMeta,
   getTask,
   getTaskResult,
   rerunTask,
+  type DiagramMetaResponse,
   type TaskRecord,
   type TaskResult,
 } from "../api/client";
 import AgentProgressBar from "../components/AgentProgressBar";
-import MermaidDiagram from "../components/MermaidDiagram";
+import DiagramCard from "../components/DiagramCard";
 import RerunPanel from "../components/RerunPanel";
 import RiskList from "../components/RiskList";
 import SummaryBar from "../components/SummaryBar";
 
-const DIAGRAM_TITLES: Record<string, string> = {
-  architecture: "原项目架构 / 流程图",
-  impact_overlay: "PR 影响叠加图",
-  path_compare: "关键路径前后对比图",
-};
-
 type Section = "overview" | "summary" | "diagrams" | "risks" | "missing";
+
+function DiagramMetaLoading() {
+  return <div className="meta-loading" aria-busy="true" style={{ minHeight: "4rem" }} />;
+}
 
 export default function DetailPage() {
   const { taskId } = useParams<{ taskId: string }>();
   const [task, setTask] = useState<TaskRecord | null>(null);
   const [result, setResult] = useState<TaskResult | null>(null);
+  const [diagramMeta, setDiagramMeta] = useState<DiagramMetaResponse | null>(null);
   const [section, setSection] = useState<Section>("overview");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchDiagramMeta()
+      .then(setDiagramMeta)
+      .catch(() => setDiagramMeta(null));
+  }, []);
+
+  const metaByType = useMemo(() => {
+    const map: Record<string, DiagramMetaResponse["diagram_types"][number]> = {};
+    for (const item of diagramMeta?.diagram_types || []) {
+      map[item.id] = item;
+    }
+    return map;
+  }, [diagramMeta]);
 
   const poll = useCallback(async () => {
     if (!taskId) return;
@@ -68,10 +83,30 @@ export default function DetailPage() {
   const nav: { id: Section; label: string }[] = [
     { id: "overview", label: "总览（默认）" },
     { id: "summary", label: "摘要" },
-    { id: "diagrams", label: "三张图" },
+    { id: "diagrams", label: diagramMeta?.section_label ?? "…" },
     { id: "risks", label: "风险列表" },
     { id: "missing", label: "缺失信息" },
   ];
+
+  const renderDiagramCards = (diagrams: TaskResult["diagrams"], prefix: string) => {
+    if (!diagramMeta?.ui_strings) return <DiagramMetaLoading />;
+    return diagrams.map((d, i) => (
+      <DiagramCard
+        key={`${d.diagram_type}-${i}`}
+        diagram={d}
+        metaByType={metaByType}
+        defaultLegend={diagramMeta.default_legend}
+        uiStrings={diagramMeta.ui_strings}
+        renderId={`${taskId}-${prefix}-${i}`}
+      />
+    ));
+  };
+
+  const renderDiagramBlock = (diagrams: TaskResult["diagrams"], prefix: string) => {
+    if (!diagramMeta) return <DiagramMetaLoading />;
+    if (diagrams.length === 0) return diagramMeta.empty_diagrams;
+    return renderDiagramCards(diagrams, prefix);
+  };
 
   return (
     <div>
@@ -149,13 +184,16 @@ export default function DetailPage() {
             {section === "overview" && (
               <div>
                 <SummaryBar result={result} />
-                <h3 style={{ marginTop: "1.5rem" }}>三张图（预览）</h3>
-                {result.diagrams.slice(0, 3).map((d, i) => (
-                  <div key={i}>
-                    <h4>{DIAGRAM_TITLES[d.diagram_type] || d.diagram_type}</h4>
-                    <MermaidDiagram code={d.mermaid} id={`${taskId}-ov-${i}`} />
-                  </div>
-                ))}
+                <h3 style={{ marginTop: "1.5rem" }}>
+                  {diagramMeta?.section_preview_label ?? "…"}
+                </h3>
+                {renderDiagramCards(
+                  result.diagrams.slice(
+                    0,
+                    diagramMeta?.diagram_count ?? diagramMeta?.diagram_types.length ?? result.diagrams.length,
+                  ),
+                  "ov",
+                )}
                 <h3 style={{ marginTop: "1.5rem" }}>风险列表（前 5 条）</h3>
                 <RiskList risks={result.risks.slice(0, 5)} />
               </div>
@@ -164,15 +202,7 @@ export default function DetailPage() {
             {section === "summary" && <SummaryBar result={result} />}
 
             {section === "diagrams" && (
-              <div>
-                {result.diagrams.map((d, i) => (
-                  <div key={i}>
-                    <h3>{DIAGRAM_TITLES[d.diagram_type] || d.diagram_type}</h3>
-                    <MermaidDiagram code={d.mermaid} id={`${taskId}-${i}`} />
-                  </div>
-                ))}
-                {result.diagrams.length === 0 && <p>暂无图表</p>}
-              </div>
+              <div>{renderDiagramBlock(result.diagrams, "full")}</div>
             )}
 
             {section === "risks" && <RiskList risks={result.risks} />}

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
+from app.local.diagram_meta import get_ui_strings, resolve_diagram_title
 from app.models.schemas import TaskRecord, TaskResultSchema
 
-DIAGRAM_TITLES = {
-    "architecture": "原项目架构 / 流程图",
-    "impact_overlay": "PR 影响叠加图",
-    "path_compare": "关键路径前后对比图",
-}
+_UI = get_ui_strings()
 
 
 def export_markdown(record: TaskRecord) -> str:
@@ -40,10 +37,13 @@ def export_markdown(record: TaskRecord) -> str:
 
     lines.append("## 图表")
     for d in result.diagrams:
-        title = DIAGRAM_TITLES.get(d.diagram_type, d.diagram_type)
+        title = resolve_diagram_title(d)
         lines.append(f"### {title}")
+        if d.caption.strip():
+            lines.append(d.caption.strip())
+            lines.append("")
         lines.append("```mermaid")
-        lines.append(d.mermaid or "flowchart TB\n  empty[暂无数据]")
+        lines.append(d.mermaid or _UI.empty_export)
         lines.append("```")
         lines.append("")
 

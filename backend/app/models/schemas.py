@@ -54,8 +54,17 @@ class GraphEdge(BaseModel):
     label: str = ""
 
 
+class DiagramLegendItem(BaseModel):
+    key: str
+    label: str
+    color: str = ""
+
+
 class DiagramData(BaseModel):
-    diagram_type: Literal["architecture", "impact_overlay", "path_compare"]
+    diagram_type: Literal["architecture", "impact_overlay", "global_compare", "path_compare"]
+    title: str = ""
+    caption: str = ""
+    legend: list[DiagramLegendItem] = Field(default_factory=list)
     nodes: list[GraphNode] = Field(default_factory=list)
     edges: list[GraphEdge] = Field(default_factory=list)
     mermaid: str = ""
@@ -141,6 +150,7 @@ class VisualizationSchema(BaseModel):
     summary: str = ""
     summary_bullets: list[str] = Field(default_factory=list)
     diagrams: list[DiagramData] = Field(default_factory=list)
+    structural_notes: list[str] = Field(default_factory=list)
     detected_project_type: str = ""
     detected_framework: str = ""
 
