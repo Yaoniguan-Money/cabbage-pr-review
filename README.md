@@ -68,7 +68,9 @@ LLM_MODE=cloud_only
 
 ## 公网部署（评委自备 API Key）
 
-服务器**不托管**个人 Key。步骤见 [docs/CLOUD_DEPLOY.md](./docs/CLOUD_DEPLOY.md)。
+**阿里云 ECS（无域名先用 IP:8080）**：见 [docs/ALIYUN_DEPLOY.md](./docs/ALIYUN_DEPLOY.md)，服务器一键：`./scripts/aliyun-setup-demo.sh`。
+
+**自有域名 + HTTPS**：服务器**不托管**个人 Key，步骤见 [docs/CLOUD_DEPLOY.md](./docs/CLOUD_DEPLOY.md)。
 
 - 复制 [`.env.production.example`](.env.production.example) 为 `.env.production`，`DEPLOY_MODE=public`，**勿填** `DEEPSEEK_API_KEY` / `GITHUB_TOKEN`
 - 评委在浏览器「API 与 GitHub 设置」填写 Key（仅存 **localStorage**，不上传服务端日志）

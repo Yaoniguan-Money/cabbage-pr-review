@@ -1,4 +1,8 @@
-.PHONY: demo prod test-backend test-frontend
+.PHONY: demo prod test-backend test-frontend aliyun-verify
+
+# 本机验收（需在已 docker compose up 的环境执行，或由 scripts/aliyun-verify-demo.sh 调用）
+aliyun-verify:
+	bash scripts/aliyun-verify-demo.sh
 
 # 零密钥演示（默认 .env.demo，可选 .env 覆盖）
 demo:

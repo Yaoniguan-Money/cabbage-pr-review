@@ -1,5 +1,7 @@
 # 公网部署（评委自备 API Key）
 
+阿里云 ECS 无域名快速演示见 [ALIYUN_DEPLOY.md](./ALIYUN_DEPLOY.md)（`http://<公网IP>:8080`）。
+
 ## 原则
 
 - `DEPLOY_MODE=public`：**不在服务器**写入 `DEEPSEEK_API_KEY` / `CLOUD_API_KEY` / `GITHUB_TOKEN`。
