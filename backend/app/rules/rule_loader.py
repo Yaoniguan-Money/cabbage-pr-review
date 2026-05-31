@@ -127,11 +127,25 @@ def load_rule_pack_with_lint(
     return rules, config, lint_rules(rules, pack_config=config)
 
 
+def _rule_matcher_type(rule: RuleDefinition) -> str:
+    clauses = list(rule.match.any) + list(rule.match.all)
+    if any(c.matcher_type == "ast" for c in clauses):
+        return "ast"
+    if rule.metadata and not clauses:
+        return "metadata"
+    return "regex"
+
+
 def list_rules_catalog(rules: list[RuleDefinition] | None = None) -> list[dict[str, str]]:
     """返回规则目录（不含 pattern，避免泄露检测逻辑）。"""
     items = rules if rules is not None else load_rule_pack()[0]
     return [
-        {"id": rule.id, "message": rule.message, "severity": rule.severity}
+        {
+            "id": rule.id,
+            "message": rule.message,
+            "severity": rule.severity,
+            "matcher_type": _rule_matcher_type(rule),
+        }
         for rule in items
     ]
 

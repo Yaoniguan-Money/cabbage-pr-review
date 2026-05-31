@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: change-surface-api
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: change-surface-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: change-surface
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: change-surface-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: change-surface-api
+        app.kubernetes.io/component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: change-surface-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: api
+          image: ghcr.io/demo-org/change-surface-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: APP_ENV
+              value: production
+            - name: APP_PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: info
+            - name: METRICS_ENABLED
+              value: "true"
+          envFrom:
+            - configMapRef:
+                name: change-surface-api-config
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: change-surface-api-config
+  namespace: demo
+data:
+  APP_BIND: "0.0.0.0"
+  LOG_LEVEL: "info"

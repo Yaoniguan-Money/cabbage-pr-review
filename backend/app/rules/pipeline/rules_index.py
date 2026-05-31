@@ -77,14 +77,20 @@ def run_rules_index(
     if not entry_files:
         entry_files = _find_entries(version_paths or file_paths, hints)
 
-    modules = _top_modules(version_paths or file_paths)
+    modules = list(pr_context.get("index_modules") or [])
+    if not modules:
+        modules = _top_modules(version_paths or file_paths)
+
+    routes = list(pr_context.get("index_routes") or [])
+    if not routes:
+        routes = [p for p in version_paths if "route" in p.lower()][:20]
     summary = f"规则模式 {version} 索引：{len(version_paths)} 个相关路径"
 
     return (
         ProjectIndexSchema(
             version=version,
             modules=modules,
-            routes=[p for p in version_paths if "route" in p.lower()][:20],
+            routes=routes[:20],
             entry_files=entry_files[:30],
             directory_tree=tree[:200],
             readme_excerpt=readme[:2000],

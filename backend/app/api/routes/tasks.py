@@ -5,6 +5,7 @@ import asyncio
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import PlainTextResponse
 
+from app.local.demo_patches_meta import get_scenario_by_id
 from app.config import settings
 from app.local.llm_mode import (
     VALID_LLM_MODES,
@@ -68,6 +69,13 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
     if body.review_depth_mode and body.review_depth_mode not in VALID_MODES:
         raise HTTPException(status_code=400, detail="无效的审阅深度模式")
     depth_opt = get_review_depth_option(mode, settings.review_depth_mode)
+    demo_scenario_id = (body.demo_scenario_id or "").strip() or None
+    expected_rule_ids: list[str] = []
+    if demo_scenario_id:
+        scenario = get_scenario_by_id(demo_scenario_id)
+        if not scenario:
+            raise HTTPException(status_code=400, detail="无效的演示场景 ID")
+        expected_rule_ids = list(scenario["expected_rule_ids"])
     record = TaskRecord(
         input_type=body.input_type,
         input_value=body.value,
@@ -75,6 +83,8 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
         framework=body.framework,
         review_depth_mode=mode,
         review_depth_label=depth_opt.label,
+        demo_scenario_id=demo_scenario_id,
+        expected_rule_ids=expected_rule_ids,
         **llm_fields,
     )
     await task_store.create(record)

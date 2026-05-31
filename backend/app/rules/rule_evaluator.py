@@ -309,7 +309,8 @@ def evaluate_rule_on_atom(
         evidence = _clauses_match(
             rule.match.any, file_path=file_path, atom=atom, ctx=ctx, require_all=False
         )
-    if evidence is None and has_threshold:
+    has_explicit_match = bool(rule.match.all or rule.match.any)
+    if evidence is None and has_threshold and not has_explicit_match:
         evidence = threshold_evidence
     if evidence is None:
         return None

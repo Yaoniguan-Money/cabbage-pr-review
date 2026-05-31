@@ -26,8 +26,21 @@ EMPTY_RULE_HITS = "无规则命中。"
 EMPTY_RISKS = "无风险项。"
 EMPTY_MISSING = "无"
 RERUN_DISABLED_HINT = "纯规则模式不支持补上下文重跑。"
-RULES_MODE_NOTE = "本报告由本地 YAML 规则引擎生成，不含 LLM 推理与 Mermaid 架构图。"
-OVERVIEW_RULES_HINT = "完整 Markdown 报告与结构化命中见「规则报告」页签。"
+RULES_MODE_NOTE = "本报告由本地 YAML 规则引擎生成。"
+OVERVIEW_RULES_HINT = "完整 Markdown 报告、四张可视化图与结构化命中见对应页签。"
+
+DEMO_VERIFICATION_TITLE = "规则命中验真"
+DEMO_VERIFICATION_EXPECTED = "预期规则"
+DEMO_VERIFICATION_HIT = "已命中"
+DEMO_VERIFICATION_MISS = "未命中"
+DEMO_VERIFICATION_EXTRA = "额外命中"
+DEMO_VERIFICATION_MATCHER = "匹配器"
+NAV_CHANGES = "变更概览"
+INDEX_PANEL_TITLE = "结构索引"
+INDEX_BASE_ENTRIES = "base 入口"
+INDEX_HEAD_ENTRIES = "head 入口"
+INDEX_BASE_MODULES = "base 顶层模块"
+INDEX_HEAD_MODULES = "head 顶层模块"
 
 BACK_LINK = "← 返回输入"
 EXPORT_MARKDOWN = "导出 Markdown"
@@ -73,6 +86,18 @@ def get_ui_strings() -> dict[str, str]:
         "rerun_disabled_hint": RERUN_DISABLED_HINT,
         "rules_mode_note": RULES_MODE_NOTE,
         "overview_rules_hint": OVERVIEW_RULES_HINT,
+        "demo_verification_title": DEMO_VERIFICATION_TITLE,
+        "demo_verification_expected": DEMO_VERIFICATION_EXPECTED,
+        "demo_verification_hit": DEMO_VERIFICATION_HIT,
+        "demo_verification_miss": DEMO_VERIFICATION_MISS,
+        "demo_verification_extra": DEMO_VERIFICATION_EXTRA,
+        "demo_verification_matcher": DEMO_VERIFICATION_MATCHER,
+        "nav_changes": NAV_CHANGES,
+        "index_panel_title": INDEX_PANEL_TITLE,
+        "index_base_entries": INDEX_BASE_ENTRIES,
+        "index_head_entries": INDEX_HEAD_ENTRIES,
+        "index_base_modules": INDEX_BASE_MODULES,
+        "index_head_modules": INDEX_HEAD_MODULES,
         "back_link": BACK_LINK,
         "export_markdown": EXPORT_MARKDOWN,
         "invalid_task": INVALID_TASK,
@@ -97,7 +122,7 @@ def list_rules_meta(*, overview_risk_preview_count: int = 5) -> dict[str, Any]:
     ui["overview_risks_preview_title"] = format_overview_risks_preview_title(overview_risk_preview_count)
     return {
         "rules_pack_version": RULES_PACK_VERSION,
-        "visualization_mode": "markdown",
+        "visualization_mode": "diagrams",
         "ui_strings": ui,
         "table_change_headers": list(TABLE_CHANGE_HEADERS),
         "table_hit_headers": list(TABLE_HIT_HEADERS),

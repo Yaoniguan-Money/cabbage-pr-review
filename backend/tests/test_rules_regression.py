@@ -132,6 +132,15 @@ def test_rule_negative_no_hit(ctx: dict, unexpected_rule: str):
     assert unexpected_rule not in hits
 
 
+def test_route_decorator_not_fired_on_unrelated_large_patch():
+    """仅有大量 padding 变更、无路由装饰器时不应误报 route-decorator-changed。"""
+    added = "\n".join(f"+padding_{i}" for i in range(20))
+    patch = f"@@ -1,1 +1,21 @@\n{added}\n"
+    ctx = _patch_ctx("app/utils.py", patch)
+    hits = _run_hits(ctx)
+    assert "route-decorator-changed" not in hits
+
+
 def test_large_patch_hunk_threshold():
     added = "\n".join(f"+line_{i}" for i in range(105))
     patch = f"@@ -1,1 +1,106 @@\n{added}\n"

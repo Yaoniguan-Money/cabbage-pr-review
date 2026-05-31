@@ -11,6 +11,7 @@ from app.llm.compress_context import (
 from app.llm.token_usage import get_task_token_stats, reset_task_token_usage
 from app.models.schemas import CompressStatsSchema
 from app.llm.task_context import build_task_llm_context, clear_task_llm_context, set_task_llm_context
+from app.local.demo_patches_meta import merge_demo_context_overlay
 from app.local.file_io import parse_patch_text, read_local_repo
 from app.models.schemas import InputType, TaskRecord, TaskStatus
 from app.services.github import github_service
@@ -54,6 +55,8 @@ async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | Non
         raise ValueError("不支持的输入类型")
 
     ctx, git_ws = await enrich_context_with_git(ctx)
+    if record.demo_scenario_id:
+        ctx = merge_demo_context_overlay(ctx, record.demo_scenario_id)
     return ctx, git_ws
 
 

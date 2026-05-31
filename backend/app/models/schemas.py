@@ -237,6 +237,7 @@ class CreateTaskRequest(BaseModel):
     cloud_flash_model: str | None = None
     cloud_pro_model: str | None = None
     rules_preflight_enabled: bool | None = None
+    demo_scenario_id: str | None = None
 
     @field_validator("value")
     @classmethod
@@ -284,6 +285,8 @@ class TaskRecord(BaseModel):
     cloud_flash_model: str = ""
     cloud_pro_model: str = ""
     rules_preflight_enabled: bool = False
+    demo_scenario_id: str | None = None
+    expected_rule_ids: list[str] = Field(default_factory=list)
     compress_stats: CompressStatsSchema | None = None
     token_stats: TaskTokenStatsSchema | None = None
     result: TaskResultSchema | None = None

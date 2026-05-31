@@ -96,6 +96,9 @@ def rules_node5(state: GraphState) -> GraphState:
             project_type=state.get("project_type"),
             framework=state.get("framework"),
             extra_notes=state.get("degradation_notes"),
+            base_index=state.get("base_index"),
+            head_index=state.get("head_index"),
+            pr_context=state.get("pr_context") or {},
         )
         return {"final_result": result, "current_agent": 5, "degradation_notes": merge_notes(state, [])}
     except Exception as exc:
