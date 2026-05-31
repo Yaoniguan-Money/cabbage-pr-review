@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 from typing import Callable
 
-from app.models.schemas import TaskRecord, TaskStatus
+from app.models.schemas import TaskOutcome, TaskRecord, TaskStatus
 
 
 class TaskStore:
-    """内存任务存储，单用户单任务串行。"""
+    """In-memory task store with single-runner execution semantics."""
 
     def __init__(self) -> None:
         self._tasks: dict[str, TaskRecord] = {}
@@ -30,7 +30,8 @@ class TaskStore:
             if self._running and self._running != task_id:
                 task = self._tasks[task_id]
                 task.status = TaskStatus.FAILED
-                task.error_message = "已有分析任务正在执行，请等待完成后再试"
+                task.outcome = TaskOutcome.FAILED
+                task.error_message = "另有分析任务正在执行，请等待完成后再试"
                 return
             self._running = task_id
         try:

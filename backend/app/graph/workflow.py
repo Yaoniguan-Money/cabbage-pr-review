@@ -8,13 +8,8 @@ from app.agents.agent3_diff import run_agent3
 from app.agents.agent4_review import run_agent4
 from app.agents.agent5_visualize import run_agent5
 from app.graph.state import GraphState
+from app.graph.workflow_helpers import EmptyAgentResultError, run_agent_safe
 from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
-
-
-def _merge_notes(state: GraphState, notes: list[str]) -> list[str]:
-    all_notes = list(state.get("degradation_notes", []))
-    all_notes.extend(notes)
-    return all_notes
 
 
 def _empty_base() -> ProjectIndexSchema:
@@ -26,48 +21,59 @@ def _empty_head() -> ProjectIndexSchema:
 
 
 def _node1(state: GraphState) -> GraphState:
-    try:
+    def _run() -> GraphState:
         base, notes = run_agent1(state["pr_context"])
-        return {"base_index": base, "current_agent": 1, "degradation_notes": _merge_notes(state, notes)}
-    except Exception as e:
         return {
-            "base_index": _empty_base(),
-            "current_agent": 1,
-            "degradation_notes": _merge_notes(state, [f"Agent1 局部降级: {e}"]),
+            "base_index": base,
+            "degradation_notes": notes,
         }
+
+    return run_agent_safe(state, 1, _run, fallback={"base_index": _empty_base()})
 
 
 def _node2(state: GraphState) -> GraphState:
-    try:
+    def _run() -> GraphState:
         head, notes = run_agent2(state["pr_context"])
-        return {"head_index": head, "current_agent": 2, "degradation_notes": _merge_notes(state, notes)}
-    except Exception as e:
         return {
-            "head_index": _empty_head(),
-            "current_agent": 2,
-            "degradation_notes": _merge_notes(state, [f"Agent2 局部降级: {e}"]),
+            "head_index": head,
+            "degradation_notes": notes,
         }
+
+    return run_agent_safe(state, 2, _run, fallback={"head_index": _empty_head()})
 
 
 def _node3(state: GraphState) -> GraphState:
     base = state.get("base_index") or _empty_base()
     head = state.get("head_index") or _empty_head()
-    try:
+
+    def _run() -> GraphState:
         diff, notes = run_agent3(base, head, state["pr_context"])
-        return {"diff_result": diff, "current_agent": 3, "degradation_notes": _merge_notes(state, notes)}
-    except Exception as e:
         return {
-            "diff_result": DiffCompareSchema(),
-            "current_agent": 3,
-            "degradation_notes": _merge_notes(state, [f"Agent3 局部降级: {e}"]),
+            "diff_result": diff,
+            "degradation_notes": notes,
         }
+
+    def _validate(payload: GraphState) -> None:
+        diff = payload.get("diff_result")
+        if not diff or not diff.all_atoms:
+            raise EmptyAgentResultError("diff_result has no atoms")
+
+    return run_agent_safe(
+        state,
+        3,
+        _run,
+        fallback={"diff_result": DiffCompareSchema()},
+        validator=_validate,
+        empty_is_fatal=True,
+    )
 
 
 def _node4(state: GraphState) -> GraphState:
     diff = state.get("diff_result") or DiffCompareSchema()
     base = state.get("base_index") or _empty_base()
     head = state.get("head_index") or _empty_head()
-    try:
+
+    def _run() -> GraphState:
         review, notes = run_agent4(
             diff,
             base,
@@ -77,13 +83,26 @@ def _node4(state: GraphState) -> GraphState:
             extra_context_paths=state.get("extra_context_paths"),
             git_ws=state.get("git_ws"),
         )
-        return {"review_result": review, "current_agent": 4, "degradation_notes": _merge_notes(state, notes)}
-    except Exception as e:
         return {
-            "review_result": RiskReviewSchema(degradation_notes=[str(e)]),
-            "current_agent": 4,
-            "degradation_notes": _merge_notes(state, [f"Agent4 局部降级: {e}"]),
+            "review_result": review,
+            "degradation_notes": notes,
         }
+
+    def _validate(payload: GraphState) -> None:
+        review = payload.get("review_result")
+        if not review:
+            raise EmptyAgentResultError("review_result is missing")
+        if not review.risks and not review.missing_info and not review.degradation_notes:
+            raise EmptyAgentResultError("review_result has no risks, missing_info, or degradation_notes")
+
+    return run_agent_safe(
+        state,
+        4,
+        _run,
+        fallback={"review_result": RiskReviewSchema()},
+        validator=_validate,
+        empty_is_fatal=True,
+    )
 
 
 def _node5(state: GraphState) -> GraphState:
@@ -91,7 +110,8 @@ def _node5(state: GraphState) -> GraphState:
     head = state.get("head_index") or _empty_head()
     diff = state.get("diff_result") or DiffCompareSchema()
     review = state.get("review_result") or RiskReviewSchema()
-    try:
+
+    def _run() -> GraphState:
         result, notes = run_agent5(
             base,
             head,
@@ -101,13 +121,24 @@ def _node5(state: GraphState) -> GraphState:
             state.get("project_type"),
             state.get("framework"),
         )
-        return {"final_result": result, "current_agent": 5, "degradation_notes": _merge_notes(state, notes)}
-    except Exception as e:
         return {
-            "final_result": TaskResultSchema(summary="", degradation_notes=[str(e)]),
-            "current_agent": 5,
-            "degradation_notes": _merge_notes(state, [f"Agent5 局部降级: {e}"]),
+            "final_result": result,
+            "degradation_notes": notes,
         }
+
+    def _validate(payload: GraphState) -> None:
+        result = payload.get("final_result")
+        if not result or not result.summary.strip():
+            raise EmptyAgentResultError("final_result.summary is empty")
+
+    return run_agent_safe(
+        state,
+        5,
+        _run,
+        fallback={"final_result": TaskResultSchema()},
+        validator=_validate,
+        empty_is_fatal=True,
+    )
 
 
 def build_workflow():
