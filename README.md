@@ -4,7 +4,7 @@
 
 ## 功能
 
-- 三种输入：GitHub PR URL、Patch/Diff、本地仓库路径
+- 两种界面输入：GitHub PR URL、Patch/Diff（`local_path` API 仍保留，供本机/集成直调，输入页未暴露）
 - LangGraph 编排 5 个 Agent（原版本扫描 → PR 扫描 → 差异对比 → 递进审阅 → 可视化）
 - 结果页：摘要条、三张 Mermaid 图、风险列表、缺失信息
 - 支持一次补上下文重跑、Markdown 导出
@@ -26,7 +26,7 @@ USE_MOCK_LLM=false
 
 未配置 Key 且 `USE_MOCK_LLM=false` 时，**纯云端**模式下 `POST /api/tasks` 返回 **503**。
 
-**依赖**：本机与 Docker 镜像均需安装 **git**（PR URL / 本地仓库路径用于 `git show` 读取 base/head 文件）。
+**依赖**：本机与 Docker 镜像均需安装 **git**（PR URL 分析时用于 `git show` 读取 base/head 文件）。
 
 ## 快速启动
 

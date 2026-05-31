@@ -42,7 +42,6 @@ _FRAMEWORKS: tuple[SelectOption, ...] = (
 _TABS: tuple[InputTabMeta, ...] = (
     InputTabMeta("pr_url", "PR URL", "https://github.com/owner/repo/pull/123"),
     InputTabMeta("patch", "Patch / Diff", "粘贴 diff 或 patch 文本"),
-    InputTabMeta("local_path", "本地仓库路径", "例如 C:\\projects\\my-app"),
 )
 
 _UI_STRINGS: dict[str, str] = {

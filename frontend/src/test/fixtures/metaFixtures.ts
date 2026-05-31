@@ -174,7 +174,6 @@ export const mockInputPageMeta: InputPageMetaResponse = {
   input_tabs: [
     { id: "pr_url", title: "PR URL", hint: "https://github.com/owner/repo/pull/123" },
     { id: "patch", title: "Patch / Diff", hint: "粘贴 diff 或 patch 文本" },
-    { id: "local_path", title: "本地仓库路径", hint: "例如 C:\\projects\\my-app" },
   ],
   ui_strings: {
     llm_mode_label: "推理模式（任务开始前选择，运行中不可改）",
