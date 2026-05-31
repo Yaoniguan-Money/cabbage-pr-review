@@ -36,6 +36,7 @@ import {
 
 } from "../api/client";
 
+import { RevealStagger, RevealStaggerItem } from "../components/motion/Reveal";
 import { pickInitialLlmMode } from "./pickInitialLlmMode";
 
 import {
@@ -343,10 +344,10 @@ export default function InputPage() {
           {demoPatchesError ? (
             <p className="error">{demoPatchesError || ui.error_load_demo_patches}</p>
           ) : (
-            <div className="demo-scenario-grid">
+            <RevealStagger className="demo-scenario-grid">
               {demoPatches.map((scenario) => (
+                <RevealStaggerItem key={scenario.id}>
                 <article
-                  key={scenario.id}
                   className={`demo-scenario-card ${selectedDemoScenarioId === scenario.id ? "active" : ""}`}
                 >
                   <h3 className="demo-scenario-card-title">{scenario.title}</h3>
@@ -371,8 +372,9 @@ export default function InputPage() {
                     {ui.demo_scenario_load}
                   </button>
                 </article>
+                </RevealStaggerItem>
               ))}
-            </div>
+            </RevealStagger>
           )}
         </section>
       )}
