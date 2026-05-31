@@ -1,3 +1,6 @@
+import { formatTemplate } from "../utils/formatTemplate";
+import { parseContentDispositionFilename } from "../utils/parseContentDispositionFilename";
+
 export type InputType = "pr_url" | "patch" | "local_path";
 
 export interface AgentProgress {
@@ -303,6 +306,7 @@ export interface RulesMetaResponse {
 
 export interface DetailPageMetaResponse {
   ui_strings: Record<string, string>;
+  export_blob_revoke_delay_ms: number;
 }
 
 const API = "/api";
@@ -463,6 +467,32 @@ export async function fetchRulesCatalog(): Promise<RulesCatalogResponse> {
 
 export function exportUrl(taskId: string): string {
   return `${API}/tasks/${taskId}/export.md`;
+}
+
+export async function downloadExportMarkdown(
+  taskId: string,
+  filenameTemplate: string,
+  revokeDelayMs: number,
+  emptyBlobMessage: string,
+): Promise<void> {
+  const res = await fetch(exportUrl(taskId));
+  if (!res.ok) await throwApiError(res, "export_markdown");
+  const blob = await res.blob();
+  if (blob.size === 0) {
+    throw new Error(emptyBlobMessage);
+  }
+  const fromHeader = parseContentDispositionFilename(res.headers.get("Content-Disposition"));
+  const filename =
+    fromHeader ?? formatTemplate(filenameTemplate, { task_id: taskId });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), revokeDelayMs);
 }
 
 /** 测试用：重置 client meta 缓存 */
