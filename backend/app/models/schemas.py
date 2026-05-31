@@ -21,6 +21,12 @@ class TaskStatus(str, Enum):
     FAILED = "failed"
 
 
+class TaskOutcome(str, Enum):
+    OK = "ok"
+    DEGRADED = "degraded"
+    FAILED = "failed"
+
+
 class RiskLevel(str, Enum):
     HIGH = "high"
     MEDIUM = "medium"
@@ -36,7 +42,7 @@ class ConfidenceLevel(str, Enum):
 class AgentProgress(BaseModel):
     agent_id: int = Field(ge=1, le=5)
     name: str
-    status: Literal["pending", "running", "completed", "failed", "skipped"] = "pending"
+    status: Literal["pending", "running", "completed", "degraded", "failed", "skipped"] = "pending"
     message: str = ""
 
 
@@ -159,7 +165,7 @@ class VisualizationSchema(BaseModel):
 
 
 class CompressStatsSchema(BaseModel):
-    """混合模式本地压缩统计（字段名供 API/前端契约使用）。"""
+    """Mixed-mode local compression statistics exposed to the API/frontend."""
 
     compress_calls: int = 0
     chars_before: int = 0
@@ -264,6 +270,7 @@ class TaskRecord(BaseModel):
     input_type: InputType
     input_value: str
     status: TaskStatus = TaskStatus.PENDING
+    outcome: TaskOutcome | None = None
     current_agent: int = 0
     agent_progress: list[AgentProgress] = Field(default_factory=list)
     project_type: str | None = None
@@ -274,6 +281,7 @@ class TaskRecord(BaseModel):
     rerun_used: bool = False
     rerun_context_paths: list[str] = Field(default_factory=list)
     rerun_focus_atoms: list[str] = Field(default_factory=list)
+    degradation_notes: list[str] = Field(default_factory=list)
     review_depth_mode: str = "balanced"
     review_depth_label: str = ""
     llm_mode: str = "cloud_only"

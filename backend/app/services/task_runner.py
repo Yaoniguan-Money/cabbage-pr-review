@@ -2,23 +2,24 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from app.graph.state import AgentOutcomeValue, GraphState
 from app.graph.workflow import AGENT_NODE_ORDER, workflow_app
 from app.llm.compress_context import (
     get_compress_degradation_notes,
     get_compress_stats,
     reset_compress_stats,
 )
-from app.llm.token_usage import get_task_token_stats, reset_task_token_usage
-from app.models.schemas import CompressStatsSchema
 from app.llm.task_context import build_task_llm_context, clear_task_llm_context, set_task_llm_context
+from app.llm.token_usage import get_task_token_stats, reset_task_token_usage
 from app.local.demo_patches_meta import merge_demo_context_overlay
 from app.local.file_io import parse_patch_text, read_local_repo
-from app.models.schemas import InputType, TaskRecord, TaskStatus
+from app.models.schemas import CompressStatsSchema, InputType, TaskOutcome, TaskRecord, TaskStatus
 from app.services.github import github_service
 from app.services.git_workspace import GitWorkspace, enrich_context_with_git
 from app.services.task_store import task_store
 
 NODE_TO_AGENT = {name: i + 1 for i, name in enumerate(AGENT_NODE_ORDER)}
+CRITICAL_AGENTS = (3, 4, 5)
 
 
 async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | None]:
@@ -70,6 +71,42 @@ def _set_agent_status(record: TaskRecord, agent_id: int, status: str, message: s
     task_store.update(record)
 
 
+def _dedupe_notes(notes: list[str]) -> list[str]:
+    out: list[str] = []
+    for note in notes:
+        if note and note not in out:
+            out.append(note)
+    return out
+
+
+def _agent_progress_status(outcome: AgentOutcomeValue) -> str:
+    return {"ok": "completed", "degraded": "degraded", "failed": "failed"}[outcome]
+
+
+def _derive_task_completion(state: GraphState) -> tuple[TaskStatus, TaskOutcome, str | None]:
+    result = state.get("final_result")
+    outcomes = state.get("agent_outcomes", {})
+    errors = state.get("agent_errors", {})
+    failures: list[str] = []
+
+    if not result:
+        failures.append("FAILED/task_runner: workflow produced no final_result")
+    elif not result.summary.strip():
+        failures.append("FAILED/task_runner: final_result.summary is empty")
+
+    for agent_id in CRITICAL_AGENTS:
+        if outcomes.get(agent_id) == "failed":
+            failures.append(errors.get(agent_id) or f"FAILED/Agent{agent_id}: critical agent failed")
+
+    if failures:
+        return TaskStatus.FAILED, TaskOutcome.FAILED, failures[0]
+
+    if any(outcome == "degraded" for outcome in outcomes.values()) or state.get("degradation_notes"):
+        return TaskStatus.COMPLETED, TaskOutcome.DEGRADED, None
+
+    return TaskStatus.COMPLETED, TaskOutcome.OK, None
+
+
 async def execute_task(
     record: TaskRecord,
     *,
@@ -77,7 +114,11 @@ async def execute_task(
     extra_context_paths: list[str] | None = None,
 ) -> None:
     record.status = TaskStatus.RUNNING
+    record.outcome = None
     record.error_message = None
+    record.result = None
+    record.current_agent = 0
+    record.degradation_notes = []
     for ap in record.agent_progress:
         ap.status = "pending"
         ap.message = ""
@@ -99,7 +140,7 @@ async def execute_task(
         record.pr_context = pr_context
         task_store.update(record)
 
-        state = {
+        state: GraphState = {
             "pr_context": pr_context,
             "git_ws": git_ws,
             "project_type": record.project_type,
@@ -109,10 +150,12 @@ async def execute_task(
             "review_depth_mode": record.review_depth_mode,
             "llm_mode": record.llm_mode,
             "degradation_notes": [],
+            "agent_outcomes": {},
+            "agent_errors": {},
             "rule_hits": [],
         }
 
-        final_state = dict(state)
+        final_state: GraphState = dict(state)
         async for event in workflow_app.astream(state):
             for node_name, update in event.items():
                 agent_id = NODE_TO_AGENT.get(node_name, 0)
@@ -121,9 +164,13 @@ async def execute_task(
                 if isinstance(update, dict):
                     final_state.update(update)
                     if final_state.get("degradation_notes"):
-                        record.pr_context["degradation_notes"] = final_state["degradation_notes"]
+                        notes = _dedupe_notes(list(final_state["degradation_notes"]))
+                        record.pr_context["degradation_notes"] = notes
+                        record.degradation_notes = notes
                 if agent_id:
-                    _set_agent_status(record, agent_id, "completed")
+                    outcome = (final_state.get("agent_outcomes", {}) or {}).get(agent_id, "ok")
+                    message = (final_state.get("agent_errors", {}) or {}).get(agent_id, "")
+                    _set_agent_status(record, agent_id, _agent_progress_status(outcome), message)
 
         compress_notes = get_compress_degradation_notes()
         if compress_notes:
@@ -142,12 +189,20 @@ async def execute_task(
         record.token_stats = get_task_token_stats()
 
         result = final_state.get("final_result")
-        if result and final_state.get("degradation_notes"):
-            result.degradation_notes = list(final_state["degradation_notes"]) + list(result.degradation_notes)
-        record.result = result
-        record.status = TaskStatus.COMPLETED
+        if result:
+            result.degradation_notes = _dedupe_notes(
+                list(final_state.get("degradation_notes", [])) + list(result.degradation_notes)
+            )
+
+        record.degradation_notes = _dedupe_notes(list(final_state.get("degradation_notes", [])))
+        record.status, record.outcome, record.error_message = _derive_task_completion(final_state)
+        if record.status == TaskStatus.COMPLETED:
+            record.result = result
+        else:
+            record.result = None
     except Exception as e:
         record.status = TaskStatus.FAILED
+        record.outcome = TaskOutcome.FAILED
         record.error_message = str(e)
         if record.current_agent:
             _set_agent_status(record, record.current_agent, "failed", str(e))
