@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import {
+  downloadExportMarkdown,
   fetchClientMeta,
   fetchDetailPageMeta,
   fetchDiagramMeta,
@@ -34,6 +35,7 @@ import RuleHitsPanel from "../components/RuleHitsPanel";
 import RerunPanel from "../components/RerunPanel";
 import RiskList from "../components/RiskList";
 import SummaryBar from "../components/SummaryBar";
+import { SectionTransition } from "../components/motion/SectionTransition";
 import ReviewLayout from "../layouts/ReviewLayout";
 import { buildPatchFiles } from "../utils/buildPatchFiles";
 import { formatTemplate } from "../utils/formatTemplate";
@@ -85,6 +87,7 @@ export default function DetailPage() {
   const [section, setSection] = useState<Section>("overview");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     fetchClientMeta().then(setClientMeta).catch(() => setClientMeta(null));
@@ -140,8 +143,14 @@ export default function DetailPage() {
       const t = await getTask(taskId);
       setTask(t);
       if (t.status === "completed") {
-        const r = await getTaskResult(taskId);
-        setResult(r);
+        try {
+          const r = await getTaskResult(taskId);
+          setResult(r);
+        } catch {
+          if (t.result) {
+            setResult(t.result);
+          }
+        }
       }
       if (t.status === "failed") {
         setError(t.error_message || rulesUi.task_failed_fallback || clientMeta?.error_messages.get_task || "");
@@ -167,6 +176,54 @@ export default function DetailPage() {
     setTask(null);
     poll();
   };
+
+  const canExport = Boolean(result ?? task?.result);
+
+  const handleExportMarkdown = useCallback(async () => {
+    if (!taskId) return;
+    if (!canExport) {
+      setError(detailUi.export_no_result || clientMeta?.error_messages.export_markdown || "");
+      return;
+    }
+    const template = detailUi.export_filename_template;
+    if (!template) {
+      setError(detailUi.export_meta_missing || clientMeta?.error_messages.export_markdown || "");
+      return;
+    }
+    const revokeDelayMs = detailMeta?.export_blob_revoke_delay_ms;
+    if (revokeDelayMs == null || revokeDelayMs < 0) {
+      setError(detailUi.export_meta_missing || clientMeta?.error_messages.export_markdown || "");
+      return;
+    }
+    try {
+      setExportLoading(true);
+      setError("");
+      await downloadExportMarkdown(
+        taskId,
+        template,
+        revokeDelayMs,
+        detailUi.export_empty_blob || clientMeta?.error_messages.export_markdown || "",
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : clientMeta?.error_messages.export_markdown || "",
+      );
+    } finally {
+      setExportLoading(false);
+    }
+  }, [
+    taskId,
+    canExport,
+    task?.result,
+    detailUi.export_filename_template,
+    detailUi.export_meta_missing,
+    detailUi.export_no_result,
+    detailUi.export_empty_blob,
+    detailMeta?.export_blob_revoke_delay_ms,
+    clientMeta,
+  ]);
 
   if (!taskId) {
     return rulesUi.invalid_task ? <p>{rulesUi.invalid_task}</p> : <MetaLoading label={detailUi.meta_loading} />;
@@ -474,12 +531,17 @@ export default function DetailPage() {
               rulesUi={rulesUi}
               filesSidebarLabel={detailUi.files_sidebar_label}
               exportLabel={rulesUi.export_markdown}
+              exportLoading={exportLoading}
+              exportLoadingLabel={detailUi.export_loading}
+              exportDisabled={!canExport || exportLoading}
+              exportDisabledHint={detailUi.export_disabled_hint}
+              onExport={handleExportMarkdown}
               onJumpDiagrams={() => setSection("diagrams")}
               showDiagramsLink={isDiagramMode && Boolean(result)}
               diagramsLinkLabel={detailUi.view_diagrams}
             />
           }
-          main={renderMainContent()}
+          main={<SectionTransition sectionKey={section}>{renderMainContent()}</SectionTransition>}
           aside={
             <AiReviewPanel
               result={result}

@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 
 import type { PrPatchFile } from "../api/client";
-import { exportUrl } from "../api/client";
 
 export interface ReviewNavItem {
   id: string;
@@ -21,13 +20,17 @@ interface ReviewSidebarProps {
   rulesUi: Record<string, string>;
   filesSidebarLabel: string;
   exportLabel: string;
+  exportLoading: boolean;
+  exportLoadingLabel: string;
+  exportDisabled: boolean;
+  exportDisabledHint: string;
+  onExport: () => void | Promise<void>;
   onJumpDiagrams: () => void;
   showDiagramsLink: boolean;
   diagramsLinkLabel: string;
 }
 
 export default function ReviewSidebar({
-  taskId,
   nav,
   section,
   onSectionChange,
@@ -38,6 +41,11 @@ export default function ReviewSidebar({
   rulesUi,
   filesSidebarLabel,
   exportLabel,
+  exportLoading,
+  exportLoadingLabel,
+  exportDisabled,
+  exportDisabledHint,
+  onExport,
   onJumpDiagrams,
   showDiagramsLink,
   diagramsLinkLabel,
@@ -102,11 +110,18 @@ export default function ReviewSidebar({
         )}
       </div>
 
-      <a href={exportUrl(taskId)} target="_blank" rel="noreferrer" className="sidebar-export">
-        <button type="button" className="secondary" style={{ width: "100%" }}>
-          {exportLabel}
+      <div className="sidebar-export">
+        <button
+          type="button"
+          className="secondary"
+          style={{ width: "100%" }}
+          disabled={exportDisabled}
+          title={exportDisabled && !exportLoading ? exportDisabledHint : undefined}
+          onClick={() => void onExport()}
+        >
+          {exportLoading ? exportLoadingLabel : exportLabel}
         </button>
-      </a>
+      </div>
     </div>
   );
 }

@@ -16,3 +16,8 @@ def test_detail_page_meta_api():
     assert ui["task_id_toggle_show"]
     assert ui["agent_stepper_label"]
     assert "{ref}" in ui["branch_into"]
+    assert "{task_id}" in ui["export_filename_template"]
+    assert ui["export_disabled_hint"]
+    assert ui["export_meta_missing"]
+    assert ui["export_loading"]
+    assert body["export_blob_revoke_delay_ms"] > 0

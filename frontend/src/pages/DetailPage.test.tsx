@@ -9,8 +9,13 @@ import {
   mockRulesMeta,
 } from "../test/fixtures/metaFixtures";
 
+const { downloadExportMarkdown } = vi.hoisted(() => ({
+  downloadExportMarkdown: vi.fn(),
+}));
+
 vi.mock("../api/client", () => ({
   exportUrl: (taskId: string) => `/api/tasks/${taskId}/export.md`,
+  downloadExportMarkdown,
   fetchClientMeta: vi.fn(),
   fetchDetailPageMeta: vi.fn(),
   fetchDiagramMeta: vi.fn(),
@@ -75,6 +80,8 @@ describe("DetailPage", () => {
   });
 
   beforeEach(() => {
+    downloadExportMarkdown.mockReset();
+    downloadExportMarkdown.mockResolvedValue(undefined);
     vi.mocked(fetchClientMeta).mockReset();
     vi.mocked(fetchDetailPageMeta).mockReset();
     vi.mocked(fetchDiagramMeta).mockReset();
@@ -217,5 +224,44 @@ describe("DetailPage", () => {
     fireEvent.click(within(nav).getByRole("button", { name: mockRulesMeta.ui_strings.nav_report }));
     expect(screen.getByText("合并报告")).toBeInTheDocument();
     expect(screen.getByText("禁止硬编码密钥")).toBeInTheDocument();
+  });
+
+  it("有结果时点击导出 Markdown 触发下载", async () => {
+    render(
+      <MemoryRouter initialEntries={["/tasks/t1"]}>
+        <Routes>
+          <Route path="/tasks/:taskId" element={<DetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: mockRulesMeta.ui_strings.export_markdown })).toBeEnabled();
+    });
+    fireEvent.click(screen.getByRole("button", { name: mockRulesMeta.ui_strings.export_markdown }));
+    await waitFor(() => {
+      expect(downloadExportMarkdown).toHaveBeenCalledWith(
+        "t1",
+        mockDetailPageMeta.ui_strings.export_filename_template,
+        mockDetailPageMeta.export_blob_revoke_delay_ms,
+        mockDetailPageMeta.ui_strings.export_empty_blob,
+      );
+    });
+  });
+
+  it("无结果时导出 Markdown 按钮禁用", async () => {
+    vi.mocked(getTaskResult).mockResolvedValue(null as never);
+    render(
+      <MemoryRouter initialEntries={["/tasks/t1"]}>
+        <Routes>
+          <Route path="/tasks/:taskId" element={<DetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: mockRulesMeta.ui_strings.export_markdown })).toBeDisabled();
+    });
+    expect(downloadExportMarkdown).not.toHaveBeenCalled();
   });
 });

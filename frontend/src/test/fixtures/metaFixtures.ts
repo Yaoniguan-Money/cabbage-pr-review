@@ -27,6 +27,8 @@ export const mockClientMeta: ClientMetaResponse = {
     fetch_client_meta: "fetch-client-err",
     fetch_demo_patches: "fetch-demo-err",
     fetch_rules_catalog: "fetch-catalog-err",
+    fetch_detail_page_meta: "fetch-detail-err",
+    export_markdown: "export-markdown-err",
   },
   use_mock_llm: false,
   mock_mode_banner: "",
@@ -101,6 +103,7 @@ export const mockRulesMeta = {
 };
 
 export const mockDetailPageMeta = {
+  export_blob_revoke_delay_ms: 100,
   ui_strings: {
     nav_files: "变更文件",
     app_name: "AI PR Review 助手",
@@ -157,6 +160,12 @@ export const mockDetailPageMeta = {
     risk_empty: "暂无风险项",
     severity_filter_all: "全部",
     meta_loading: "加载中…",
+    export_filename_template: "pr-review-{task_id}.md",
+    export_disabled_hint: "任务完成后可导出 Markdown 报告",
+    export_meta_missing: "无法加载导出配置，请刷新页面后重试",
+    export_no_result: "任务尚无结果可导出",
+    export_empty_blob: "导出文件为空，请稍后重试",
+    export_loading: "导出中…",
   },
 };
 

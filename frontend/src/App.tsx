@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
-import { Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Route, Routes, useLocation } from "react-router-dom";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+
+import { fetchDetailPageMeta } from "./api/client";
+import { pageTransitionMotion } from "./components/motion/PageTransition";
+import { readMotionTokens } from "./components/motion/readMotionTokens";
 import DetailPage from "./pages/DetailPage";
 import InputPage from "./pages/InputPage";
-import { useEffect, useState } from "react";
-import { fetchDetailPageMeta } from "./api/client";
 
 function InputShell({ children }: { children: ReactNode }) {
   const [appName, setAppName] = useState("");
@@ -30,8 +34,13 @@ function InputShell({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
-  return (
-    <Routes>
+  const location = useLocation();
+  const reduce = useReducedMotion();
+  const tokens = readMotionTokens();
+  const motionProps = pageTransitionMotion(!!reduce, tokens);
+
+  const routes = (
+    <Routes location={location}>
       <Route
         path="/"
         element={
@@ -42,5 +51,19 @@ export default function App() {
       />
       <Route path="/tasks/:taskId" element={<DetailPage />} />
     </Routes>
+  );
+
+  return (
+    <AnimatePresence mode="wait">
+      {motionProps ? (
+        <motion.div key={location.pathname} className="page-transition" {...motionProps}>
+          {routes}
+        </motion.div>
+      ) : (
+        <div key={location.pathname} className="page-transition">
+          {routes}
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

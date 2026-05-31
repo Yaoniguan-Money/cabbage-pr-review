@@ -4,6 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.local.export_meta import (
+    EXPORT_BLOB_REVOKE_DELAY_MS,
+    EXPORT_DISABLED_HINT,
+    EXPORT_EMPTY_BLOB,
+    EXPORT_FILENAME_TEMPLATE,
+    EXPORT_LOADING,
+    EXPORT_META_MISSING,
+    EXPORT_NO_RESULT,
+)
+
 NAV_FILES = "变更文件"
 APP_NAME = "AI PR Review 助手"
 APP_TAGLINE = "结构化影响分析与审阅辅助（定稿 v2.0）"
@@ -69,6 +79,13 @@ RISK_EMPTY = "暂无风险项"
 SEVERITY_FILTER_ALL = "全部"
 META_LOADING = "加载中…"
 
+EXPORT_FILENAME_TEMPLATE_UI = EXPORT_FILENAME_TEMPLATE
+EXPORT_DISABLED_HINT_UI = EXPORT_DISABLED_HINT
+EXPORT_META_MISSING_UI = EXPORT_META_MISSING
+EXPORT_NO_RESULT_UI = EXPORT_NO_RESULT
+EXPORT_EMPTY_BLOB_UI = EXPORT_EMPTY_BLOB
+EXPORT_LOADING_UI = EXPORT_LOADING
+
 
 def get_ui_strings() -> dict[str, str]:
     return {
@@ -127,8 +144,17 @@ def get_ui_strings() -> dict[str, str]:
         "risk_empty": RISK_EMPTY,
         "severity_filter_all": SEVERITY_FILTER_ALL,
         "meta_loading": META_LOADING,
+        "export_filename_template": EXPORT_FILENAME_TEMPLATE_UI,
+        "export_disabled_hint": EXPORT_DISABLED_HINT_UI,
+        "export_meta_missing": EXPORT_META_MISSING_UI,
+        "export_no_result": EXPORT_NO_RESULT_UI,
+        "export_empty_blob": EXPORT_EMPTY_BLOB_UI,
+        "export_loading": EXPORT_LOADING_UI,
     }
 
 
 def list_detail_page_meta() -> dict[str, Any]:
-    return {"ui_strings": get_ui_strings()}
+    return {
+        "ui_strings": get_ui_strings(),
+        "export_blob_revoke_delay_ms": EXPORT_BLOB_REVOKE_DELAY_MS,
+    }
