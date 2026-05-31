@@ -6,6 +6,7 @@ import {
   fetchDetailPageMeta,
   fetchDiagramMeta,
   fetchLlmModeOptions,
+  fetchRulesCatalog,
   fetchRulesMeta,
   getTask,
   getTaskResult,
@@ -14,13 +15,17 @@ import {
   type DetailPageMetaResponse,
   type DiagramMetaResponse,
   type LlmModeOption,
+  type RulesCatalogResponse,
   type RulesMetaResponse,
   type TaskRecord,
   type TaskResult,
 } from "../api/client";
 import AiReviewPanel from "../components/AiReviewPanel";
+import ChangesTable from "../components/ChangesTable";
 import CodeDiffPanel from "../components/CodeDiffPanel";
+import DemoVerificationPanel from "../components/DemoVerificationPanel";
 import DiagramCard from "../components/DiagramCard";
+import IndexPanel from "../components/IndexPanel";
 import MarkdownReport from "../components/MarkdownReport";
 import OverviewPanel from "../components/OverviewPanel";
 import ReviewHeader from "../components/ReviewHeader";
@@ -33,10 +38,23 @@ import ReviewLayout from "../layouts/ReviewLayout";
 import { buildPatchFiles } from "../utils/buildPatchFiles";
 import { formatTemplate } from "../utils/formatTemplate";
 
-type Section = "overview" | "files" | "summary" | "report" | "rule_hits" | "diagrams" | "risks" | "missing";
+type Section =
+  | "overview"
+  | "files"
+  | "changes"
+  | "summary"
+  | "report"
+  | "rule_hits"
+  | "diagrams"
+  | "risks"
+  | "missing";
 
-function MetaLoading() {
-  return <div className="meta-loading" aria-busy="true" style={{ minHeight: "4rem" }} />;
+function MetaLoading({ label }: { label?: string }) {
+  return (
+    <div className="meta-loading skeleton-block" aria-busy="true">
+      {label ? <p className="sidebar-muted">{label}</p> : null}
+    </div>
+  );
 }
 
 function statusLabel(status: string, ui: Record<string, string>): string {
@@ -60,6 +78,7 @@ export default function DetailPage() {
   const [result, setResult] = useState<TaskResult | null>(null);
   const [diagramMeta, setDiagramMeta] = useState<DiagramMetaResponse | null>(null);
   const [rulesMeta, setRulesMeta] = useState<RulesMetaResponse | null>(null);
+  const [rulesCatalog, setRulesCatalog] = useState<RulesCatalogResponse | null>(null);
   const [detailMeta, setDetailMeta] = useState<DetailPageMetaResponse | null>(null);
   const [clientMeta, setClientMeta] = useState<ClientMetaResponse | null>(null);
   const [llmOptions, setLlmOptions] = useState<LlmModeOption[]>([]);
@@ -71,6 +90,7 @@ export default function DetailPage() {
     fetchClientMeta().then(setClientMeta).catch(() => setClientMeta(null));
     fetchDiagramMeta().then(setDiagramMeta).catch(() => setDiagramMeta(null));
     fetchRulesMeta().then(setRulesMeta).catch(() => setRulesMeta(null));
+    fetchRulesCatalog().then(setRulesCatalog).catch(() => setRulesCatalog(null));
     fetchDetailPageMeta().then(setDetailMeta).catch(() => setDetailMeta(null));
     fetchLlmModeOptions()
       .then((data) => setLlmOptions(data.options))
@@ -87,17 +107,16 @@ export default function DetailPage() {
     [llmOptions, task?.llm_mode],
   );
 
-  const isMarkdownMode =
-    task?.visualization_mode === "markdown" ||
-    activeLlm?.visualization_mode === "markdown" ||
-    Boolean(result?.markdown_report?.trim());
+  const isDiagramMode =
+    task?.visualization_mode === "diagrams" || activeLlm?.visualization_mode === "diagrams";
+  const hasMarkdownReport = Boolean(result?.markdown_report?.trim());
   const showRerun = task?.rerun_supported ?? activeLlm?.rerun_supported ?? true;
   const showTokenStats =
     task?.visualization_mode !== "markdown" &&
     activeLlm?.hide_token_stats !== true &&
     activeLlm?.visualization_mode !== "markdown";
   const showLlmStats =
-    !isMarkdownMode && result?.review_stats && (result.review_stats.pro_calls > 0 || result.review_stats.flash_calls > 0);
+    isDiagramMode && result?.review_stats && (result.review_stats.pro_calls > 0 || result.review_stats.flash_calls > 0);
 
   const metaByType = useMemo(() => {
     const map: Record<string, DiagramMetaResponse["diagram_types"][number]> = {};
@@ -150,11 +169,11 @@ export default function DetailPage() {
   };
 
   if (!taskId) {
-    return rulesUi.invalid_task ? <p>{rulesUi.invalid_task}</p> : <MetaLoading />;
+    return rulesUi.invalid_task ? <p>{rulesUi.invalid_task}</p> : <MetaLoading label={detailUi.meta_loading} />;
   }
 
   if (!rulesMeta || !detailMeta) {
-    return <MetaLoading />;
+    return <MetaLoading label={detailUi.meta_loading} />;
   }
 
   const diagramSectionLabel = diagramMeta?.section_label ?? rulesUi.nav_risks;
@@ -162,18 +181,14 @@ export default function DetailPage() {
   const emptyDiagrams = diagramMeta ? diagramMeta.empty_diagrams : "";
 
   const showRuleHits = Boolean(result?.rule_hits?.length);
-  const mergeReportAndRuleHits =
-    isMarkdownMode && showRuleHits && Boolean(result?.markdown_report?.trim());
+  const mergeReportAndRuleHits = hasMarkdownReport && showRuleHits;
 
   const nav = [
     { id: "overview" as const, label: rulesUi.nav_overview, show: true },
     { id: "files" as const, label: detailUi.nav_files, show: true },
+    { id: "changes" as const, label: rulesUi.nav_changes, show: Boolean(result?.diff_atoms.length) },
     { id: "summary" as const, label: rulesUi.nav_summary, show: Boolean(result) },
-    {
-      id: "report" as const,
-      label: rulesUi.nav_report,
-      show: isMarkdownMode && Boolean(result?.markdown_report?.trim()),
-    },
+    { id: "report" as const, label: rulesUi.nav_report, show: hasMarkdownReport },
     {
       id: "rule_hits" as const,
       label: rulesUi.nav_rule_hits,
@@ -182,7 +197,7 @@ export default function DetailPage() {
     {
       id: "diagrams" as const,
       label: diagramSectionLabel,
-      show: !isMarkdownMode && Boolean(diagramMeta) && Boolean(result),
+      show: isDiagramMode && Boolean(result),
     },
     { id: "risks" as const, label: rulesUi.nav_risks, show: Boolean(result) },
     { id: "missing" as const, label: rulesUi.nav_missing, show: Boolean(result) },
@@ -211,9 +226,11 @@ export default function DetailPage() {
   const previewDiagramCount =
     diagramMeta?.diagram_count ?? diagramMeta?.diagram_types.length ?? result?.diagrams.length ?? 0;
 
+  const runningAgent = task?.agent_progress.find((a) => a.status === "running");
+
   const renderMainContent = () => {
     if (!task) {
-      return <MetaLoading />;
+      return <MetaLoading label={detailUi.meta_loading} />;
     }
 
     if (section === "files") {
@@ -228,14 +245,20 @@ export default function DetailPage() {
             result={null}
             ui={detailUi}
             rulesUi={rulesUi}
-            isMarkdownMode={isMarkdownMode}
+            isMarkdownMode={!isDiagramMode}
             overviewRulesHint={rulesUi.overview_rules_hint || rulesUi.rules_mode_note}
             diagramPreview={null}
-            riskPreview={<p className="sidebar-muted">{rulesUi.running_message}</p>}
+            riskPreview={
+              <p className="sidebar-muted">
+                {runningAgent?.message?.trim() || rulesUi.running_message}
+              </p>
+            }
           />
         );
       }
-      return <p className="sidebar-muted">{rulesUi.running_message}</p>;
+      return (
+        <p className="sidebar-muted">{runningAgent?.message?.trim() || rulesUi.running_message}</p>
+      );
     }
 
     return (
@@ -247,29 +270,48 @@ export default function DetailPage() {
           </div>
         ) : null}
 
-        {result.risks.length === 0 && result.diff_atoms.length > 0 && !isMarkdownMode ? (
+        {result.risks.length === 0 && result.diff_atoms.length > 0 && isDiagramMode ? (
           <div className="risk-item high">{rulesUi.no_risks_but_atoms_banner}</div>
         ) : null}
 
         {section === "overview" && (
-          <OverviewPanel
-            files={patchFiles}
-            result={result}
-            ui={detailUi}
-            rulesUi={rulesUi}
-            isMarkdownMode={isMarkdownMode}
-            overviewRulesHint={rulesUi.overview_rules_hint || rulesUi.rules_mode_note}
-            diagramPreview={
-              isMarkdownMode ? null : (
-                <>
-                  <h3 className="content-heading">{diagramPreviewLabel}</h3>
-                  {diagramMeta
-                    ? renderDiagramCards(result.diagrams.slice(0, previewDiagramCount), "ov")
-                    : emptyDiagrams}
-                </>
-              )
-            }
-            riskPreview={<RiskList risks={result.risks.slice(0, riskPreviewCount)} ui={detailUi} />}
+          <>
+            <OverviewPanel
+              files={patchFiles}
+              result={result}
+              ui={detailUi}
+              rulesUi={rulesUi}
+              isMarkdownMode={!isDiagramMode}
+              overviewRulesHint={rulesUi.overview_rules_hint || rulesUi.rules_mode_note}
+              diagramPreview={
+                isDiagramMode ? (
+                  <>
+                    <h3 className="content-heading">{diagramPreviewLabel}</h3>
+                    {diagramMeta
+                      ? renderDiagramCards(result.diagrams.slice(0, previewDiagramCount), "ov")
+                      : emptyDiagrams}
+                  </>
+                ) : null
+              }
+              riskPreview={<RiskList risks={result.risks.slice(0, riskPreviewCount)} ui={detailUi} />}
+            />
+            <IndexPanel baseIndex={result.base_index} headIndex={result.head_index} ui={rulesUi} />
+            {task.expected_rule_ids?.length ? (
+              <DemoVerificationPanel
+                expectedRuleIds={task.expected_rule_ids}
+                hits={result.rule_hits ?? []}
+                catalogRules={rulesCatalog?.rules ?? []}
+                ui={rulesUi}
+              />
+            ) : null}
+          </>
+        )}
+
+        {section === "changes" && (
+          <ChangesTable
+            atoms={result.diff_atoms}
+            headers={rulesMeta.table_change_headers}
+            emptyText={rulesUi.empty_changes}
           />
         )}
 
@@ -311,7 +353,12 @@ export default function DetailPage() {
           />
         )}
 
-        {section === "diagrams" && <div>{renderDiagramBlock(result.diagrams, "full")}</div>}
+        {section === "diagrams" && (
+          <>
+            <h3 className="content-heading">{diagramSectionLabel}</h3>
+            <div>{renderDiagramBlock(result.diagrams, "full")}</div>
+          </>
+        )}
 
         {section === "risks" && <RiskList risks={result.risks} ui={detailUi} />}
 
@@ -362,7 +409,7 @@ export default function DetailPage() {
           statusLabel={statusLabel(task.status, detailUi)}
           metaExtra={
             <>
-              {result?.review_stats && !isMarkdownMode ? (
+              {result?.review_stats && isDiagramMode ? (
                 <span className="meta-chip">
                   {formatTemplate(detailUi.meta_atoms_scanned, {
                     reviewed: result.review_stats.reviewed_atoms,
@@ -407,7 +454,7 @@ export default function DetailPage() {
       )}
 
       {task?.status === "running" || task?.status === "pending" ? (
-        <p className="running-banner">{rulesUi.running_message}</p>
+        <p className="running-banner">{runningAgent?.message?.trim() || rulesUi.running_message}</p>
       ) : null}
 
       {error && <div className="error">{error}</div>}
@@ -428,7 +475,7 @@ export default function DetailPage() {
               filesSidebarLabel={detailUi.files_sidebar_label}
               exportLabel={rulesUi.export_markdown}
               onJumpDiagrams={() => setSection("diagrams")}
-              showDiagramsLink={!isMarkdownMode && Boolean(diagramMeta) && Boolean(result)}
+              showDiagramsLink={isDiagramMode && Boolean(result)}
               diagramsLinkLabel={detailUi.view_diagrams}
             />
           }
@@ -438,17 +485,17 @@ export default function DetailPage() {
               result={result}
               ui={detailUi}
               rulesUi={rulesUi}
-              runningMessage={rulesUi.running_message}
+              runningMessage={runningAgent?.message?.trim() || rulesUi.running_message}
               isRunning={task.status === "running" || task.status === "pending"}
               riskPreview={result?.risks.slice(0, riskPreviewCount) ?? []}
               onViewRisks={() => setSection("risks")}
               onViewDiagrams={() => setSection("diagrams")}
-              showDiagramsAction={!isMarkdownMode && Boolean(diagramMeta) && Boolean(result?.diagrams.length)}
+              showDiagramsAction={isDiagramMode && Boolean(result?.diagrams.length)}
             />
           }
         />
       ) : (
-        <MetaLoading />
+        <MetaLoading label={detailUi.meta_loading} />
       )}
     </div>
   );

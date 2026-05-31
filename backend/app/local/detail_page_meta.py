@@ -39,7 +39,7 @@ RISK_LEVEL_HIGH = "高"
 RISK_LEVEL_MEDIUM = "中"
 RISK_LEVEL_LOW = "低"
 SUGGESTED_FINDINGS_LABEL = "关键发现"
-VIEW_DIAGRAMS = "查看解释图"
+VIEW_DIAGRAMS = "查看示例图"
 VIEW_FULL_RISKS = "查看全部风险"
 
 STAT_CHECKS = "变更统计"
@@ -67,6 +67,7 @@ RISK_SUGGESTION = "建议：{text}"
 RISK_EMPTY = "暂无风险项"
 
 SEVERITY_FILTER_ALL = "全部"
+META_LOADING = "加载中…"
 
 
 def get_ui_strings() -> dict[str, str]:
@@ -125,6 +126,7 @@ def get_ui_strings() -> dict[str, str]:
         "risk_suggestion": RISK_SUGGESTION,
         "risk_empty": RISK_EMPTY,
         "severity_filter_all": SEVERITY_FILTER_ALL,
+        "meta_loading": META_LOADING,
     }
 
 

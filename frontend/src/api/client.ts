@@ -101,6 +101,8 @@ export interface TaskRecord {
   local_compress_enabled?: boolean;
   local_model?: string;
   pr_context?: PrContext;
+  demo_scenario_id?: string | null;
+  expected_rule_ids?: string[];
   compress_stats?: {
     compress_calls: number;
     chars_before: number;
@@ -208,6 +210,15 @@ export interface RuleHitRecord {
   message: string;
 }
 
+export interface ProjectIndex {
+  version?: string;
+  modules?: string[];
+  routes?: string[];
+  entry_files?: string[];
+  directory_tree?: string[];
+  raw_summary?: string;
+}
+
 export interface TaskResult {
   summary: string;
   summary_bullets: string[];
@@ -216,6 +227,8 @@ export interface TaskResult {
   missing_info: MissingInfoItem[];
   degradation_notes: string[];
   diff_atoms: DiffAtom[];
+  base_index?: ProjectIndex | null;
+  head_index?: ProjectIndex | null;
   detected_project_type: string;
   detected_framework: string;
   review_stats?: ReviewStats | null;
@@ -248,11 +261,13 @@ export interface RulesCatalogEntry {
   id: string;
   message: string;
   severity: string;
+  matcher_type?: string;
 }
 
 export interface RulesCatalogResponse {
   rules_count: number;
   rules_invalid_count: number;
+  rules_pack_version?: string;
   rules: RulesCatalogEntry[];
 }
 
@@ -343,6 +358,7 @@ export async function createTask(body: {
   local_model?: string;
   cloud_flash_model?: string;
   cloud_pro_model?: string;
+  demo_scenario_id?: string;
 }): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
