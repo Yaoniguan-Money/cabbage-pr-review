@@ -45,8 +45,22 @@ export function loadRuntimeCredentials(): StoredRuntimeCredentials {
   }
 }
 
+/** 保存前：有 Key/Token 时自动打开对应开关，避免「已填 Key 但未启用」导致保存无效。 */
+export function prepareCredentialsForSave(
+  creds: StoredRuntimeCredentials,
+): StoredRuntimeCredentials {
+  const cloudKey = creds.cloud_api_key.trim();
+  const gh = creds.github_token.trim();
+  return normalize({
+    ...creds,
+    enable_cloud: Boolean(cloudKey) || creds.enable_cloud,
+    enable_github: Boolean(gh) || creds.enable_github,
+  });
+}
+
 export function saveRuntimeCredentials(creds: StoredRuntimeCredentials): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(creds));
+  const prepared = prepareCredentialsForSave(creds);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(prepared));
 }
 
 export function clearRuntimeCredentials(): void {

@@ -9,9 +9,25 @@ LlmMode = Literal["cloud_only", "hybrid", "local_only", "rules_only"]
 
 VALID_LLM_MODES: frozenset[str] = frozenset({"cloud_only", "hybrid", "local_only", "rules_only"})
 
-HINT_CLOUD_UNAVAILABLE = (
+HINT_CLOUD_UNAVAILABLE_ENV = (
     "当前未配置云端 API，请在 .env 设置 CLOUD_API_KEY 或 DEEPSEEK_API_KEY"
 )
+HINT_CLOUD_UNAVAILABLE_BROWSER = (
+    "请先打开上方「启用云端 LLM API」，填写 API Key 并点击「保存到本机」；"
+    "凭据仅保存在您浏览器，不会写入服务器。"
+)
+# 兼容旧引用
+HINT_CLOUD_UNAVAILABLE = HINT_CLOUD_UNAVAILABLE_ENV
+
+
+def resolve_cloud_unavailable_hint() -> str:
+    """按部署方式返回云端不可用提示（单源，供 API / 校验 / 503 共用）。"""
+    from app.config import settings
+    from app.llm.credentials_resolve import server_cloud_configured
+
+    if settings.allow_runtime_credentials and not server_cloud_configured():
+        return HINT_CLOUD_UNAVAILABLE_BROWSER
+    return HINT_CLOUD_UNAVAILABLE_ENV
 HINT_LOCAL_UNAVAILABLE = "本地 Ollama 不可用，请启动服务并确认 LOCAL_LLM_BASE_URL"
 HINT_HYBRID_LOCAL_FOR_COMPRESS = (
     "本地 Ollama 不可用，请启动 Ollama、关闭压缩或改用纯云端"
@@ -169,7 +185,7 @@ def format_llm_mode_label(
 def get_availability_hints() -> dict[str, str]:
     """前端推导运行时可用性时使用的提示文案单源。"""
     return {
-        "cloud_unavailable": HINT_CLOUD_UNAVAILABLE,
+        "cloud_unavailable": resolve_cloud_unavailable_hint(),
         "local_unavailable": HINT_LOCAL_UNAVAILABLE,
         "local_for_compress": HINT_HYBRID_LOCAL_FOR_COMPRESS,
         "compress_model_required": HINT_COMPRESS_MODEL_REQUIRED,

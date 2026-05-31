@@ -8,7 +8,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.config import settings
 from app.llm.client import llm_client
-from app.local.llm_mode import HINT_CLOUD_UNAVAILABLE, HINT_LOCAL_ONLY_BACKEND, normalize_llm_mode
+from app.local.llm_mode import HINT_LOCAL_ONLY_BACKEND, normalize_llm_mode, resolve_cloud_unavailable_hint
 from app.local.result_repair import repair_model
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def _ensure_llm() -> None:
     from app.llm.credentials_resolve import task_cloud_available
 
     if not task_cloud_available(ctx):
-        raise LLMRequiredError(HINT_CLOUD_UNAVAILABLE)
+        raise LLMRequiredError(resolve_cloud_unavailable_hint())
 
 
 def call_flash_json(system: str, user: str, schema: type[T]) -> tuple[T, list[str]]:

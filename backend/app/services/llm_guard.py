@@ -2,7 +2,12 @@ from fastapi import HTTPException
 
 from app.agents.llm_helpers import LLMRequiredError
 from app.config import settings
-from app.local.llm_mode import HINT_CLOUD_UNAVAILABLE, is_rules_only_mode, normalize_llm_mode, validate_task_llm_config
+from app.local.llm_mode import (
+    is_rules_only_mode,
+    normalize_llm_mode,
+    resolve_cloud_unavailable_hint,
+    validate_task_llm_config,
+)
 from app.llm.router import cloud_available, local_available
 from app.models.schemas import RuntimeCredentials
 
@@ -44,7 +49,7 @@ def ensure_llm_for_api(
         return
 
     if not cloud_ok:
-        raise HTTPException(status_code=503, detail=HINT_CLOUD_UNAVAILABLE)
+        raise HTTPException(status_code=503, detail=resolve_cloud_unavailable_hint())
 
     try:
         from app.agents.llm_helpers import _ensure_llm

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -123,7 +123,9 @@ export default function InputPage() {
     loadRuntimeCredentials(),
   );
 
-  const applyLlmOptions = useCallback((hasKey: boolean) => {
+  const isInitialLlmOptionsLoad = useRef(true);
+
+  const applyLlmOptions = useCallback((hasKey: boolean, preserveSelection = false) => {
     fetchLlmModeOptions(hasKey)
       .then((data) => {
         setLlmOptions(data.options);
@@ -132,13 +134,33 @@ export default function InputPage() {
         setLocalAvailable(data.local_available);
         setAvailabilityHints(data.availability_hints);
         setCompressEnabled(data.default_local_compress_enabled);
-        setSelectedLlmMode(
-          pickInitialLlmMode(data.options, {
-            cloudAvailable: data.cloud_available,
-            localAvailable: data.local_available,
-            defaultCompressEnabled: data.default_local_compress_enabled,
-          }),
-        );
+
+        const env = {
+          cloudAvailable: data.cloud_available,
+          localAvailable: data.local_available,
+          defaultCompressEnabled: data.default_local_compress_enabled,
+        };
+        const shouldPreserve = preserveSelection && !isInitialLlmOptionsLoad.current;
+        isInitialLlmOptionsLoad.current = false;
+
+        setSelectedLlmMode((prev) => {
+          if (shouldPreserve && prev) {
+            const current = data.options.find((o) => o.id === prev);
+            if (
+              current &&
+              isLlmModeRuntimeAvailable(
+                current,
+                env.cloudAvailable,
+                env.localAvailable,
+                env.defaultCompressEnabled,
+              )
+            ) {
+              return prev;
+            }
+          }
+          return pickInitialLlmMode(data.options, env);
+        });
+
         if (data.default_local_model) setLocalModel(data.default_local_model);
         else if (data.local_models[0]) setLocalModel(data.local_models[0]);
       })
@@ -147,7 +169,7 @@ export default function InputPage() {
 
   const handlePreviewChange = useCallback(
     (preview: { cloud_available: boolean }) => {
-      applyLlmOptions(preview.cloud_available);
+      applyLlmOptions(preview.cloud_available, true);
     },
     [applyLlmOptions],
   );
@@ -365,12 +387,12 @@ export default function InputPage() {
         value={runtimeCreds}
         onChange={(next) => {
           setRuntimeCreds(next);
-          applyLlmOptions(isCloudCredentialsEnabled(next));
+          applyLlmOptions(isCloudCredentialsEnabled(next), true);
         }}
         onSaved={() => {
           const c = loadRuntimeCredentials();
           setRuntimeCreds(c);
-          applyLlmOptions(isCloudCredentialsEnabled(c));
+          applyLlmOptions(isCloudCredentialsEnabled(c), true);
         }}
         onPreviewChange={handlePreviewChange}
       />
@@ -462,10 +484,14 @@ export default function InputPage() {
                 <div
                   key={opt.id}
                   className={`option-item ${selectedLlmMode === opt.id ? "active" : ""} ${!optRuntimeAvailable ? "disabled" : ""}`}
-                  onClick={() => setSelectedLlmMode(opt.id)}
+                  onClick={() => {
+                    if (!optRuntimeAvailable) return;
+                    setSelectedLlmMode(opt.id);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
+                      if (!optRuntimeAvailable) return;
                       setSelectedLlmMode(opt.id);
                     }
                   }}

@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     # v2.0 §7.3：Flash 轻任务 / Pro 重任务（API 模型名以控制台为准）
-    deepseek_flash_model: str = "deepseek-chat"
-    deepseek_pro_model: str = "deepseek-reasoner"
+    deepseek_flash_model: str = "deepseek-v4-flash"
+    deepseek_pro_model: str = "deepseek-v4-pro"
     github_token: str = ""
     use_mock_llm: bool = False
     review_depth_mode: str = "balanced"

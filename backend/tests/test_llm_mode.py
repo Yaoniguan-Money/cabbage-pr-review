@@ -4,13 +4,15 @@ from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.local.llm_mode import (
-    HINT_CLOUD_UNAVAILABLE,
+    HINT_CLOUD_UNAVAILABLE_BROWSER,
+    HINT_CLOUD_UNAVAILABLE_ENV,
     HINT_COMPRESS_MODEL_REQUIRED,
     HINT_HYBRID_LOCAL_FOR_COMPRESS,
     VALID_LLM_MODES,
     get_availability_hints,
     list_llm_mode_options,
     normalize_llm_mode,
+    resolve_cloud_unavailable_hint,
     validate_task_llm_config,
 )
 from app.main import app
@@ -102,6 +104,7 @@ def test_hybrid_available_when_compress_off_without_local():
 
 
 def test_validate_task_llm_config_uses_hint_constants():
+    expected_cloud = resolve_cloud_unavailable_hint()
     assert (
         validate_task_llm_config(
             llm_mode="cloud_only",
@@ -110,8 +113,9 @@ def test_validate_task_llm_config_uses_hint_constants():
             cloud_available=False,
             local_available=False,
         )
-        == HINT_CLOUD_UNAVAILABLE
+        == expected_cloud
     )
+    assert expected_cloud in (HINT_CLOUD_UNAVAILABLE_ENV, HINT_CLOUD_UNAVAILABLE_BROWSER)
     assert (
         validate_task_llm_config(
             llm_mode="hybrid",

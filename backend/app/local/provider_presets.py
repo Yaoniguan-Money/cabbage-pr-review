@@ -12,8 +12,8 @@ def list_provider_presets() -> dict[str, Any]:
                 "id": "deepseek",
                 "label": "DeepSeek",
                 "api_base": "https://api.deepseek.com",
-                "flash_model": "deepseek-chat",
-                "pro_model": "deepseek-reasoner",
+                "flash_model": "deepseek-v4-flash",
+                "pro_model": "deepseek-v4-pro",
             },
             {
                 "id": "openai",

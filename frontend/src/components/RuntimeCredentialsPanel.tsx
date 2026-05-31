@@ -13,6 +13,7 @@ import {
   isCloudCredentialsEnabled,
   isGithubCredentialsEnabled,
   loadRuntimeCredentials,
+  prepareCredentialsForSave,
   saveRuntimeCredentials,
   toApiPayload,
   type StoredRuntimeCredentials,
@@ -148,12 +149,14 @@ export default function RuntimeCredentialsPanel({
   };
 
   const handleSave = () => {
-    saveRuntimeCredentials(value);
+    const prepared = prepareCredentialsForSave(value);
+    saveRuntimeCredentials(prepared);
+    onChange(prepared);
     setSavedHint(true);
     onSaved?.();
     lastSignatureRef.current = "";
-    void refreshPreview(value, previewSignature(value));
-    window.setTimeout(() => setSavedHint(false), 2500);
+    void refreshPreview(prepared, previewSignature(prepared));
+    window.setTimeout(() => setSavedHint(false), 4000);
   };
 
   const handleClear = () => {
@@ -218,6 +221,11 @@ export default function RuntimeCredentialsPanel({
       >
         {ui.panel_title ?? "API 与 GitHub 设置"}
       </button>
+      {savedHint && ui.saved_hint ? (
+        <p className="runtime-saved-banner" role="status">
+          {ui.saved_hint}
+        </p>
+      ) : null}
       {open ? (
         <div className="runtime-credentials-body">
           {ui.panel_summary ? <p className="section-hint">{ui.panel_summary}</p> : null}
@@ -294,11 +302,6 @@ export default function RuntimeCredentialsPanel({
               {ui.clear_button ?? "清除凭据"}
             </button>
           </div>
-          {savedHint && ui.saved_hint ? (
-            <p className="section-hint" role="status">
-              {ui.saved_hint}
-            </p>
-          ) : null}
         </div>
       ) : null}
     </section>
