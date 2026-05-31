@@ -15,5 +15,7 @@ export function pickInitialLlmMode(options: LlmModeOption[], env: LlmModePickEnv
   const preferred = options.find((o) => o.default && isAvailable(o));
   if (preferred) return preferred.id;
   const firstAvailable = options.find(isAvailable);
-  return firstAvailable?.id ?? options[0]?.id ?? "";
+  if (firstAvailable) return firstAvailable.id;
+  const rulesOnly = options.find((o) => o.id === "rules_only");
+  return rulesOnly?.id ?? "";
 }

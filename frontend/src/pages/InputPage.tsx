@@ -115,7 +115,9 @@ export default function InputPage() {
 
   const [localModels, setLocalModels] = useState<string[]>([]);
 
-  const [cloudAvailable, setCloudAvailable] = useState(true);
+  const [cloudAvailable, setCloudAvailable] = useState(() =>
+    isCloudCredentialsEnabled(loadRuntimeCredentials()),
+  );
 
   const [localAvailable, setLocalAvailable] = useState(false);
 
@@ -152,25 +154,37 @@ export default function InputPage() {
         const shouldPreserve = preserveSelection && !isInitialLlmOptionsLoad.current;
         isInitialLlmOptionsLoad.current = false;
 
-        const tryUpgradeFromRulesOnly = (prev: string): string | null => {
-          if (prev !== "rules_only" || !hasKey) return null;
+        const trySelectCloudWhenCredsReady = (prev: string): string | null => {
+          if (!hasKey) return null;
           const cloudOnly = data.options.find((o) => o.id === "cloud_only");
           if (
-            cloudOnly &&
-            isLlmModeRuntimeAvailable(
+            !cloudOnly ||
+            !isLlmModeRuntimeAvailable(
               cloudOnly,
               effectiveCloud,
               env.localAvailable,
               env.defaultCompressEnabled,
             )
           ) {
-            return "cloud_only";
+            return null;
           }
-          return null;
+          const current = prev ? data.options.find((o) => o.id === prev) : undefined;
+          if (
+            current &&
+            isLlmModeRuntimeAvailable(
+              current,
+              env.cloudAvailable,
+              env.localAvailable,
+              env.defaultCompressEnabled,
+            )
+          ) {
+            return null;
+          }
+          return "cloud_only";
         };
 
         setSelectedLlmMode((prev) => {
-          const upgrade = tryUpgradeFromRulesOnly(prev);
+          const upgrade = trySelectCloudWhenCredsReady(prev);
           if (upgrade) return upgrade;
 
           if (shouldPreserve && prev) {
@@ -200,8 +214,8 @@ export default function InputPage() {
   }, []);
 
   const handlePreviewChange = useCallback(() => {
-    applyLlmOptions(runtimeCreds, true);
-  }, [applyLlmOptions, runtimeCreds]);
+    applyLlmOptions(loadRuntimeCredentials(), true);
+  }, [applyLlmOptions]);
 
   const handleRuntimeCredsUpdate = useCallback(
     (next: StoredRuntimeCredentials) => {
@@ -219,7 +233,10 @@ export default function InputPage() {
 
     fetchClientMeta()
       .then((meta) => {
-        if (meta.cloud_unavailable_banner?.trim()) {
+        if (
+          meta.cloud_unavailable_banner?.trim() &&
+          !isCloudCredentialsEnabled(loadRuntimeCredentials())
+        ) {
           setCloudUnavailableBanner(meta.cloud_unavailable_banner.trim());
         }
       })
@@ -274,6 +291,31 @@ export default function InputPage() {
     applyLlmOptions(savedCreds);
 
   }, []);
+
+
+
+  // 当前选中模式在凭据/环境变化后不可用时，自动回退到可用模式（避免卡在纯云端 + 红字提示）
+  useEffect(() => {
+    if (!selectedLlmMode || llmOptions.length === 0) return;
+    const opt = llmOptions.find((o) => o.id === selectedLlmMode);
+    if (!opt) return;
+    const effective = isEffectiveCloudAvailable(cloudAvailable, runtimeCreds);
+    if (isLlmModeRuntimeAvailable(opt, effective, localAvailable, compressEnabled)) return;
+    setSelectedLlmMode(
+      pickInitialLlmMode(llmOptions, {
+        cloudAvailable: effective,
+        localAvailable,
+        defaultCompressEnabled: compressEnabled,
+      }),
+    );
+  }, [
+    selectedLlmMode,
+    llmOptions,
+    cloudAvailable,
+    runtimeCreds,
+    localAvailable,
+    compressEnabled,
+  ]);
 
 
 
