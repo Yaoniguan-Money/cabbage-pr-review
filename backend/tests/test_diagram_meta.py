@@ -11,7 +11,8 @@ def test_list_diagram_meta_has_all_types():
     meta = list_diagram_meta()
     ids = [t["id"] for t in meta["diagram_types"]]
     assert ids == list(SCHEMA_DIAGRAM_TYPES)
-    assert meta["section_label"]
+    assert meta["section_label"] == "示例图"
+    assert meta["section_preview_label"] == "示例图（预览）"
     assert meta["diagram_count"] == len(SCHEMA_DIAGRAM_TYPES)
     assert meta["ui_strings"]["render_error_title"]
     assert len(meta["default_legend"]) >= 3

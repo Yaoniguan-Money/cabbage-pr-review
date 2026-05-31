@@ -1316,3 +1316,123 @@ button:disabled {
   text-decoration: none;
 }
 
+.demo-scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.demo-scenario-card {
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-panel);
+}
+
+.demo-scenario-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-muted);
+}
+
+.demo-scenario-card-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-lg);
+}
+
+.demo-scenario-card-desc {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.demo-scenario-expected-label {
+  display: block;
+  font-size: var(--font-xs);
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+
+.demo-scenario-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: var(--space-3);
+}
+
+.demo-rule-badge {
+  font-size: var(--font-xs);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.demo-verification {
+  margin-top: var(--space-5);
+}
+
+.demo-verify-group {
+  margin-top: var(--space-3);
+}
+
+.demo-verify-group-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-sm);
+}
+
+.demo-verify-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.demo-verify-matcher {
+  margin-left: var(--space-2);
+  color: var(--muted);
+  font-size: var(--font-xs);
+}
+
+.index-panel,
+.changes-table-wrap {
+  margin-top: var(--space-5);
+}
+
+.index-panel-list {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.1rem;
+}
+
+.index-panel-block + .index-panel-block {
+  margin-top: var(--space-3);
+}
+
+.skeleton-block {
+  min-height: 4rem;
+  padding: var(--space-4);
+}
+
+.markdown-report table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-3) 0;
+  font-size: var(--font-sm);
+}
+
+.markdown-report th,
+.markdown-report td {
+  border: 1px solid var(--border-subtle);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+}
+
+.markdown-report h2,
+.markdown-report h3 {
+  margin-top: var(--space-4);
+}
+
+.markdown-report p,
+.markdown-report ul {
+  line-height: 1.6;
+}
+

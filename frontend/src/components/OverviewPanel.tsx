@@ -30,6 +30,7 @@ export default function OverviewPanel({
 
   return (
     <div className="overview-panel">
+      <h3 className="content-heading">{ui.stat_checks}</h3>
       <div className="stat-cards">
         <div className="stat-card">
           <span className="stat-label">{ui.stat_files}</span>

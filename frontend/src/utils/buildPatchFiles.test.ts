@@ -31,6 +31,30 @@ describe("buildPatchFiles", () => {
     expect(files[0].patch).toContain("+new");
   });
 
+  it("patches 无 additions/deletions 时从 patch 文本统计", () => {
+    const task: TaskRecord = {
+      id: "t2",
+      input_type: "pr_url",
+      input_value: "demo",
+      status: "completed",
+      current_agent: 5,
+      agent_progress: [],
+      rerun_used: false,
+      pr_context: {
+        patches: [
+          {
+            filename: "Dockerfile",
+            status: "modified",
+            patch: "@@ -1,2 +1,3 @@\n-old\n+new\n+also",
+          },
+        ],
+      },
+    };
+    const files = buildPatchFiles(task, null);
+    expect(files[0].additions).toBe(2);
+    expect(files[0].deletions).toBe(1);
+  });
+
   it("无 patches 时回退 diff_atoms.hunk_patch", () => {
     const result: TaskResult = {
       summary: "",

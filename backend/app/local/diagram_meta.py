@@ -60,8 +60,8 @@ class UiStrings:
 
 
 _UI = UiStrings(
-    section_label="四张图",
-    section_preview_label="四张图（预览）",
+    section_label="示例图",
+    section_preview_label="示例图（预览）",
     empty_diagrams="暂无图表",
     unnamed_node="未命名节点",
     empty_structure="暂无结构数据",

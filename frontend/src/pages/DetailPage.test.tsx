@@ -15,6 +15,7 @@ vi.mock("../api/client", () => ({
   fetchDetailPageMeta: vi.fn(),
   fetchDiagramMeta: vi.fn(),
   fetchRulesMeta: vi.fn(),
+  fetchRulesCatalog: vi.fn(),
   fetchLlmModeOptions: vi.fn(),
   getTask: vi.fn(),
   getTaskResult: vi.fn(),
@@ -26,6 +27,7 @@ import {
   fetchDetailPageMeta,
   fetchDiagramMeta,
   fetchLlmModeOptions,
+  fetchRulesCatalog,
   fetchRulesMeta,
   getTask,
   getTaskResult,
@@ -77,6 +79,7 @@ describe("DetailPage", () => {
     vi.mocked(fetchDetailPageMeta).mockReset();
     vi.mocked(fetchDiagramMeta).mockReset();
     vi.mocked(fetchRulesMeta).mockReset();
+    vi.mocked(fetchRulesCatalog).mockReset();
     vi.mocked(fetchLlmModeOptions).mockReset();
     vi.mocked(getTask).mockReset();
     vi.mocked(getTaskResult).mockReset();
@@ -84,6 +87,12 @@ describe("DetailPage", () => {
     vi.mocked(fetchDetailPageMeta).mockResolvedValue(mockDetailPageMeta);
     vi.mocked(fetchDiagramMeta).mockResolvedValue(mockDiagramMeta);
     vi.mocked(fetchRulesMeta).mockResolvedValue(mockRulesMeta);
+    vi.mocked(fetchRulesCatalog).mockResolvedValue({
+      rules_count: 1,
+      rules_invalid_count: 0,
+      rules_pack_version: "1.0.0",
+      rules: [],
+    });
     vi.mocked(fetchLlmModeOptions).mockResolvedValue(mockDetailLlmOptions);
     vi.mocked(getTask).mockResolvedValue(defaultTask);
     vi.mocked(getTaskResult).mockResolvedValue(defaultResult);

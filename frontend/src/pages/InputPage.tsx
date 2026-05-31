@@ -79,6 +79,7 @@ export default function InputPage() {
   const [examples, setExamples] = useState<ExamplePR[]>([]);
 
   const [demoPatches, setDemoPatches] = useState<DemoPatchScenario[]>([]);
+  const [selectedDemoScenarioId, setSelectedDemoScenarioId] = useState<string | null>(null);
   const [demoPatchesError, setDemoPatchesError] = useState("");
 
   const [rulesCatalog, setRulesCatalog] = useState<RulesCatalogResponse | null>(null);
@@ -266,7 +267,7 @@ export default function InputPage() {
         local_compress_enabled: showCompress ? compressEnabled : undefined,
 
         local_model: needsLocal ? localModel || undefined : undefined,
-
+        demo_scenario_id: selectedDemoScenarioId || undefined,
       });
 
       navigate(`/tasks/${task.id}`);
@@ -319,6 +320,7 @@ export default function InputPage() {
   const loadDemoScenario = (scenario: DemoPatchScenario) => {
     setTab("patch");
     setValue(scenario.patch_text);
+    setSelectedDemoScenarioId(scenario.id);
     const rulesOnly = llmOptions.find((o) => o.id === "rules_only" && o.available !== false);
     if (rulesOnly) {
       setSelectedLlmMode(rulesOnly.id);
@@ -341,17 +343,34 @@ export default function InputPage() {
           {demoPatchesError ? (
             <p className="error">{demoPatchesError || ui.error_load_demo_patches}</p>
           ) : (
-            <div className="demo-hero-actions">
+            <div className="demo-scenario-grid">
               {demoPatches.map((scenario) => (
-                <button
+                <article
                   key={scenario.id}
-                  className="secondary demo-scenario-btn"
-                  type="button"
-                  title={scenario.description}
-                  onClick={() => loadDemoScenario(scenario)}
+                  className={`demo-scenario-card ${selectedDemoScenarioId === scenario.id ? "active" : ""}`}
                 >
-                  {scenario.title}
-                </button>
+                  <h3 className="demo-scenario-card-title">{scenario.title}</h3>
+                  <p className="demo-scenario-card-desc">{scenario.description}</p>
+                  {scenario.expected_rule_ids.length > 0 ? (
+                    <div className="demo-scenario-expected">
+                      <span className="demo-scenario-expected-label">{ui.demo_scenario_expected}</span>
+                      <div className="demo-scenario-badges">
+                        {scenario.expected_rule_ids.map((ruleId) => (
+                          <span key={ruleId} className="demo-rule-badge">
+                            {ruleId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <button
+                    className="secondary demo-scenario-btn"
+                    type="button"
+                    onClick={() => loadDemoScenario(scenario)}
+                  >
+                    {ui.demo_scenario_load}
+                  </button>
+                </article>
               ))}
             </div>
           )}
@@ -629,6 +648,15 @@ export default function InputPage() {
       {rulesCatalog && ui.rules_catalog_heading && (
         <div className="card">
           <h3>{ui.rules_catalog_heading}</h3>
+          <p className="section-hint">
+            {(ui.rules_catalog_count_label || "").replace("{count}", String(rulesCatalog.rules_count))}
+            {rulesCatalog.rules_invalid_count > 0
+              ? ` · ${(ui.rules_catalog_invalid_label || "").replace("{count}", String(rulesCatalog.rules_invalid_count))}`
+              : ""}
+            {rulesCatalog.rules_pack_version
+              ? ` · ${(ui.rules_catalog_version_label || "").replace("{version}", rulesCatalog.rules_pack_version)}`
+              : ""}
+          </p>
           <button
             type="button"
             className="secondary"
@@ -638,9 +666,6 @@ export default function InputPage() {
           </button>
           {rulesCatalogOpen && (
             <div className="option-detail">
-              <p>
-                {(ui.rules_catalog_count_label || "").replace("{count}", String(rulesCatalog.rules_count))}
-              </p>
               <ul>
                 {rulesCatalog.rules.map((rule) => (
                   <li key={rule.id}>

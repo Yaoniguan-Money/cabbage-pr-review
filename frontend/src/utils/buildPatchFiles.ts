@@ -1,15 +1,44 @@
 import type { PrPatchFile, TaskRecord, TaskResult } from "../api/client";
 
+function countPatchLineStats(patch: string): { additions: number; deletions: number } {
+  let additions = 0;
+  let deletions = 0;
+  for (const line of patch.split("\n")) {
+    if (line.startsWith("+") && !line.startsWith("+++")) additions += 1;
+    else if (line.startsWith("-") && !line.startsWith("---")) deletions += 1;
+  }
+  return { additions, deletions };
+}
+
+function resolvePatchStats(
+  patch: string,
+  additions?: number,
+  deletions?: number,
+): { additions: number; deletions: number } {
+  const fromPatch = countPatchLineStats(patch);
+  if (additions == null || deletions == null) {
+    return fromPatch;
+  }
+  if (additions === 0 && deletions === 0 && (fromPatch.additions > 0 || fromPatch.deletions > 0)) {
+    return fromPatch;
+  }
+  return { additions, deletions };
+}
+
 export function buildPatchFiles(task: TaskRecord | null, result: TaskResult | null): PrPatchFile[] {
   const patches = task?.pr_context?.patches ?? [];
   if (patches.length > 0) {
-    return patches.map((p) => ({
-      filename: p.filename,
-      status: p.status,
-      patch: p.patch ?? "",
-      additions: p.additions ?? 0,
-      deletions: p.deletions ?? 0,
-    }));
+    return patches.map((p) => {
+      const patchText = p.patch ?? "";
+      const stats = resolvePatchStats(patchText, p.additions, p.deletions);
+      return {
+        filename: p.filename,
+        status: p.status,
+        patch: patchText,
+        additions: stats.additions,
+        deletions: stats.deletions,
+      };
+    });
   }
 
   if (!result?.diff_atoms?.length) {
