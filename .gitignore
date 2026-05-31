@@ -1,4 +1,15 @@
 .env
+.env.production
+.env.local
+.env.*.local
+.cursor_temp*
+pr-body.md
+coverage/
+.coverage
+htmlcov/
+*.log
+scripts/quality_thresholds.json
+frontend/node_modules/.vite/
 __pycache__/
 *.pyc
 .pytest_cache/

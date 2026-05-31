@@ -90,8 +90,8 @@ docker compose -f docker-compose.demo-mock.yml up --build
 
 ## 相关文档
 
-- [V2.4_RULES_MODE.md](./V2.4_RULES_MODE.md) — 纯规则模式操作手册
-- [RULES_ENGINE_REVIEW.md](./RULES_ENGINE_REVIEW.md) — 规则引擎架构审阅
+- [README.md](../README.md) — 技术栈、推理模式与环境变量
+- [CLOUD_DEPLOY.md](./CLOUD_DEPLOY.md) — 公网部署（评委自备 Key）
 
 ## Phase 2 能力（v2.5）
 
