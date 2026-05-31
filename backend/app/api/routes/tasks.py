@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response
 
 from app.local.demo_patches_meta import get_scenario_by_id
 from app.config import settings
@@ -18,6 +18,11 @@ from app.local.llm_mode import (
 from app.local.review_depth import VALID_MODES, get_review_depth_option, normalize_review_depth_mode
 from app.llm.task_context import build_task_llm_context
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
+from app.local.export_meta import (
+    EXPORT_NOT_READY_DETAIL,
+    EXPORT_TASK_NOT_FOUND_DETAIL,
+    format_export_filename,
+)
 from app.services.export_md import export_markdown
 from app.services.github import GitHubService
 from app.services.llm_guard import ensure_llm_for_api
@@ -159,12 +164,17 @@ async def rerun_task(task_id: str, body: RerunRequest, background_tasks: Backgro
     return record
 
 
-@router.get("/tasks/{task_id}/export.md", response_class=PlainTextResponse)
+@router.get("/tasks/{task_id}/export.md")
 async def export_task_md(task_id: str):
     record = task_store.get(task_id)
     if not record:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=404, detail=EXPORT_TASK_NOT_FOUND_DETAIL)
     if not record.result:
-        raise HTTPException(status_code=409, detail="任务尚无结果可导出")
+        raise HTTPException(status_code=409, detail=EXPORT_NOT_READY_DETAIL)
     content = export_markdown(record)
-    return PlainTextResponse(content, media_type="text/markdown; charset=utf-8")
+    filename = format_export_filename(task_id)
+    return Response(
+        content=content,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
