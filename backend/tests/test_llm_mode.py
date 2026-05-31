@@ -70,7 +70,7 @@ def test_list_llm_mode_options_structure():
     assert ids == VALID_LLM_MODES
     rules = next(o for o in data["options"] if o["id"] == "rules_only")
     assert rules["requires_llm"] is False
-    assert rules["visualization_mode"] == "markdown"
+    assert rules["visualization_mode"] == "diagrams"
     assert rules["rerun_supported"] is False
     assert rules["available"] is True
     hybrid = next(o for o in data["options"] if o["id"] == "hybrid")

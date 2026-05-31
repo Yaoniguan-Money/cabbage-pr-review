@@ -28,6 +28,6 @@ def test_create_task_includes_visualization_mode():
     assert resp.status_code == 200
     body = resp.json()
     assert body["llm_mode"] == "rules_only"
-    assert body["visualization_mode"] == "markdown"
+    assert body["visualization_mode"] == "diagrams"
     assert body["rerun_supported"] is False
     assert resolve_rules_pack_dir().is_dir()

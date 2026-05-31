@@ -9,7 +9,7 @@ def test_rules_meta_api():
     resp = client.get("/api/rules-meta")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["visualization_mode"] == "markdown"
+    assert body["visualization_mode"] == "diagrams"
     assert "ui_strings" in body
     assert body["ui_strings"]["nav_report"]
     assert body["ui_strings"]["nav_rule_hits"]

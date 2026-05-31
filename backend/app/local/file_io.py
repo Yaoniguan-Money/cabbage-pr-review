@@ -80,6 +80,17 @@ def read_local_repo(path_str: str) -> dict:
     }
 
 
+def count_patch_hunk_lines(patch_body: str) -> tuple[int, int]:
+    """统计 unified diff 单文件 patch 的新增/删除行数。"""
+    additions = deletions = 0
+    for line in patch_body.splitlines():
+        if line.startswith("+") and not line.startswith("+++"):
+            additions += 1
+        elif line.startswith("-") and not line.startswith("---"):
+            deletions += 1
+    return additions, deletions
+
+
 def parse_patch_text(patch: str) -> list[dict]:
     files: list[dict] = []
     current_file = ""
@@ -87,7 +98,17 @@ def parse_patch_text(patch: str) -> list[dict]:
     for line in patch.splitlines():
         if line.startswith("diff --git "):
             if current_file:
-                files.append({"filename": current_file, "status": "modified", "patch": "\n".join(current_patch)})
+                body = "\n".join(current_patch)
+                additions, deletions = count_patch_hunk_lines(body)
+                files.append(
+                    {
+                        "filename": current_file,
+                        "status": "modified",
+                        "patch": body,
+                        "additions": additions,
+                        "deletions": deletions,
+                    }
+                )
             parts = line.split()
             if len(parts) >= 3:
                 a_path = parts[2]
@@ -96,7 +117,26 @@ def parse_patch_text(patch: str) -> list[dict]:
         else:
             current_patch.append(line)
     if current_file:
-        files.append({"filename": current_file, "status": "modified", "patch": "\n".join(current_patch)})
+        body = "\n".join(current_patch)
+        additions, deletions = count_patch_hunk_lines(body)
+        files.append(
+            {
+                "filename": current_file,
+                "status": "modified",
+                "patch": body,
+                "additions": additions,
+                "deletions": deletions,
+            }
+        )
     if not files and patch.strip():
-        files.append({"filename": "unknown.patch", "status": "modified", "patch": patch})
+        additions, deletions = count_patch_hunk_lines(patch)
+        files.append(
+            {
+                "filename": "unknown.patch",
+                "status": "modified",
+                "patch": patch,
+                "additions": additions,
+                "deletions": deletions,
+            }
+        )
     return files

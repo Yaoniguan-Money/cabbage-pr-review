@@ -1,0 +1,47 @@
+{
+  "directory_tree": [
+    ".github/",
+    ".github/workflows/",
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+    "Dockerfile",
+    "docker-compose.yml",
+    "deploy/",
+    "deploy/k8s/deployment.yaml",
+    "src/",
+    "scripts/"
+  ],
+  "entry_files": ["Dockerfile", ".github/workflows/ci.yml"],
+  "path_compare_focus": ["Dockerfile", ".github/workflows/ci.yml"],
+  "file_to_node": {
+    "Dockerfile": "runtime",
+    ".github/workflows/ci.yml": "ci",
+    "deploy/k8s/deployment.yaml": "registry"
+  },
+  "index_modules": [".github", "deploy", "src", "scripts"],
+  "index_routes": [],
+  "readme": "# Change Surface Demo\n\n容器化交付与 CI/CD 流水线示例，用于展示镜像构建与用户权限相关变更。",
+  "summary_line": "本次变更将 Dockerfile 运行时用户改为 root，并扩展 CI 工作流触发条件与部署阶段。",
+  "summary_bullets": [
+    "Dockerfile 多阶段构建后 USER root，扩大容器内权限面",
+    ".github/workflows/ci.yml 增加 pull_request 触发与 deploy job",
+    "同步更新 release 工作流、K8s 部署清单与应用入口配置",
+    "共 9 个文件变更，覆盖构建、CI 与部署配置"
+  ],
+  "architecture_seed": {
+    "diagram_type": "architecture",
+    "nodes": [
+      {"id": "dev", "label": "开发者提交", "group": "edge", "confidence": "high"},
+      {"id": "ci", "label": "CI 流水线", "group": "ci", "confidence": "high"},
+      {"id": "build", "label": "镜像构建", "group": "ci", "confidence": "medium"},
+      {"id": "registry", "label": "镜像仓库 / K8s", "group": "deploy", "confidence": "medium"},
+      {"id": "runtime", "label": "容器运行时", "group": "deploy", "confidence": "medium"}
+    ],
+    "edges": [
+      {"source": "dev", "target": "ci", "label": "push / PR"},
+      {"source": "ci", "target": "build", "label": "trigger"},
+      {"source": "build", "target": "registry", "label": "push image"},
+      {"source": "registry", "target": "runtime", "label": "deploy"}
+    ]
+  }
+}

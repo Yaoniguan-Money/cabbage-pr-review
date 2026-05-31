@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from app.local.rule_meta import TABLE_CHANGE_HEADERS, TABLE_HIT_HEADERS, get_ui_strings
 from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
+from app.rules.pipeline.rules_diagrams import build_rules_diagrams
 from app.rules.rule_schema import RuleHitRecord
 
 
@@ -76,6 +79,7 @@ def build_markdown_report(
                         _escape_cell(hit.severity),
                         _escape_cell(hit.file_path),
                         _escape_cell(hit.evidence[:200]),
+                        _escape_cell(hit.message),
                     ]
                 )
                 + " |"
@@ -133,8 +137,19 @@ def run_rules_finalize(
     extra_notes: list[str] | None = None,
     base_index: ProjectIndexSchema | None = None,
     head_index: ProjectIndexSchema | None = None,
+    pr_context: dict[str, Any] | None = None,
 ) -> TaskResultSchema:
-    summary, bullets = build_summary_from_hits(diff, hits, len(review.risks))
+    ctx = pr_context or {}
+    overlay_line = str(ctx.get("summary_line") or "").strip()
+    overlay_bullets = ctx.get("summary_bullets")
+    if overlay_line:
+        summary = overlay_line
+        if isinstance(overlay_bullets, list) and overlay_bullets:
+            bullets = [str(b).strip() for b in overlay_bullets if str(b).strip()]
+        else:
+            _, bullets = build_summary_from_hits(diff, hits, len(review.risks))
+    else:
+        summary, bullets = build_summary_from_hits(diff, hits, len(review.risks))
     markdown = build_markdown_report(
         summary_line=summary,
         diff=diff,
@@ -144,10 +159,18 @@ def run_rules_finalize(
         base_index=base_index,
         head_index=head_index,
     )
+    ctx = pr_context or {}
+    diagrams = build_rules_diagrams(
+        base_index=base_index,
+        head_index=head_index,
+        diff=diff,
+        hits=hits,
+        pr_context=ctx,
+    )
     return TaskResultSchema(
         summary=summary,
         summary_bullets=bullets,
-        diagrams=[],
+        diagrams=diagrams,
         risks=review.risks,
         missing_info=review.missing_info,
         degradation_notes=list(review.degradation_notes) + list(extra_notes or []),

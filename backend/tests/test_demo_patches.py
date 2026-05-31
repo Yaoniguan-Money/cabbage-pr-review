@@ -35,6 +35,7 @@ def test_demo_patches_api():
         assert scenario["title"]
         assert scenario["patch_text"].strip()
         assert scenario["expected_rule_ids"]
+        assert isinstance(scenario.get("context_overlay"), dict)
 
 
 def test_demo_patches_meta_matches_api():
@@ -47,7 +48,7 @@ def test_demo_patches_meta_matches_api():
     ("scenario_id", "expected_rules"),
     [
         ("S1-security", {"patch-hardcoded-secret", "eval-or-exec"}),
-        ("S2-change-surface", {"dockerfile-root-user", "ci-config-changed"}),
+        ("S2-change-surface", {"dockerfile-changed", "dockerfile-root-user", "ci-config-changed"}),
         (
             "S3-governance",
             {"lockfile-changed", "requirements-unpinned", "test-file-removed"},

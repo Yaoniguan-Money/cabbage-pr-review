@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.local.diagram_meta import OVERVIEW_RISK_PREVIEW_COUNT
-from app.local.rule_meta import list_rules_meta
+from app.local.rule_meta import RULES_PACK_VERSION, list_rules_meta
 from app.rules.rule_loader import list_rules_catalog, load_rule_pack_with_lint
 
 router = APIRouter(prefix="/api", tags=["rules-meta"])
@@ -20,5 +20,6 @@ async def rules_catalog():
     return {
         "rules_count": len(rules),
         "rules_invalid_count": len(lint_issues),
+        "rules_pack_version": RULES_PACK_VERSION,
         "rules": list_rules_catalog(rules),
     }

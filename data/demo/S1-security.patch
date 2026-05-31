@@ -1,11 +1,824 @@
-diff --git a/config.py b/config.py
---- a/config.py
-+++ b/config.py
-@@ -1,2 +1,3 @@
+diff --git a/.env.example b/.env.example
+--- a/.env.example
++++ b/.env.example
+@@ -4,3 +4,42 @@
+ REDIS_HOST=127.0.0.1
+ REDIS_PORT=6379
+ WORKER_CONCURRENCY=4
++
++# 生产环境请改用密钥管理服务，不要提交真实凭证
++ALERT_WEBHOOK_URL=
++STORAGE_BUCKET=demo-security-artifacts
++STORAGE_REGION=ap-east-1
++ENCRYPTION_KEY_ALIAS=demo-master-key
++
++# 会话与安全
++SESSION_COOKIE_SECURE=true
++SESSION_COOKIE_HTTPONLY=true
++LOGIN_MAX_ATTEMPTS=5
++LOGIN_LOCKOUT_MINUTES=15
++
++# 审计与可观测性
++AUDIT_LOG_ENABLED=true
++METRICS_PUSH_INTERVAL=60
++TELEMETRY_SAMPLE_RATE=0.25
++
++# 缓存与限流
++CACHE_DEFAULT_TTL=300
++RATE_LIMIT_PER_MINUTE=120
++
++# 国际化
++DEFAULT_LOCALE=zh-CN
++
++# 维护模式
++MAINTENANCE_MODE=false
++
++# 存储签名 URL
++STORAGE_SIGNED_URL_TTL=600
++
++# 异步任务
++ASYNC_TASK_QUEUE=security_tasks
++ASYNC_TASK_MAX_RETRIES=3
++
++# 合规
++COMPLIANCE_MODE=standard
++DATA_RETENTION_DAYS=365
++PII_MASKING_ENABLED=true
+diff --git a/app/logging/config.py b/app/logging/config.py
+--- a/app/logging/config.py
++++ b/app/logging/config.py
+@@ -2,31 +2,76 @@
+ from __future__ import annotations
+ 
+ import logging.config
++from pathlib import Path
+ from typing import Any
+ 
++from config import settings
+ 
+-def build_logging_config(level: str = "INFO") -> dict[str, Any]:
++
++def build_logging_config(level: str | None = None) -> dict[str, Any]:
++    resolved_level = level or settings.LOG_LEVEL
++    handlers: dict[str, Any] = {
++        "console": {
++            "class": "logging.StreamHandler",
++            "formatter": "standard",
++            "level": resolved_level,
++        },
++    }
++    if settings.FEATURE_STREAMING_LOGS:
++        log_dir = Path(settings.AUDIT_LOG_PATH).parent
++        log_dir.mkdir(parents=True, exist_ok=True)
++        handlers["file"] = {
++            "class": "logging.handlers.RotatingFileHandler",
++            "formatter": "standard",
++            "filename": str(log_dir / "app.log"),
++            "maxBytes": 5 * 1024 * 1024,
++            "backupCount": 5,
++            "level": resolved_level,
++        }
++    root_handlers = list(handlers.keys())
+     return {
+         "version": 1,
+         "disable_existing_loggers": False,
+         "formatters": {
+             "standard": {
+-                "format": "%(asctime)s %(levelname)s [%(name)s] %(message)s",
++                "format": settings.LOG_FORMAT,
++            },
++            "audit": {
++                "format": "%(asctime)s AUDIT [%(name)s] %(message)s",
+             },
+         },
+-        "handlers": {
+-            "console": {
+-                "class": "logging.StreamHandler",
+-                "formatter": "standard",
+-                "level": level,
++        "handlers": handlers,
++        "loggers": {
++            "app.routes.auth": {
++                "handlers": root_handlers,
++                "level": resolved_level,
++                "propagate": False,
++            },
++            "app.runtime.executor": {
++                "handlers": root_handlers,
++                "level": "WARNING" if not settings.DEBUG else resolved_level,
++                "propagate": False,
+             },
+         },
+         "root": {
+-            "handlers": ["console"],
+-            "level": level,
++            "handlers": root_handlers,
++            "level": resolved_level,
+         },
+     }
+ 
+ 
+-def configure_logging(level: str = "INFO") -> None:
++def configure_logging(level: str | None = None) -> None:
+     logging.config.dictConfig(build_logging_config(level))
++
++
++def audit_logger(name: str = "security.audit") -> logging.Logger:
++    return logging.getLogger(name)
++
++
++def describe_logging_state() -> dict[str, Any]:
++    config = build_logging_config()
++    return {
++        "level": config["root"]["level"],
++        "handlers": list(config["handlers"].keys()),
++        "streaming_logs": settings.FEATURE_STREAMING_LOGS,
++    }
+diff --git a/app/main.py b/app/main.py
+--- a/app/main.py
++++ b/app/main.py
+@@ -8,24 +8,32 @@
+ 
+ from app.logging.config import configure_logging
+ from app.routes import auth, health
++from config import settings
+ 
+ logger = logging.getLogger(__name__)
+ 
+ configure_logging()
+-app = FastAPI(title="demo-security-app", version="0.9.0")
++app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
+ 
+ app.include_router(health.router, prefix="/health", tags=["health"])
+ app.include_router(auth.router, prefix="/auth", tags=["auth"])
+ 
+ 
+ def root_handler() -> dict[str, Any]:
+-    return {"ok": True}
++    meta = service_metadata()
++    return {
++        "ok": True,
++        "service": meta["service"],
++        "version": meta["version"],
++        "maintenance_mode": settings.MAINTENANCE_MODE,
++    }
+ 
+ 
+ def service_metadata() -> dict[str, str]:
+     return {
+-        "service": "demo-security-app",
+-        "version": "0.9.0",
++        "service": settings.APP_NAME,
++        "version": settings.APP_VERSION,
++        "environment": "production" if not settings.DEBUG else "development",
+     }
+ 
+ 
+@@ -33,4 +41,54 @@
+     return {
+         "routers": ["health", "auth"],
+         "logging": "configured",
++        "metrics_enabled": settings.ENABLE_METRICS,
++        "audit_enabled": settings.AUDIT_LOG_ENABLED,
++        "rate_limit": settings.RATE_LIMIT_PER_MINUTE,
+     }
++
++
++def runtime_capabilities() -> dict[str, bool]:
++    return {
++        "streaming_logs": settings.FEATURE_STREAMING_LOGS,
++        "debug_traceback": settings.FEATURE_DEBUG_TRACEBACK,
++        "pii_masking": settings.PII_MASKING_ENABLED,
++        "encryption_at_rest": settings.ENCRYPTION_AT_REST,
++    }
++
++
++def compose_health_summary(checks: dict[str, bool]) -> dict[str, Any]:
++    overall = all(checks.values()) if checks else False
++    return {
++        "healthy": overall,
++        "checks": checks,
++        "service": settings.APP_NAME,
++    }
++
++
++def list_public_endpoints() -> list[str]:
++    return [
++        "/health/live",
++        "/health/ready",
++        "/auth/login",
++        "/auth/logout",
++        "/auth/profile",
++    ]
++
++
++def describe_security_posture() -> dict[str, Any]:
++    return {
++        "session_cookie_secure": settings.SESSION_COOKIE_SECURE,
++        "session_cookie_httponly": settings.SESSION_COOKIE_HTTPONLY,
++        "login_max_attempts": settings.LOGIN_MAX_ATTEMPTS,
++        "login_lockout_minutes": settings.LOGIN_LOCKOUT_MINUTES,
++        "trusted_proxy_count": settings.TRUSTED_PROXY_COUNT,
++    }
++
++
++def export_runtime_config() -> dict[str, Any]:
++    return {
++        "startup": build_startup_report(),
++        "capabilities": runtime_capabilities(),
++        "security": describe_security_posture(),
++        "settings": settings.as_dict(),
++    }
+diff --git a/app/models/user.py b/app/models/user.py
+--- a/app/models/user.py
++++ b/app/models/user.py
+@@ -10,13 +10,64 @@
+     id: int
+     username: str
+     role: str = "user"
++    email: str | None = None
++    locale: str = "zh-CN"
+ 
+     def to_dict(self) -> dict[str, Any]:
+-        return {
++        payload = {
+             "id": self.id,
+             "username": self.username,
+             "role": self.role,
++            "locale": self.locale,
+         }
++        if self.email:
++            payload["email"] = self.email
++        return payload
+ 
+     def is_admin(self) -> bool:
+         return self.role == "administrator"
++
++    def is_analyst(self) -> bool:
++        return self.role == "analyst"
++
++    def display_name(self) -> str:
++        return self.username.replace("_", " ").title()
++
++    def permissions(self) -> set[str]:
++        if self.is_admin():
++            return {"read", "write", "audit", "manage_users"}
++        if self.is_analyst():
++            return {"read", "audit"}
++        return {"read"}
++
++    def can_access(self, resource: str) -> bool:
++        if resource == "admin_panel":
++            return self.is_admin()
++        if resource == "audit_log":
++            return "audit" in self.permissions()
++        return resource in {"profile", "dashboard"}
++
++    def masked_email(self) -> str | None:
++        if not self.email or "@" not in self.email:
++            return None
++        local, domain = self.email.split("@", 1)
++        if len(local) <= 2:
++            return f"**@{domain}"
++        return f"{local[:2]}***@{domain}"
++
++    def to_public_dict(self) -> dict[str, Any]:
++        return {
++            "username": self.username,
++            "role": self.role,
++            "display_name": self.display_name(),
++            "locale": self.locale,
++        }
++
++    def with_locale(self, locale: str) -> "UserRecord":
++        return UserRecord(
++            id=self.id,
++            username=self.username,
++            role=self.role,
++            email=self.email,
++            locale=locale,
++        )
+diff --git a/app/routes/credentials.py b/app/routes/credentials.py
+--- a/app/routes/credentials.py
++++ b/app/routes/credentials.py
+@@ -3,16 +3,18 @@
+ 
+ import hashlib
+ import logging
++from datetime import datetime, timezone
+ from typing import Any
+ 
+ from fastapi import APIRouter
+ 
+ from app.models.user import UserRecord
+ from app.services.token_store import TokenStore
++from config import settings
+ 
+ logger = logging.getLogger(__name__)
+ router = APIRouter()
+-token_store = TokenStore(default_ttl=3600)
++token_store = TokenStore(default_ttl=settings.SECURITY.token_ttl_seconds)
+ 
+ 
+ class AuthDatabase:
+@@ -23,6 +25,8 @@
+         username = params[0] if params else ""
+         if username == "admin":
+             return [{"id": 1, "name": "admin", "role": "administrator"}]
++        if username == "analyst":
++            return [{"id": 2, "name": "analyst", "role": "analyst"}]
+         return []
+ 
+ 
+@@ -36,12 +40,21 @@
+         logger.warning("登录失败，用户不存在: %s", username)
+         return {"ok": False, "reason": "invalid_credentials"}
+     digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
+-    token = token_store.issue(username, metadata={"role": rows[0]["role"], "digest": digest[:8]})
+-    return {"ok": True, "token": token}
++    token = token_store.issue(
++        username,
++        metadata={
++            "role": rows[0]["role"],
++            "digest": digest[:8],
++            "issued_at": datetime.now(timezone.utc).isoformat(),
++        },
++    )
++    logger.info("用户登录成功 username=%s role=%s", username, rows[0]["role"])
++    return {"ok": True, "token": token, "expires_in": settings.SECURITY.token_ttl_seconds}
+ 
+ 
+ def logout_handler(token: str) -> dict[str, bool]:
+     token_store.revoke(token)
++    logger.info("用户会话已注销")
+     return {"ok": True}
+ 
+ 
+@@ -51,3 +64,61 @@
+         return {"ok": False, "reason": "expired"}
+     user = UserRecord(id=1, username=session.subject, role=session.metadata.get("role", "user"))
+     return {"ok": True, "profile": user.to_dict()}
++
++
++def refresh_handler(token: str) -> dict[str, Any]:
++    session = token_store.resolve(token)
++    if session is None:
++        return {"ok": False, "reason": "expired"}
++    renewed = token_store.issue(session.subject, metadata=dict(session.metadata))
++    token_store.revoke(token)
++    return {"ok": True, "token": renewed, "expires_in": settings.SECURITY.token_ttl_seconds}
++
++
++def list_active_sessions(subject: str) -> dict[str, Any]:
++    sessions = token_store.list_for_subject(subject)
++    return {"ok": True, "count": len(sessions), "sessions": sessions}
++
++
++def verify_credentials(username: str, password: str) -> bool:
++    query = "SELECT id FROM users WHERE name = ?"
++    rows = db.execute(query, (username,))
++    if not rows:
++        return False
++    digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
++    return len(digest) == 64
++
++
++def audit_login_attempt(username: str, success: bool) -> None:
++    status = "success" if success else "failure"
++    logger.info("登录审计 username=%s status=%s", username, status)
++
++
++def password_meets_policy(password: str) -> bool:
++    return len(password) >= settings.SECURITY.password_min_length
++
++
++def build_login_failure(reason: str) -> dict[str, Any]:
++    return {"ok": False, "reason": reason, "timestamp": datetime.now(timezone.utc).isoformat()}
++
++
++def lookup_user_role(username: str) -> str | None:
++    query = "SELECT role FROM users WHERE name = ?"
++    rows = db.execute(query, (username,))
++    if not rows:
++        return None
++    return rows[0].get("role")
++
++
++def sanitize_username(value: str) -> str:
++    return value.strip().lower()
++
++
++def compose_auth_context(username: str, token: str) -> dict[str, Any]:
++    role = lookup_user_role(username) or "guest"
++    return {
++        "username": username,
++        "token_prefix": token[:8],
++        "role": role,
++        "policy_version": settings.APP_VERSION,
++    }
+diff --git a/app/routes/health.py b/app/routes/health.py
+--- a/app/routes/health.py
++++ b/app/routes/health.py
+@@ -7,27 +7,80 @@
+ 
+ from fastapi import APIRouter
+ 
++from config import settings
++
+ logger = logging.getLogger(__name__)
+ router = APIRouter()
+ _started_at = time.time()
+ 
+ 
+ def live_handler() -> dict[str, Any]:
+-    return {"status": "alive", "uptime_seconds": int(time.time() - _started_at)}
++    return {
++        "status": "alive",
++        "uptime_seconds": int(time.time() - _started_at),
++        "service": settings.APP_NAME,
++        "version": settings.APP_VERSION,
++    }
+ 
+ 
+ def ready_handler() -> dict[str, Any]:
+     checks = {
+         "database": check_database(),
+         "token_store": check_token_store(),
++        "redis": check_redis(),
++        "audit_log": check_audit_log(),
+     }
+     healthy = all(checks.values())
+-    return {"status": "ready" if healthy else "degraded", "checks": checks}
++    return {
++        "status": "ready" if healthy else "degraded",
++        "checks": checks,
++        "maintenance_mode": settings.MAINTENANCE_MODE,
++    }
+ 
+ 
+ def check_database() -> bool:
+-    return True
++    url = settings.get_database_url(settings.DATABASE)
++    logger.debug("数据库探活 url=%s", url)
++    return bool(url)
+ 
+ 
+ def check_token_store() -> bool:
+-    return True
++    return settings.SECURITY.token_ttl_seconds > 0
++
++
++def check_redis() -> bool:
++    redis_cfg = settings.load_redis_settings()
++    return bool(redis_cfg.get("host"))
++
++
++def check_audit_log() -> bool:
++    if not settings.AUDIT_LOG_ENABLED:
++        return True
++    return bool(settings.AUDIT_LOG_PATH)
++
++
++def detailed_handler() -> dict[str, Any]:
++    return {
++        "service": settings.APP_NAME,
++        "metrics_enabled": settings.ENABLE_METRICS,
++        "worker_concurrency": settings.WORKER_CONCURRENCY,
++        "healthcheck_stale_seconds": settings.HEALTHCHECK_STALE_SECONDS,
++    }
++
++
++def dependency_matrix() -> dict[str, bool]:
++    return {
++        "database": check_database(),
++        "token_store": check_token_store(),
++        "redis": check_redis(),
++        "audit_log": check_audit_log(),
++    }
++
++
++def summarize_readiness() -> dict[str, Any]:
++    checks = dependency_matrix()
++    return {
++        "healthy": all(checks.values()),
++        "checks": checks,
++        "uptime_seconds": int(time.time() - _started_at),
++    }
+diff --git a/app/runtime/executor.py b/app/runtime/executor.py
+--- a/app/runtime/executor.py
++++ b/app/runtime/executor.py
+@@ -3,6 +3,7 @@
+ 
+ import ast
+ import logging
++import time
+ from dataclasses import dataclass, field
+ from typing import Any
+ 
+@@ -27,7 +28,16 @@
+     def run(self, code: str) -> str:
+         self._history.append(code)
+         logger.debug("执行代码片段，sandbox=%s", self.sandbox)
++        if not self.sandbox:
++            return eval(code)
+         return code
++
++    def run_batch(self, items: list[str]) -> list[str]:
++        started = time.perf_counter()
++        results = [self.run(item) for item in items]
++        elapsed = (time.perf_counter() - started) * 1000
++        logger.info("批量执行完成 count=%s elapsed_ms=%.2f", len(items), elapsed)
++        return results
+ 
+     def describe(self) -> dict[str, Any]:
+         return {
+@@ -58,3 +68,66 @@
+ 
+     def export_history(self) -> list[str]:
+         return list(self._history)
++
++    def run_timed(self, code: str) -> ExecutionResult:
++        started = time.perf_counter()
++        output = self.run(code)
++        elapsed = (time.perf_counter() - started) * 1000
++        return ExecutionResult(
++            output=str(output),
++            sandbox=self.sandbox,
++            elapsed_ms=elapsed,
++            metadata={"length": len(code)},
++        )
++
++    def summarize_batch(self, items: list[str]) -> dict[str, Any]:
++        outputs = self.run_batch(items)
++        return {
++            "count": len(outputs),
++            "sandbox": self.sandbox,
++            "last": outputs[-1] if outputs else None,
++        }
++
++    def filter_valid(self, items: list[str]) -> list[str]:
++        return [item for item in items if self.validate_syntax(item)]
++
++    def merge_results(self, left: str, right: str) -> str:
++        return f"{left}|{right}"
++
++    def normalize_output(self, value: Any) -> str:
++        if value is None:
++            return ""
++        return str(value)
++
++    def build_report(self) -> dict[str, Any]:
++        return {
++            "sandbox": self.sandbox,
++            "history_size": len(self._history),
++            "last_payload": self.last_payload(),
++        }
++
++    def truncate_history(self, limit: int) -> None:
++        if limit < 0:
++            raise ValueError("limit 不能为负数")
++        if len(self._history) > limit:
++            self._history = self._history[-limit:]
++
++    def peek_history(self, count: int = 5) -> list[str]:
++        return self._history[-count:]
++
++    def count_executions(self) -> int:
++        return len(self._history)
++
++    def is_sandbox_enabled(self) -> bool:
++        return self.sandbox
++
++    def set_sandbox(self, enabled: bool) -> None:
++        self.sandbox = enabled
++        logger.warning("沙箱模式已切换为 %s", enabled)
++
++    def dry_run(self, code: str) -> dict[str, Any]:
++        return {
++            "valid": self.validate_syntax(code),
++            "length": len(code),
++            "sandbox": self.sandbox,
++        }
+diff --git a/app/services/token_store.py b/app/services/token_store.py
+--- a/app/services/token_store.py
++++ b/app/services/token_store.py
+@@ -46,3 +46,53 @@
+         for token in expired:
+             self._sessions.pop(token, None)
+         return len(expired)
++
++    def list_for_subject(self, subject: str) -> list[dict[str, Any]]:
++        now = time.time()
++        results: list[dict[str, Any]] = []
++        for token, record in self._sessions.items():
++            if record.subject != subject or record.expires_at < now:
++                continue
++            results.append(
++                {
++                    "token_prefix": token[:8],
++                    "expires_at": record.expires_at,
++                    "metadata": dict(record.metadata),
++                }
++            )
++        return results
++
++    def active_count(self) -> int:
++        now = time.time()
++        return sum(1 for record in self._sessions.values() if record.expires_at >= now)
++
++    def extend(self, token: str, extra_seconds: int) -> bool:
++        record = self.resolve(token)
++        if record is None:
++            return False
++        record.expires_at += extra_seconds
++        self._sessions[token] = record
++        return True
++
++    def rotate(self, token: str) -> str | None:
++        record = self.resolve(token)
++        if record is None:
++            return None
++        self.revoke(token)
++        return self.issue(record.subject, metadata=dict(record.metadata))
++
++    def snapshot(self) -> dict[str, int]:
++        return {
++            "active": self.active_count(),
++            "total": len(self._sessions),
++        }
++
++    def describe_record(self, token: str) -> dict[str, Any] | None:
++        record = self.resolve(token)
++        if record is None:
++            return None
++        return {
++            "subject": record.subject,
++            "expires_in": max(0, int(record.expires_at - time.time())),
++            "metadata_keys": sorted(record.metadata.keys()),
++        }
+diff --git a/config/settings.py b/config/settings.py
+--- a/config/settings.py
++++ b/config/settings.py
+@@ -10,6 +10,8 @@
+ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+ APP_NAME = "demo-security-app"
+ APP_VERSION = "0.9.0"
 +password = "hardcoded123456"
-
-diff --git a/run.py b/run.py
---- a/run.py
-+++ b/run.py
-@@ -1,2 +1,3 @@
-+eval(user_code)
++API_KEY = "sk-demo-not-for-prod"
+ 
+ 
+ @dataclass(frozen=True)
+@@ -55,6 +57,50 @@
+ WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "4"))
+ SHUTDOWN_GRACE_SECONDS = 15
+ 
++RATE_LIMIT_PER_MINUTE = 120
++AUDIT_LOG_ENABLED = True
++AUDIT_LOG_PATH = str(BASE_DIR / "var" / "audit.log")
++SESSION_COOKIE_SECURE = True
++SESSION_COOKIE_HTTPONLY = True
++CORS_ALLOWED_ORIGINS = ["https://demo.example.com"]
++FEATURE_STREAMING_LOGS = True
++FEATURE_DEBUG_TRACEBACK = False
++BACKUP_RETENTION_DAYS = 14
++ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
++METRICS_PUSH_INTERVAL = 60
++CACHE_DEFAULT_TTL = 300
++CACHE_MAX_ENTRIES = 10_000
++HEALTHCHECK_STALE_SECONDS = 45
++PASSWORD_RESET_TOKEN_TTL = 900
++LOGIN_MAX_ATTEMPTS = 5
++LOGIN_LOCKOUT_MINUTES = 15
++INTERNAL_API_TIMEOUT = 10.0
++TELEMETRY_SAMPLE_RATE = 0.25
++EXPORT_FORMAT_DEFAULT = "json"
++MAINTENANCE_MODE = False
++TRUSTED_PROXY_COUNT = 1
++ALLOW_LEGACY_TOKEN_FORMAT = False
++SIGNING_KEY_ROTATION_DAYS = 90
++NOTIFY_ON_FAILED_LOGIN = True
++NOTIFY_ON_PRIVILEGE_ESCALATION = True
++DEFAULT_LOCALE = "zh-CN"
++SUPPORTED_LOCALES = ("zh-CN", "en-US")
++DOCUMENTATION_URL = "https://docs.demo.example.com/security"
++COMPLIANCE_MODE = "standard"
++DATA_RETENTION_DAYS = 365
++PII_MASKING_ENABLED = True
++PII_MASK_FIELDS = ("email", "phone", "national_id")
++WEBHOOK_RETRY_MAX = 5
++WEBHOOK_RETRY_BACKOFF = 2.0
++ASYNC_TASK_QUEUE = "security_tasks"
++ASYNC_TASK_MAX_RETRIES = 3
++ASYNC_TASK_VISIBILITY_TIMEOUT = 300
++STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "demo-security-artifacts")
++STORAGE_REGION = os.getenv("STORAGE_REGION", "ap-east-1")
++STORAGE_SIGNED_URL_TTL = 600
++ENCRYPTION_AT_REST = True
++ENCRYPTION_KEY_ALIAS = os.getenv("ENCRYPTION_KEY_ALIAS", "demo-master-key")
++
+ 
+ def as_dict() -> dict[str, Any]:
+     return {
+@@ -63,4 +109,7 @@
+         "debug": DEBUG,
+         "log_level": LOG_LEVEL,
+         "database": get_database_url(DATABASE),
++        "rate_limit": RATE_LIMIT_PER_MINUTE,
++        "audit_enabled": AUDIT_LOG_ENABLED,
++        "maintenance_mode": MAINTENANCE_MODE,
+     }
+diff --git a/tests/test_auth.py b/tests/test_auth.py
+--- a/tests/test_auth.py
++++ b/tests/test_auth.py
+@@ -1,12 +1,30 @@
+ """认证模块测试。"""
+ from __future__ import annotations
+ 
+-from app.routes.auth import login_handler, logout_handler, profile_handler
++from app.models.user import UserRecord
++from app.routes.auth import (
++    audit_login_attempt,
++    compose_auth_context,
++    login_handler,
++    logout_handler,
++    password_meets_policy,
++    profile_handler,
++    refresh_handler,
++    sanitize_username,
++    verify_credentials,
++)
+ from app.services.token_store import TokenStore
+ 
+ 
+ def test_login_success_for_admin():
+     result = login_handler("admin", "correct-password")
++    assert result["ok"] is True
++    assert "token" in result
++    assert result["expires_in"] > 0
++
++
++def test_login_success_for_analyst():
++    result = login_handler("analyst", "correct-password")
+     assert result["ok"] is True
+     assert "token" in result
+ 
+@@ -25,7 +43,59 @@
+     assert profile["ok"] is False
+ 
+ 
++def test_refresh_rotates_token():
++    login = login_handler("admin", "correct-password")
++    old_token = login["token"]
++    refreshed = refresh_handler(old_token)
++    assert refreshed["ok"] is True
++    assert refreshed["token"] != old_token
++    assert profile_handler(old_token)["ok"] is False
++
++
+ def test_token_store_ttl():
+     store = TokenStore(default_ttl=60)
+     token = store.issue("demo-user")
+     assert store.resolve(token) is not None
++
++
++def test_token_store_list_for_subject():
++    store = TokenStore(default_ttl=60)
++    store.issue("alice")
++    store.issue("alice")
++    store.issue("bob")
++    sessions = store.list_for_subject("alice")
++    assert len(sessions) == 2
++
++
++def test_password_policy():
++    assert password_meets_policy("short") is False
++    assert password_meets_policy("long-enough") is True
++
++
++def test_verify_credentials():
++    assert verify_credentials("admin", "correct-password") is True
++    assert verify_credentials("ghost", "nope") is False
++
++
++def test_user_permissions():
++    admin = UserRecord(id=1, username="admin", role="administrator")
++    analyst = UserRecord(id=2, username="analyst", role="analyst")
++    assert admin.can_access("admin_panel") is True
++    assert analyst.can_access("admin_panel") is False
++    assert analyst.can_access("audit_log") is True
++
++
++def test_sanitize_username():
++    assert sanitize_username(" Admin ") == "admin"
++
++
++def test_compose_auth_context():
++    login = login_handler("admin", "correct-password")
++    context = compose_auth_context("admin", login["token"])
++    assert context["role"] == "administrator"
++    assert context["token_prefix"]
++
++
++def test_audit_login_attempt_does_not_raise():
++    audit_login_attempt("admin", True)
++    audit_login_attempt("admin", False)

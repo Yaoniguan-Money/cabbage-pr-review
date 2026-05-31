@@ -1,0 +1,49 @@
+{
+  "directory_tree": [
+    "requirements.txt",
+    "package-lock.json",
+    "pyproject.toml",
+    "Makefile",
+    "src/",
+    "src/app/",
+    "tests/",
+    "tests/test_api.py",
+    "tests/test_integration.py",
+    "docs/",
+    "scripts/"
+  ],
+  "entry_files": ["requirements.txt", "tests/test_api.py"],
+  "path_compare_focus": ["requirements.txt", "tests/test_api.py"],
+  "file_to_node": {
+    "requirements.txt": "deps",
+    "package-lock.json": "lock",
+    "tests/test_api.py": "tests",
+    "tests/test_integration.py": "tests"
+  },
+  "index_modules": ["src", "tests", "docs", "scripts"],
+  "index_routes": [],
+  "readme": "# Governance Demo\n\n依赖与测试治理示例：锁文件漂移、未 pin 依赖与测试覆盖回退。",
+  "summary_line": "本次变更引入未固定版本的 requests 依赖，更新锁文件，并大幅删减 API 与集成测试用例。",
+  "summary_bullets": [
+    "requirements.txt 新增未 pin 的 requests 包",
+    "package-lock.json 版本与包条目发生漂移",
+    "tests/test_api.py 与 test_integration.py 删除大量测试函数",
+    "共 10 个文件变更，涉及依赖、测试与工程脚本"
+  ],
+  "architecture_seed": {
+    "diagram_type": "architecture",
+    "nodes": [
+      {"id": "deps", "label": "requirements.txt", "group": "config", "confidence": "high"},
+      {"id": "lock", "label": "package-lock.json", "group": "config", "confidence": "high"},
+      {"id": "app", "label": "src/app 应用核心", "group": "core", "confidence": "high"},
+      {"id": "tests", "label": "tests/ 测试套件", "group": "quality", "confidence": "medium"},
+      {"id": "ci", "label": "质量门禁", "group": "ci", "confidence": "medium"}
+    ],
+    "edges": [
+      {"source": "deps", "target": "app", "label": "install"},
+      {"source": "lock", "target": "deps", "label": "pin"},
+      {"source": "tests", "target": "app", "label": "cover"},
+      {"source": "ci", "target": "tests", "label": "run"}
+    ]
+  }
+}
