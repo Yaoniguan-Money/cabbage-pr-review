@@ -34,6 +34,24 @@ describe("runtimeCredentialsStorage", () => {
     expect(loaded.cloud_flash_model).toBe("deepseek-v4-flash");
   });
 
+  it("加载时 enable_cloud 为 false 但有 Key 则自动视为已启用", () => {
+    localStorage.setItem(
+      "pr-review-runtime-credentials-v1",
+      JSON.stringify({
+        enable_cloud: false,
+        enable_github: false,
+        cloud_api_base: "https://api.deepseek.com",
+        cloud_api_key: "sk-stored",
+        cloud_flash_model: "",
+        cloud_pro_model: "",
+        github_token: "",
+      }),
+    );
+    const loaded = loadRuntimeCredentials();
+    expect(loaded.enable_cloud).toBe(true);
+    expect(isCloudCredentialsEnabled(loaded)).toBe(true);
+  });
+
   it("保存时若已填 GitHub Token 则自动启用 GitHub 开关", () => {
     const prepared = prepareCredentialsForSave({
       enable_cloud: false,

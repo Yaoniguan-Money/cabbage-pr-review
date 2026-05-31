@@ -55,6 +55,8 @@ import {
 
   isLlmModeRuntimeAvailable,
 
+  isEffectiveCloudAvailable,
+
   needsLocalRuntime,
 
   resolveUnavailableHint,
@@ -128,27 +130,49 @@ export default function InputPage() {
   const isInitialLlmOptionsLoad = useRef(true);
   const llmOptionsRequestId = useRef(0);
 
-  const applyLlmOptions = useCallback((hasKey: boolean, preserveSelection = false) => {
+  const applyLlmOptions = useCallback((creds: StoredRuntimeCredentials, preserveSelection = false) => {
     const requestId = ++llmOptionsRequestId.current;
+    const hasKey = isCloudCredentialsEnabled(creds);
     fetchLlmModeOptions(hasKey)
       .then((data) => {
         if (requestId !== llmOptionsRequestId.current) return;
         setLlmOptions(data.options);
         setLocalModels(data.local_models);
-        setCloudAvailable(data.cloud_available);
+        setCloudAvailable(data.cloud_available || hasKey);
         setLocalAvailable(data.local_available);
         setAvailabilityHints(data.availability_hints);
         setCompressEnabled(data.default_local_compress_enabled);
 
+        const effectiveCloud = isEffectiveCloudAvailable(data.cloud_available, creds);
         const env = {
-          cloudAvailable: data.cloud_available,
+          cloudAvailable: effectiveCloud,
           localAvailable: data.local_available,
           defaultCompressEnabled: data.default_local_compress_enabled,
         };
         const shouldPreserve = preserveSelection && !isInitialLlmOptionsLoad.current;
         isInitialLlmOptionsLoad.current = false;
 
+        const tryUpgradeFromRulesOnly = (prev: string): string | null => {
+          if (prev !== "rules_only" || !hasKey) return null;
+          const cloudOnly = data.options.find((o) => o.id === "cloud_only");
+          if (
+            cloudOnly &&
+            isLlmModeRuntimeAvailable(
+              cloudOnly,
+              effectiveCloud,
+              env.localAvailable,
+              env.defaultCompressEnabled,
+            )
+          ) {
+            return "cloud_only";
+          }
+          return null;
+        };
+
         setSelectedLlmMode((prev) => {
+          const upgrade = tryUpgradeFromRulesOnly(prev);
+          if (upgrade) return upgrade;
+
           if (shouldPreserve && prev) {
             const current = data.options.find((o) => o.id === prev);
             if (
@@ -175,13 +199,20 @@ export default function InputPage() {
       });
   }, []);
 
-  const handlePreviewChange = useCallback(
-    (preview: { cloud_available: boolean }) => {
-      const hasKey =
-        preview.cloud_available || isCloudCredentialsEnabled(runtimeCreds);
-      applyLlmOptions(hasKey, true);
+  const handlePreviewChange = useCallback(() => {
+    applyLlmOptions(runtimeCreds, true);
+  }, [applyLlmOptions, runtimeCreds]);
+
+  const handleRuntimeCredsUpdate = useCallback(
+    (next: StoredRuntimeCredentials) => {
+      setRuntimeCreds(next);
+      if (isCloudCredentialsEnabled(next)) {
+        setCloudAvailable(true);
+        setCloudUnavailableBanner("");
+      }
+      applyLlmOptions(next, true);
     },
-    [applyLlmOptions, runtimeCreds],
+    [applyLlmOptions],
   );
 
   useEffect(() => {
@@ -240,7 +271,7 @@ export default function InputPage() {
 
     const savedCreds = loadRuntimeCredentials();
     setRuntimeCreds(savedCreds);
-    applyLlmOptions(isCloudCredentialsEnabled(savedCreds));
+    applyLlmOptions(savedCreds);
 
   }, []);
 
@@ -257,8 +288,7 @@ export default function InputPage() {
   const activeLlm = llmOptions.find((o) => o.id === selectedLlmMode);
 
   /** 避免 llm-mode-options 慢请求覆盖：浏览器已配置 Key 时视为云端可用 */
-  const effectiveCloudAvailable =
-    cloudAvailable || isCloudCredentialsEnabled(runtimeCreds);
+  const effectiveCloudAvailable = isEffectiveCloudAvailable(cloudAvailable, runtimeCreds);
 
   const needsLocal = activeLlm ? needsLocalRuntime(activeLlm, compressEnabled) : false;
 
@@ -414,16 +444,10 @@ export default function InputPage() {
       ) : null}
       <RuntimeCredentialsPanel
         value={runtimeCreds}
-        onChange={(next) => {
-          setRuntimeCreds(next);
-          const hasKey = isCloudCredentialsEnabled(next);
-          if (hasKey) setCloudAvailable(true);
-          applyLlmOptions(hasKey, true);
-        }}
+        onChange={handleRuntimeCredsUpdate}
         onSaved={() => {
           const c = loadRuntimeCredentials();
-          setRuntimeCreds(c);
-          applyLlmOptions(isCloudCredentialsEnabled(c), true);
+          handleRuntimeCredsUpdate(c);
         }}
         onPreviewChange={handlePreviewChange}
       />

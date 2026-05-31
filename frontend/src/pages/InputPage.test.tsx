@@ -9,6 +9,49 @@ import {
   mockInputPageMeta,
   mockLlmOptionsResponse,
 } from "../test/fixtures/metaFixtures";
+import { clearRuntimeCredentials } from "../utils/runtimeCredentialsStorage";
+
+const mockLlmOptionsPublicNoCloud = {
+  options: [
+    {
+      id: "cloud_only",
+      label: "纯云端",
+      summary: "cloud-summary",
+      detail_bullets: ["cloud-bullet"],
+      requires_cloud: true,
+      requires_local: false,
+      requires_llm: true,
+      quality_warning: false,
+      visualization_mode: "diagrams" as const,
+      rerun_supported: true,
+      hide_token_stats: false,
+      default: true,
+      available: false,
+    },
+    {
+      id: "rules_only",
+      label: "纯规则",
+      summary: "rules-summary",
+      detail_bullets: ["rules-bullet"],
+      requires_cloud: false,
+      requires_local: false,
+      requires_llm: false,
+      quality_warning: true,
+      visualization_mode: "markdown" as const,
+      rerun_supported: false,
+      hide_token_stats: true,
+      default: false,
+      available: true,
+    },
+  ],
+  default_llm_mode: "rules_only",
+  default_local_compress_enabled: true,
+  cloud_available: false,
+  local_available: false,
+  local_models: [],
+  default_local_model: "",
+  availability_hints: mockAvailabilityHints,
+};
 
 const mockRuntimeConfigMeta = {
   allow_runtime_credentials: true,
@@ -84,9 +127,11 @@ import { createTask, fetchInputPageMeta, fetchLlmModeOptions, fetchReviewDepthOp
 describe("InputPage", () => {
   afterEach(() => {
     cleanup();
+    clearRuntimeCredentials();
   });
 
   beforeEach(() => {
+    clearRuntimeCredentials();
     vi.mocked(fetchInputPageMeta).mockReset();
     vi.mocked(fetchReviewDepthOptions).mockReset();
     vi.mocked(fetchLlmModeOptions).mockReset();
@@ -152,6 +197,57 @@ describe("InputPage", () => {
     );
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent("如想体验最佳效果请配置您的 API Key");
+    });
+  });
+
+  it("保存凭据后纯云端可点选且隐藏云端不可用横幅", async () => {
+    const { fetchClientMeta, fetchRuntimeConfigPreview } = await import("../api/client");
+    vi.mocked(fetchClientMeta).mockResolvedValue({
+      ...mockClientMeta,
+      cloud_unavailable_banner: "如想体验最佳效果请配置您的 API Key",
+    });
+    vi.mocked(fetchLlmModeOptions).mockImplementation((hasRuntimeCloudKey = false) =>
+      Promise.resolve(hasRuntimeCloudKey ? mockLlmOptionsResponse : mockLlmOptionsPublicNoCloud),
+    );
+    vi.mocked(fetchRuntimeConfigPreview).mockImplementation(async (payload) => ({
+      cloud_available: Boolean(payload?.cloud_api_key?.trim()),
+      github_token_configured: false,
+      local_available: false,
+      server_cloud_configured: false,
+      server_github_configured: false,
+    }));
+
+    render(
+      <BrowserRouter>
+        <InputPage />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("如想体验最佳效果请配置您的 API Key");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "API 设置" }));
+    fireEvent.click(screen.getByLabelText("启用云端 LLM API"));
+    fireEvent.change(screen.getByLabelText("Key"), { target: { value: "sk-test-key" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(fetchLlmModeOptions).toHaveBeenCalledWith(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("如想体验最佳效果请配置您的 API Key")).not.toBeInTheDocument();
+      expect(screen.queryByText("cloud-off-hint")).not.toBeInTheDocument();
+    });
+
+    const cloudHeading = screen.getByRole("heading", { name: "纯云端" });
+    const cloudCard = cloudHeading.closest(".option-item");
+    expect(cloudCard).not.toHaveClass("disabled");
+
+    fireEvent.click(cloudHeading);
+    await waitFor(() => {
+      expect(cloudCard).toHaveClass("active");
     });
   });
 
@@ -243,17 +339,15 @@ describe("InputPage", () => {
       });
     });
 
-    it("仍可点选混合并展示 API 提示", async () => {
+    it("local 不可用时混合模式卡片为 disabled", async () => {
       render(
         <BrowserRouter>
           <InputPage />
         </BrowserRouter>,
       );
       await waitFor(() => expect(screen.getByRole("heading", { name: "混合" })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole("heading", { name: "混合" }));
-      await waitFor(() => {
-        expect(screen.getByText("compress-local-hint")).toBeInTheDocument();
-      });
+      const hybridCard = screen.getByRole("heading", { name: "混合" }).closest(".option-item");
+      expect(hybridCard).toHaveClass("disabled");
     });
   });
 });

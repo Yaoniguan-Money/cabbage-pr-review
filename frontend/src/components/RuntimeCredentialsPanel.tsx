@@ -48,19 +48,30 @@ export default function RuntimeCredentialsPanel({
   const [preview, setPreview] = useState<RuntimeConfigPreviewResponse | null>(null);
   const lastSignatureRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewRequestId = useRef(0);
   const onPreviewChangeRef = useRef(onPreviewChange);
   onPreviewChangeRef.current = onPreviewChange;
+
+  const cancelDebouncedPreview = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  };
 
   const refreshPreview = useCallback(async (creds: StoredRuntimeCredentials, signature: string) => {
     if (signature === lastSignatureRef.current) {
       return;
     }
+    const requestId = ++previewRequestId.current;
     try {
       const result = await fetchRuntimeConfigPreview(toApiPayload(creds));
+      if (requestId !== previewRequestId.current) return;
       lastSignatureRef.current = signature;
       setPreview(result);
       onPreviewChangeRef.current?.(result);
     } catch {
+      if (requestId !== previewRequestId.current) return;
       setPreview(null);
     }
   }, []);
@@ -149,6 +160,7 @@ export default function RuntimeCredentialsPanel({
   };
 
   const handleSave = () => {
+    cancelDebouncedPreview();
     const prepared = prepareCredentialsForSave(value);
     saveRuntimeCredentials(prepared);
     onChange(prepared);
@@ -160,6 +172,7 @@ export default function RuntimeCredentialsPanel({
   };
 
   const handleClear = () => {
+    cancelDebouncedPreview();
     clearRuntimeCredentials();
     const cleared = loadRuntimeCredentials();
     onChange(cleared);

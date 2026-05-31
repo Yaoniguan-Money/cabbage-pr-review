@@ -1,4 +1,16 @@
 import type { LlmAvailabilityHints, LlmModeOption } from "../api/client";
+import {
+  isCloudCredentialsEnabled,
+  type StoredRuntimeCredentials,
+} from "../utils/runtimeCredentialsStorage";
+
+/** 浏览器已配置 Key 时，即使 API 尚未返回 cloud_available 也视为云端可用。 */
+export function isEffectiveCloudAvailable(
+  apiCloudAvailable: boolean,
+  creds: StoredRuntimeCredentials,
+): boolean {
+  return apiCloudAvailable || isCloudCredentialsEnabled(creds);
+}
 
 /** 当前 UI 状态下是否需要本地 Ollama（由 API 字段推导，不写死 mode id）。 */
 export function needsLocalRuntime(opt: LlmModeOption, compressEnabled: boolean): boolean {

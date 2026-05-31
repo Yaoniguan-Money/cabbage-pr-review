@@ -24,8 +24,8 @@ function normalize(parsed: Partial<StoredRuntimeCredentials>): StoredRuntimeCred
   const cloudKey = parsed.cloud_api_key?.trim() ?? "";
   const gh = parsed.github_token?.trim() ?? "";
   return {
-    enable_cloud: parsed.enable_cloud ?? Boolean(cloudKey),
-    enable_github: parsed.enable_github ?? Boolean(gh),
+    enable_cloud: Boolean(cloudKey) || Boolean(parsed.enable_cloud),
+    enable_github: Boolean(gh) || Boolean(parsed.enable_github),
     cloud_api_base: parsed.cloud_api_base ?? "",
     cloud_api_key: parsed.cloud_api_key ?? "",
     cloud_flash_model: parsed.cloud_flash_model ?? "",
