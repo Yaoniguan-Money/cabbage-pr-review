@@ -1,6 +1,19 @@
 # AI PR Review 助手
 
-结构化 PR 影响分析与审阅辅助工具：LangGraph 编排五个 Agent（原版本扫描 → PR 扫描 → 差异对比 → 递进审阅 → 可视化），并支持 **纯规则模式**（`rules_only`）零 API Key 演示。
+结构化 PR 影响分析与审阅辅助工具：LangGraph 编排五个 Agent（原版本扫描 → PR 扫描 → 差异对比 → 递进审阅 → 可视化），并支持 **多种推理模式**，以同一套审阅工作流服务不同场景与用户群体。
+
+### 为何提供多种推理模式
+
+我们刻意保留 **纯云端、混合、纯本地、纯规则** 四档能力，并非简单堆功能，而是面向 **多受众、多采购场景** 的产品矩阵：
+
+| 模式 | 典型受众 | 价值主张 |
+|------|----------|----------|
+| **纯云端** | 希望快速体验最新大模型能力的开发者、技术负责人 | 开箱即用云端 Flash/Pro 双档审阅，质量与能力迭代跟进行业主流 API，适合 PoC、日常 PR 与对外演示 |
+| **混合** | 高频审阅、关注 Token 成本与响应效率的团队 | 审阅结论仍由云端生成，可选本地 Ollama 压缩长上下文，在体验新模型的同时控制成本 |
+| **纯本地** | 有数据主权、合规与内网部署要求的企业用户 | 审阅链路可完全落在自有 Ollama 环境，代码与密钥不出公网，适合金融、政务及敏感代码库 |
+| **纯规则** | 评委、访客、CI/门禁与「不想折腾 API」的用户 | 零 Key、可审计、可复现，完整呈现规则命中、差异分析与报告结构，适合快速评估与流水线集成 |
+
+公网演示站默认推荐 **纯规则 + S1/S2/S3 Patch**；若需完整 LLM 审阅，可在浏览器自备 Key 切换 **纯云端** 或 **混合**（详见下文「在线体验」）。
 
 ---
 
@@ -87,8 +100,8 @@ docker compose up --build
 ```env
 DEEPSEEK_API_KEY=你的密钥
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_FLASH_MODEL=deepseek-chat
-DEEPSEEK_PRO_MODEL=deepseek-reasoner
+DEEPSEEK_FLASH_MODEL=deepseek-v4-flash
+DEEPSEEK_PRO_MODEL=deepseek-v4-pro
 USE_MOCK_LLM=false
 LLM_MODE=cloud_only
 ```
@@ -131,14 +144,14 @@ npm run dev
 
 ## 推理模式与环境变量
 
-首页选项由 `GET /api/llm-mode-options` 下发（前端不硬编码文案）：
+首页选项由 `GET /api/llm-mode-options` 下发（前端不硬编码文案）。各模式与上表受众定位一致，可按部署环境组合使用：
 
-| `LLM_MODE` | 说明 |
-|------------|------|
-| `rules_only` | 纯 YAML 规则，零 LLM；适合演示与 CI |
-| `cloud_only` | 纯云端 DeepSeek Flash/Pro |
-| `hybrid` | 本地 Ollama 压缩 + 云端审阅结论 |
-| `local_only` | 纯本地模型 |
+| `LLM_MODE` | 说明 | 适用场景 |
+|------------|------|----------|
+| `rules_only` | 纯 YAML 规则引擎，零 LLM | 公网演示、评委验收、CI 门禁、零配置体验 |
+| `cloud_only` | 纯云端 DeepSeek Flash/Pro（或兼容 OpenAI API） | 体验新模型、日常 PR 审阅、对外 PoC |
+| `hybrid` | 本地 Ollama 压缩输入 + 云端生成审阅结论 | 长 PR、成本敏感、仍需云端推理质量 |
+| `local_only` | 全程本地 Ollama | 保密研发、内网合规、数据不出域 |
 
 **审阅深度**：`REVIEW_DEPTH_MODE`（`fast` / `balanced` / `deep`），选项见 `GET /api/review-depth-options`。
 
