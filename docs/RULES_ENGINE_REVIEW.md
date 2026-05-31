@@ -339,7 +339,7 @@ config:
 - `rules_index` 独立单测较少
 - `rules_markdown` 输出格式细节
 - 自定义 `RULES_PACK_PATH` 外部包
-- `LOCAL_PATH` 输入（patch 为空）下的行为
+- `local_path` API 输入（UI 未暴露；patch 常为空）下的行为
 - Agent4 与 preflight 的集成 E2E
 - 前端 `RuleHitsPanel` 无单测；无含 `rule_hits` 的 Detail 集成测
 - 并发 / 性能 / 大 PR 压测
@@ -355,7 +355,7 @@ config:
 | B1 | 纯 regex，无语义分析 | 高 | 无法做类型感知、数据流、跨函数调用；误报/漏报依赖 pattern 质量 |
 | B2 | DiffAtom 粒度粗 | 高 | 每文件 1 atom，大文件多 hunk 合并，无法按 hunk 独立匹配 |
 | B3 | atom 上限 200 | 中 | 超出截断并写 degradation note，大 PR 可能漏检 |
-| B4 | LOCAL_PATH 输入弱 | 中 | patch 常为空，patch 类规则难以触发 |
+| B4 | local_path API 输入弱 | 中 | UI 未暴露；直调时 patch 常为空，patch 类规则难以触发 |
 | B5 | 语言推断简单 | 低 | 仅按扩展名，`.vue` 等未覆盖 |
 | B6 | 无规则优先级/禁用 | 中 | 不能运行时按项目类型切换子集 |
 | B7 | 无热加载/watch | 低 | 改 YAML 依赖进程重启或每次 `load_rule_pack()` 读盘 |
