@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import {
   clearRuntimeCredentials,
   isCloudCredentialsEnabled,
+  isGithubCredentialsEnabled,
   loadRuntimeCredentials,
   prepareCredentialsForSave,
   saveRuntimeCredentials,
@@ -31,5 +32,19 @@ describe("runtimeCredentialsStorage", () => {
     expect(loaded.cloud_api_key).toBe("sk-test");
     expect(loaded.enable_cloud).toBe(true);
     expect(loaded.cloud_flash_model).toBe("deepseek-v4-flash");
+  });
+
+  it("保存时若已填 GitHub Token 则自动启用 GitHub 开关", () => {
+    const prepared = prepareCredentialsForSave({
+      enable_cloud: false,
+      enable_github: false,
+      cloud_api_base: "",
+      cloud_api_key: "",
+      cloud_flash_model: "",
+      cloud_pro_model: "",
+      github_token: "ghp_test_token",
+    });
+    expect(prepared.enable_github).toBe(true);
+    expect(isGithubCredentialsEnabled(prepared)).toBe(true);
   });
 });

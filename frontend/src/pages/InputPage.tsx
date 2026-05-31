@@ -43,7 +43,9 @@ import UsageGuidePanel from "../components/UsageGuidePanel";
 import { RevealStagger, RevealStaggerItem } from "../components/motion/Reveal";
 import {
   isCloudCredentialsEnabled,
+  isGithubCredentialsEnabled,
   loadRuntimeCredentials,
+  prepareCredentialsForSave,
   toApiPayload,
   type StoredRuntimeCredentials,
 } from "../utils/runtimeCredentialsStorage";
@@ -276,7 +278,13 @@ export default function InputPage() {
 
     : null;
 
-
+  const prGithubTokenHint =
+    pageMeta?.is_public_deploy &&
+    tab === "pr_url" &&
+    !isGithubCredentialsEnabled(runtimeCreds) &&
+    ui?.pr_github_token_hint
+      ? ui.pr_github_token_hint
+      : null;
 
   const submit = async () => {
 
@@ -288,7 +296,9 @@ export default function InputPage() {
 
     try {
 
-      const credsPayload = toApiPayload(runtimeCreds);
+      const credsForSubmit = prepareCredentialsForSave(runtimeCreds);
+      setRuntimeCreds(credsForSubmit);
+      const credsPayload = toApiPayload(credsForSubmit);
       const task = await createTask({
 
         input_type: tab,
@@ -679,6 +689,7 @@ export default function InputPage() {
 
         {error && <div className="error">{error}</div>}
         {unavailableHint && <p className="error">{unavailableHint}</p>}
+        {prGithubTokenHint && <p className="error" role="note">{prGithubTokenHint}</p>}
         <button type="button" className="btn-primary" onClick={submit} disabled={!canSubmit}>
           {loading ? ui.submit_loading : ui.submit_idle}
         </button>

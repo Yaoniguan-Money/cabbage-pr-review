@@ -39,7 +39,7 @@
 
 - 在首页 **「API 与 GitHub 设置」** 中填写 **DeepSeek API Key**（仅存浏览器 localStorage，**不会**写入服务器）。
 - 将推理模式改为 **纯云端** 后再提交任务。
-- 分析 GitHub PR 链接时建议同时填写 **GitHub Token**，避免 API 限流。
+- 分析 GitHub PR 链接时**建议**填写 **GitHub Token** 并保存到本机（公开仓库也可不填直接尝试，可能因 GitHub 限流失败；页面会红字提示，不阻断提交）。
 
 ### 服务说明
 

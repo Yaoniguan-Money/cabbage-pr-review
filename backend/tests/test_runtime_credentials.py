@@ -81,7 +81,7 @@ def test_local_deploy_can_disable_server_github_token(monkeypatch):
     assert resolve_github_token(None) == ""
 
 
-def test_public_pr_url_requires_runtime_github_token(monkeypatch):
+def test_public_pr_url_allows_without_runtime_github_token(monkeypatch):
     monkeypatch.setattr(settings, "deploy_mode", "public")
     monkeypatch.setattr(settings, "use_mock_llm", True)
     resp = client.post(
@@ -92,7 +92,17 @@ def test_public_pr_url_requires_runtime_github_token(monkeypatch):
             "llm_mode": "rules_only",
         },
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 200
+    assert resp.json()["input_type"] == "pr_url"
+
+
+def test_input_page_meta_includes_pr_github_hint_on_public(monkeypatch):
+    monkeypatch.setattr(settings, "deploy_mode", "public")
+    resp = client.get("/api/input-page-meta")
+    assert resp.status_code == 200
+    hint = resp.json()["ui_strings"].get("pr_github_token_hint", "")
+    assert "GitHub Token" in hint
+    assert "error_pr_github_required" not in resp.json()["ui_strings"]
 
 
 def test_llm_mode_options_with_runtime_key_query(monkeypatch):

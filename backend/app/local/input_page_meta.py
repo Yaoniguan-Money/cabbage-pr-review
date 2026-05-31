@@ -108,9 +108,9 @@ _UI_STRINGS: dict[str, str] = {
     "error_load_review_depth": "无法加载审阅深度选项",
     "error_load_llm_mode": "无法加载推理模式选项",
     "error_submit": "提交失败",
-    "error_pr_github_required": (
-        "公网演示站不会在服务器使用管理员的 GitHub Token。"
-        "请改用「评委演示 Patch」，或在下方启用 GitHub Token 并保存到本机后再分析 PR。"
+    "pr_github_token_hint": (
+        "分析 GitHub PR 建议启用 GitHub Token 并保存到本机（仅存浏览器，不会写入服务器）。"
+        "公开仓库也可尝试不填 Token，但可能因 GitHub 限流导致拉取失败。"
     ),
     "credentials_warm_tips_title": "温馨提示",
     "credentials_warm_tips_body": (

@@ -14,9 +14,7 @@ from app.local.llm_mode import (
     normalize_llm_mode,
 )
 from app.local.review_depth import VALID_MODES, get_review_depth_option, normalize_review_depth_mode
-from app.llm.credentials_resolve import resolve_github_token
 from app.llm.task_context import build_task_llm_context
-from app.local.input_page_meta import _UI_STRINGS as INPUT_UI
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
 from app.local.export_meta import (
     EXPORT_NOT_READY_DETAIL,
@@ -73,9 +71,6 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
     )
     if body.input_type == InputType.PR_URL and not GitHubService.is_valid_pr_url(body.value):
         raise HTTPException(status_code=400, detail="无效的 GitHub PR URL")
-    if body.input_type == InputType.PR_URL and settings.is_public_deploy:
-        if not resolve_github_token(body.runtime_credentials).strip():
-            raise HTTPException(status_code=400, detail=INPUT_UI["error_pr_github_required"])
     mode = normalize_review_depth_mode(body.review_depth_mode, settings.review_depth_mode)
     if body.review_depth_mode and body.review_depth_mode not in VALID_MODES:
         raise HTTPException(status_code=400, detail="无效的审阅深度模式")
