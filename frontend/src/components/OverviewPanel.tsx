@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { PrPatchFile, TaskResult } from "../api/client";
+import { RevealStagger, RevealStaggerItem } from "./motion/Reveal";
 import { formatTemplate } from "../utils/formatTemplate";
 
 interface OverviewPanelProps {
@@ -31,28 +32,28 @@ export default function OverviewPanel({
   return (
     <div className="overview-panel">
       <h3 className="content-heading">{ui.stat_checks}</h3>
-      <div className="stat-cards">
-        <div className="stat-card">
+      <RevealStagger className="stat-cards">
+        <RevealStaggerItem className="stat-card">
           <span className="stat-label">{ui.stat_files}</span>
           <strong className="stat-value">{files.length}</strong>
-        </div>
-        <div className="stat-card">
+        </RevealStaggerItem>
+        <RevealStaggerItem className="stat-card">
           <span className="stat-label">{ui.stat_additions}</span>
           <strong className="stat-value stat-add">+{additions}</strong>
-        </div>
-        <div className="stat-card">
+        </RevealStaggerItem>
+        <RevealStaggerItem className="stat-card">
           <span className="stat-label">{ui.stat_deletions}</span>
           <strong className="stat-value stat-del">-{deletions}</strong>
-        </div>
+        </RevealStaggerItem>
         {reviewed != null && total != null ? (
-          <div className="stat-card">
+          <RevealStaggerItem className="stat-card">
             <span className="stat-label">{ui.stat_review_progress}</span>
             <strong className="stat-value">
               {formatTemplate(ui.meta_atoms_scanned, { reviewed, total })}
             </strong>
-          </div>
+          </RevealStaggerItem>
         ) : null}
-      </div>
+      </RevealStagger>
 
       {isMarkdownMode ? <p className="section-hint">{overviewRulesHint}</p> : diagramPreview}
 
