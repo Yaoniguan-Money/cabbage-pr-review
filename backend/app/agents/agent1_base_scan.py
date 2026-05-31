@@ -4,7 +4,6 @@ import json
 
 from app.agents.llm_helpers import call_flash_json
 from app.local.context_builder import build_version_scan_context
-from app.local.diagram_utils import attach_mermaid
 from app.models.schemas import ProjectIndexSchema
 
 
@@ -20,5 +19,4 @@ def run_agent1(pr_context: dict) -> tuple[ProjectIndexSchema, list[str]]:
     user = json.dumps(scan_ctx, ensure_ascii=False)
     result, notes = call_flash_json(system, user, ProjectIndexSchema)
     result.version = "base"
-    result.architecture_diagram = attach_mermaid(result.architecture_diagram)
     return result, notes

@@ -1,0 +1,56 @@
+# 治理演示服务 — 生产依赖（全部 pin 版本）
+flask==3.0.2
+werkzeug==3.0.1
+gunicorn==21.2.0
+python-dotenv==1.0.1
+marshmallow==3.21.1
+requests
+click==8.1.7
+
+# 开发 / 测试
+pytest==8.1.1
+pytest-cov==5.0.0
+pytest-mock==3.14.0
+black==24.3.0
+ruff==0.3.4
+mypy==1.9.0
+
+# 观测与审计
+structlog==24.1.0
+prometheus-client==0.20.0
+httpx==0.27.0
+tenacity==8.2.3
+cachetools==5.3.3
+
+# 内部镜像源说明（CI 使用 PIP_INDEX_URL 覆盖）
+# prod-extra-01: 已纳入 lockfile 审计
+# prod-extra-02: 已纳入 lockfile 审计
+# prod-extra-03: 已纳入 lockfile 审计
+# prod-extra-04: 已纳入 lockfile 审计
+# prod-extra-05: 已纳入 lockfile 审计
+# prod-extra-06: 已纳入 lockfile 审计
+# prod-extra-07: 已纳入 lockfile 审计
+# prod-extra-08: 已纳入 lockfile 审计
+# prod-extra-09: 已纳入 lockfile 审计
+# prod-extra-10: 已纳入 lockfile 审计
+# prod-extra-11: 已纳入 lockfile 审计
+# prod-extra-12: 已纳入 lockfile 审计
+# prod-extra-13: 已纳入 lockfile 审计
+# prod-extra-14: 已纳入 lockfile 审计
+# prod-extra-15: 已纳入 lockfile 审计
+# release-050: 出站 HTTP 客户端 requests 待 pin
+# release-051: httpx 用于异步探测
+# release-052: tenacity 重试策略
+# release-053: cachetools 策略缓存
+# release-054: 后续将迁移至 pyproject optional-deps
+# release-055: 后续将迁移至 pyproject optional-deps
+# release-056: 后续将迁移至 pyproject optional-deps
+# release-057: 后续将迁移至 pyproject optional-deps
+# release-058: 后续将迁移至 pyproject optional-deps
+# release-059: 后续将迁移至 pyproject optional-deps
+# release-060: 后续将迁移至 pyproject optional-deps
+# release-061: 后续将迁移至 pyproject optional-deps
+# release-062: 后续将迁移至 pyproject optional-deps
+# release-063: 后续将迁移至 pyproject optional-deps
+# release-064: 后续将迁移至 pyproject optional-deps
+# release-065: 后续将迁移至 pyproject optional-deps

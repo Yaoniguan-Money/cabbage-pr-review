@@ -60,8 +60,17 @@ class GraphEdge(BaseModel):
     label: str = ""
 
 
+class DiagramLegendItem(BaseModel):
+    key: str
+    label: str
+    color: str = ""
+
+
 class DiagramData(BaseModel):
-    diagram_type: Literal["architecture", "impact_overlay", "path_compare"]
+    diagram_type: Literal["architecture", "impact_overlay", "global_compare", "path_compare"]
+    title: str = ""
+    caption: str = ""
+    legend: list[DiagramLegendItem] = Field(default_factory=list)
     nodes: list[GraphNode] = Field(default_factory=list)
     edges: list[GraphEdge] = Field(default_factory=list)
     mermaid: str = ""
@@ -88,6 +97,11 @@ class DiffAtom(BaseModel):
     route_or_api: str = ""
     dependency_hint: str = ""
     summary: str = ""
+    patch_excerpt: str = ""
+    hunk_patch: str = ""
+    added_line_count: int = 0
+    removed_line_count: int = 0
+    affected_symbols: list[str] = Field(default_factory=list)
 
 
 class DiffCompareSchema(BaseModel):
@@ -130,6 +144,11 @@ class AtomContextPlanBatch(BaseModel):
     plans: list[AtomContextPlan] = Field(default_factory=list)
 
 
+class AtomPriorityBatch(BaseModel):
+    ordered_atom_ids: list[str] = Field(default_factory=list)
+    uncovered_reason: str = ""
+
+
 class RiskReviewSchema(BaseModel):
     risks: list[RiskItem] = Field(default_factory=list)
     missing_info: list[MissingInfoItem] = Field(default_factory=list)
@@ -140,8 +159,59 @@ class VisualizationSchema(BaseModel):
     summary: str = ""
     summary_bullets: list[str] = Field(default_factory=list)
     diagrams: list[DiagramData] = Field(default_factory=list)
+    structural_notes: list[str] = Field(default_factory=list)
     detected_project_type: str = ""
     detected_framework: str = ""
+
+
+class CompressStatsSchema(BaseModel):
+    """Mixed-mode local compression statistics exposed to the API/frontend."""
+
+    compress_calls: int = 0
+    chars_before: int = 0
+    chars_after: int = 0
+
+
+class TokenUsageByTier(BaseModel):
+    tier: Literal["flash", "pro", "local_compress", "local_flash", "local_pro"]
+    calls: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+class TokenStatsDisplaySegment(BaseModel):
+    key: str
+    label: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+class TaskTokenStatsSchema(BaseModel):
+    cloud_prompt_tokens: int = 0
+    cloud_completion_tokens: int = 0
+    cloud_total_tokens: int = 0
+    local_prompt_tokens: int = 0
+    local_completion_tokens: int = 0
+    local_total_tokens: int = 0
+    total_tokens: int = 0
+    estimated: bool = False
+    by_tier: list[TokenUsageByTier] = Field(default_factory=list)
+    display_segments: list[TokenStatsDisplaySegment] = Field(default_factory=list)
+
+
+class ReviewStats(BaseModel):
+    review_depth_mode: str = "balanced"
+    review_depth_label: str = ""
+    total_atoms: int = 0
+    reviewed_atoms: int = 0
+    batches_run: int = 0
+    pro_calls: int = 0
+    flash_calls: int = 0
+
+
+from app.rules.rule_schema import RuleHitRecord
 
 
 class TaskResultSchema(BaseModel):
@@ -156,6 +226,9 @@ class TaskResultSchema(BaseModel):
     head_index: ProjectIndexSchema | None = None
     detected_project_type: str = ""
     detected_framework: str = ""
+    review_stats: ReviewStats | None = None
+    markdown_report: str = ""
+    rule_hits: list[RuleHitRecord] = Field(default_factory=list)
 
 
 class CreateTaskRequest(BaseModel):
@@ -163,6 +236,14 @@ class CreateTaskRequest(BaseModel):
     value: str
     project_type: str | None = None
     framework: str | None = None
+    review_depth_mode: str | None = None
+    llm_mode: str | None = None
+    local_compress_enabled: bool | None = None
+    local_model: str | None = None
+    cloud_flash_model: str | None = None
+    cloud_pro_model: str | None = None
+    rules_preflight_enabled: bool | None = None
+    demo_scenario_id: str | None = None
 
     @field_validator("value")
     @classmethod
@@ -201,6 +282,21 @@ class TaskRecord(BaseModel):
     rerun_context_paths: list[str] = Field(default_factory=list)
     rerun_focus_atoms: list[str] = Field(default_factory=list)
     degradation_notes: list[str] = Field(default_factory=list)
+    review_depth_mode: str = "balanced"
+    review_depth_label: str = ""
+    llm_mode: str = "cloud_only"
+    llm_mode_label: str = ""
+    visualization_mode: str = "diagrams"
+    rerun_supported: bool = True
+    local_compress_enabled: bool = False
+    local_model: str = ""
+    cloud_flash_model: str = ""
+    cloud_pro_model: str = ""
+    rules_preflight_enabled: bool = False
+    demo_scenario_id: str | None = None
+    expected_rule_ids: list[str] = Field(default_factory=list)
+    compress_stats: CompressStatsSchema | None = None
+    token_stats: TaskTokenStatsSchema | None = None
     result: TaskResultSchema | None = None
     pr_context: dict[str, Any] = Field(default_factory=dict)
 

@@ -1,0 +1,9 @@
+entry_hints:
+  - main.py
+  - app.py
+  - server.py
+  - index.ts
+  - index.tsx
+  - main.ts
+  - routes
+  - api

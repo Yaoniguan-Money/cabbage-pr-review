@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
+from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, ReviewStats, RiskReviewSchema, TaskResultSchema
+from app.rules.rule_schema import RuleHitRecord
 
 AgentOutcomeValue = Literal["ok", "degraded", "failed"]
 
@@ -23,3 +24,7 @@ class GraphState(TypedDict, total=False):
     agent_outcomes: dict[int, AgentOutcomeValue]
     agent_errors: dict[int, str]
     current_agent: int
+    review_depth_mode: str | None
+    review_stats: ReviewStats | None
+    llm_mode: str
+    rule_hits: list[RuleHitRecord]

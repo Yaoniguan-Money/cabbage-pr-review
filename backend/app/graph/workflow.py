@@ -7,20 +7,14 @@ from app.agents.agent2_head_scan import run_agent2
 from app.agents.agent3_diff import run_agent3
 from app.agents.agent4_review import run_agent4
 from app.agents.agent5_visualize import run_agent5
+from app.graph.pipeline_dispatch import dispatch_node
 from app.graph.state import GraphState
-from app.graph.workflow_helpers import EmptyAgentResultError, run_agent_safe
-from app.models.schemas import DiffCompareSchema, ProjectIndexSchema, RiskReviewSchema, TaskResultSchema
+from app.graph.workflow_helpers import EmptyAgentResultError, empty_base, empty_head, run_agent_safe
+from app.models.schemas import DiffCompareSchema, RiskReviewSchema, TaskResultSchema
+from app.rules.workflow_nodes import rules_node1, rules_node2, rules_node3, rules_node4, rules_node5
 
 
-def _empty_base() -> ProjectIndexSchema:
-    return ProjectIndexSchema(version="base", raw_summary="")
-
-
-def _empty_head() -> ProjectIndexSchema:
-    return ProjectIndexSchema(version="head", raw_summary="")
-
-
-def _node1(state: GraphState) -> GraphState:
+def _llm_node1(state: GraphState) -> GraphState:
     def _run() -> GraphState:
         base, notes = run_agent1(state["pr_context"])
         return {
@@ -28,10 +22,10 @@ def _node1(state: GraphState) -> GraphState:
             "degradation_notes": notes,
         }
 
-    return run_agent_safe(state, 1, _run, fallback={"base_index": _empty_base()})
+    return run_agent_safe(state, 1, _run, fallback={"base_index": empty_base()})
 
 
-def _node2(state: GraphState) -> GraphState:
+def _llm_node2(state: GraphState) -> GraphState:
     def _run() -> GraphState:
         head, notes = run_agent2(state["pr_context"])
         return {
@@ -39,12 +33,12 @@ def _node2(state: GraphState) -> GraphState:
             "degradation_notes": notes,
         }
 
-    return run_agent_safe(state, 2, _run, fallback={"head_index": _empty_head()})
+    return run_agent_safe(state, 2, _run, fallback={"head_index": empty_head()})
 
 
-def _node3(state: GraphState) -> GraphState:
-    base = state.get("base_index") or _empty_base()
-    head = state.get("head_index") or _empty_head()
+def _llm_node3(state: GraphState) -> GraphState:
+    base = state.get("base_index") or empty_base()
+    head = state.get("head_index") or empty_head()
 
     def _run() -> GraphState:
         diff, notes = run_agent3(base, head, state["pr_context"])
@@ -68,13 +62,13 @@ def _node3(state: GraphState) -> GraphState:
     )
 
 
-def _node4(state: GraphState) -> GraphState:
+def _llm_node4(state: GraphState) -> GraphState:
     diff = state.get("diff_result") or DiffCompareSchema()
-    base = state.get("base_index") or _empty_base()
-    head = state.get("head_index") or _empty_head()
+    base = state.get("base_index") or empty_base()
+    head = state.get("head_index") or empty_head()
 
     def _run() -> GraphState:
-        review, notes = run_agent4(
+        review, notes, review_stats = run_agent4(
             diff,
             base,
             head,
@@ -82,9 +76,11 @@ def _node4(state: GraphState) -> GraphState:
             focus_atom_ids=state.get("focus_atom_ids"),
             extra_context_paths=state.get("extra_context_paths"),
             git_ws=state.get("git_ws"),
+            review_depth_mode=state.get("review_depth_mode") or "balanced",
         )
         return {
             "review_result": review,
+            "review_stats": review_stats,
             "degradation_notes": notes,
         }
 
@@ -105,9 +101,9 @@ def _node4(state: GraphState) -> GraphState:
     )
 
 
-def _node5(state: GraphState) -> GraphState:
-    base = state.get("base_index") or _empty_base()
-    head = state.get("head_index") or _empty_head()
+def _llm_node5(state: GraphState) -> GraphState:
+    base = state.get("base_index") or empty_base()
+    head = state.get("head_index") or empty_head()
     diff = state.get("diff_result") or DiffCompareSchema()
     review = state.get("review_result") or RiskReviewSchema()
 
@@ -120,6 +116,7 @@ def _node5(state: GraphState) -> GraphState:
             state["pr_context"],
             state.get("project_type"),
             state.get("framework"),
+            review_stats=state.get("review_stats"),
         )
         return {
             "final_result": result,
@@ -139,6 +136,26 @@ def _node5(state: GraphState) -> GraphState:
         validator=_validate,
         empty_is_fatal=True,
     )
+
+
+def _node1(state: GraphState) -> GraphState:
+    return dispatch_node(state, rules_node1, _llm_node1)
+
+
+def _node2(state: GraphState) -> GraphState:
+    return dispatch_node(state, rules_node2, _llm_node2)
+
+
+def _node3(state: GraphState) -> GraphState:
+    return dispatch_node(state, rules_node3, _llm_node3)
+
+
+def _node4(state: GraphState) -> GraphState:
+    return dispatch_node(state, rules_node4, _llm_node4)
+
+
+def _node5(state: GraphState) -> GraphState:
+    return dispatch_node(state, rules_node5, _llm_node5)
 
 
 def build_workflow():

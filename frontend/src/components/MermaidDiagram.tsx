@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
+import type { DiagramUiStrings } from "../api/client";
 
 mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
 
-export default function MermaidDiagram({ code, id }: { code: string; id: string }) {
+export default function MermaidDiagram({
+  code,
+  id,
+  uiStrings,
+}: {
+  code: string;
+  id: string;
+  uiStrings: DiagramUiStrings;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
 
@@ -15,7 +24,7 @@ export default function MermaidDiagram({ code, id }: { code: string; id: string 
         const { svg } = await mermaid.render(`mmd-${id}`, code);
         ref.current!.innerHTML = svg;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "未知错误";
+        const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
         ref.current!.innerHTML = "";
       }
@@ -27,9 +36,9 @@ export default function MermaidDiagram({ code, id }: { code: string; id: string 
     <div className="mermaid-wrap">
       {error ? (
         <div className="error">
-          图表渲染失败：{error}
+          {uiStrings.render_error_title}：{error}
           <details style={{ marginTop: "0.5rem" }}>
-            <summary>展开查看原始 Mermaid</summary>
+            <summary>{uiStrings.render_error_hint}</summary>
             <pre style={{ whiteSpace: "pre-wrap" }}>{code}</pre>
           </details>
         </div>

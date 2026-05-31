@@ -1,0 +1,24 @@
+config:
+  scope:
+    ignore_path_patterns:
+      - "**/node_modules/**"
+      - "**/.git/**"
+      - "**/__pycache__/**"
+      - "**/dist/**"
+      - "**/build/**"
+    max_atoms_per_run: 200
+    split_patch_hunks: true
+  metadata_allowed_keys:
+    - min_added_lines
+    - min_removed_lines
+    - min_changed_lines
+    - min_removed_ratio
+    - min_removed_over_added
+    - requires_removed_signal
+    - suggestion
+    - evidence_include_summary
+  reporting:
+    group_risks_by_rule_id: true
+    max_files_listed_per_risk: 15
+    evidence_include_atom_summary: true
+    grouped_evidence_suffix: "等共 {count} 个文件"

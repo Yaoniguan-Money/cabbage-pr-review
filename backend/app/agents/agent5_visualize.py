@@ -3,14 +3,34 @@ from __future__ import annotations
 import json
 
 from app.agents.llm_helpers import call_flash_json
-from app.local.diagram_utils import attach_mermaid_list
+from app.local.diagram_meta import build_agent5_instruction, build_default_legend
+from app.local.diagram_normalize import (
+    build_global_compare_seed,
+    collect_diagram_structural_notes,
+    merge_degradation_notes,
+    merge_diagram_seeds,
+    normalize_diagrams,
+)
 from app.models.schemas import (
+    DiagramLegendItem,
     DiffCompareSchema,
+    DiffAtom,
     ProjectIndexSchema,
+    ReviewStats,
     RiskReviewSchema,
     TaskResultSchema,
     VisualizationSchema,
 )
+
+
+def _atom_summary(atom: DiffAtom) -> dict:
+    return {
+        "id": atom.id,
+        "file_path": atom.file_path,
+        "change_type": atom.change_type,
+        "symbol": atom.symbol,
+        "summary": atom.summary,
+    }
 
 
 def run_agent5(
@@ -21,19 +41,18 @@ def run_agent5(
     pr_context: dict,
     project_type: str | None,
     framework: str | None,
+    review_stats: ReviewStats | None = None,
 ) -> tuple[TaskResultSchema, list[str]]:
     payload = {
         "base_index": base.model_dump(),
         "head_index": head.model_dump(),
-        "diff_summary": {"atoms": len(diff.all_atoms)},
+        "diff_atoms": [_atom_summary(a) for a in diff.all_atoms[:40]],
+        "impact_diagram": diff.impact_diagram.model_dump() if diff.impact_diagram else None,
+        "architecture_seed": base.architecture_diagram.model_dump() if base.architecture_diagram else None,
         "risks": [r.model_dump() for r in review.risks[:30]],
         "user_project_type": project_type,
         "user_framework": framework,
-        "instruction": (
-            "输出 VisualizationSchema：summary、summary_bullets、detected_project_type、detected_framework，"
-            "以及 diagrams 恰好 3 张：architecture、impact_overlay、path_compare。"
-            "每张图必须含 nodes/edges，每个节点尽量含 confidence 与 risk（如适用）。不要输出 mermaid。"
-        ),
+        "instruction": build_agent5_instruction(),
     }
     system = "你是 Agent5 可视化与结果组织 Agent（DeepSeek Flash）。"
     viz, notes = call_flash_json(system, json.dumps(payload, ensure_ascii=False), VisualizationSchema)
@@ -43,11 +62,24 @@ def run_agent5(
     if framework:
         viz.detected_framework = framework
 
-    diagrams = attach_mermaid_list(viz.diagrams)
-    if base.architecture_diagram and not any(d.diagram_type == "architecture" for d in diagrams):
-        diagrams.insert(0, attach_mermaid(base.architecture_diagram) or base.architecture_diagram)
-    if diff.impact_diagram and not any(d.diagram_type == "impact_overlay" for d in diagrams):
-        diagrams.append(attach_mermaid(diff.impact_diagram) or diff.impact_diagram)
+    for diagram in viz.diagrams:
+        if not diagram.legend:
+            diagram.legend = [DiagramLegendItem(**item) for item in build_default_legend()]
+
+    global_seed = build_global_compare_seed(base, head, diff)
+    merged = merge_diagram_seeds(
+        viz.diagrams,
+        base.architecture_diagram,
+        diff.impact_diagram,
+        global_seed,
+    )
+    diagrams = normalize_diagrams(merged)
+    diagram_notes = collect_diagram_structural_notes(diagrams)
+    degradation_notes = merge_degradation_notes(
+        review.degradation_notes,
+        viz.structural_notes,
+        diagram_notes,
+    )
 
     return (
         TaskResultSchema(
@@ -56,12 +88,13 @@ def run_agent5(
             diagrams=diagrams,
             risks=review.risks,
             missing_info=review.missing_info,
-            degradation_notes=review.degradation_notes,
+            degradation_notes=degradation_notes,
             diff_atoms=diff.all_atoms,
             base_index=base,
             head_index=head,
             detected_project_type=viz.detected_project_type,
             detected_framework=viz.detected_framework,
+            review_stats=review_stats,
         ),
         notes,
     )

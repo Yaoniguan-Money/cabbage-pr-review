@@ -7,6 +7,7 @@ import httpx
 
 from app.agents.llm_helpers import LLMRequiredError
 from app.graph.state import AgentOutcomeValue, GraphState
+from app.models.schemas import ProjectIndexSchema
 
 
 class EmptyAgentResultError(RuntimeError):
@@ -19,6 +20,18 @@ def merge_notes(state: GraphState, notes: list[str]) -> list[str]:
         if note and note not in merged:
             merged.append(note)
     return merged
+
+
+def empty_base() -> ProjectIndexSchema:
+    return ProjectIndexSchema(version="base", raw_summary="")
+
+
+def empty_head() -> ProjectIndexSchema:
+    return ProjectIndexSchema(version="head", raw_summary="")
+
+
+def agent_degradation_note(agent_id: int, exc: BaseException) -> str:
+    return f"Agent{agent_id} degraded: {exc}"
 
 
 def merge_agent_outcomes(

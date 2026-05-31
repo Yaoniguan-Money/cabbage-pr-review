@@ -1,0 +1,874 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -2,10 +2,12 @@
+ 
+ on:
+   push:
+-    branches: [main]
++    branches: [main, release/*]
+     paths-ignore:
+       - "docs/**"
+-      - "*.md"
++  pull_request:
++    branches: [main]
++    types: [opened, synchronize, reopened]
+ 
+ concurrency:
+   group: ci-${{ github.ref }}
+@@ -13,10 +15,13 @@
+ 
+ permissions:
+   contents: read
++  packages: write
++  id-token: write
+ 
+ env:
+   PYTHON_VERSION: "3.12"
+   IMAGE_NAME: ghcr.io/demo-org/change-surface-api
++  DEPLOY_ENV: staging
+ 
+ jobs:
+   lint:
+@@ -35,10 +40,13 @@
+       - name: Install linters
+         run: |
+           python -m pip install --upgrade pip
+-          pip install ruff mypy
++          pip install ruff mypy bandit
+ 
+       - name: Ruff
+         run: ruff check src/
++
++      - name: Bandit security scan
++        run: bandit -r src/ -ll
+ 
+       - name: Mypy
+         run: mypy src/ --ignore-missing-imports
+@@ -47,6 +55,9 @@
+     name: Test
+     runs-on: ubuntu-latest
+     needs: lint
++    strategy:
++      matrix:
++        python-version: ["3.11", "3.12"]
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+@@ -54,7 +65,7 @@
+       - name: Set up Python
+         uses: actions/setup-python@v5
+         with:
+-          python-version: ${{ env.PYTHON_VERSION }}
++          python-version: ${{ matrix.python-version }}
+           cache: pip
+ 
+       - name: Install dependencies
+@@ -69,7 +80,7 @@
+         if: always()
+         uses: actions/upload-artifact@v4
+         with:
+-          name: coverage-report
++          name: coverage-report-${{ matrix.python-version }}
+           path: coverage.xml
+           if-no-files-found: ignore
+ 
+@@ -77,6 +88,8 @@
+     name: Build image
+     runs-on: ubuntu-latest
+     needs: test
++    outputs:
++      image-tag: ${{ steps.meta.outputs.tags }}
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+@@ -84,19 +97,61 @@
+       - name: Set up Docker Buildx
+         uses: docker/setup-buildx-action@v3
+ 
+-      - name: Build container
++      - name: Docker meta
++        id: meta
++        uses: docker/metadata-action@v5
++        with:
++          images: ${{ env.IMAGE_NAME }}
++          tags: |
++            type=sha,prefix=
++            type=ref,event=branch
++
++      - name: Log in to GHCR
++        if: github.event_name != 'pull_request'
++        uses: docker/login-action@v3
++        with:
++          registry: ghcr.io
++          username: ${{ github.actor }}
++          password: ${{ secrets.GITHUB_TOKEN }}
++
++      - name: Build and push container
+         uses: docker/build-push-action@v6
+         with:
+           context: .
+-          push: false
+-          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
++          push: ${{ github.event_name != 'pull_request' }}
++          tags: ${{ steps.meta.outputs.tags }}
+           cache-from: type=gha
+           cache-to: type=gha,mode=max
++
++  deploy:
++    name: Deploy to staging
++    runs-on: ubuntu-latest
++    needs: build
++    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
++    environment:
++      name: staging
++      url: https://staging.change-surface.demo
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Configure kubectl
++        uses: azure/setup-kubectl@v4
++
++      - name: Apply Kubernetes manifest
++        env:
++          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG_STAGING }}
++          IMAGE_TAG: ${{ github.sha }}
++        run: |
++          echo "$KUBE_CONFIG" | base64 -d > kubeconfig
++          export KUBECONFIG=kubeconfig
++          envsubst < deploy/k8s/deployment.yaml | kubectl apply -f -
+ 
+   integration:
+     name: Integration checks
+     runs-on: ubuntu-latest
+-    needs: build
++    needs: deploy
++    if: always()
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+@@ -107,5 +162,8 @@
+       - name: Validate Kubernetes manifest syntax
+         run: python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('deploy/k8s/deployment.yaml').read_text())"
+ 
+-      - name: Ensure build script is executable
+-        run: test -x scripts/build.sh
++      - name: Run build policy check
++        run: ./scripts/build.sh policy
++
++      - name: Confirm health endpoints documented
++        run: grep -q '/health/live' README.md
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -4,13 +4,21 @@
+   push:
+     tags:
+       - "v*.*.*"
++  workflow_dispatch:
++    inputs:
++      tag:
++        description: "Override tag to publish"
++        required: false
++        type: string
+ 
+ permissions:
+   contents: write
+   packages: write
++  id-token: write
+ 
+ env:
+   IMAGE_NAME: ghcr.io/demo-org/change-surface-api
++  COSIGN_EXPERIMENTAL: "true"
+ 
+ jobs:
+   release:
+@@ -30,7 +38,8 @@
+       - name: Generate changelog
+         id: changelog
+         run: |
+-          python scripts/build.sh changelog "${GITHUB_REF_NAME}"
++          TAG="${{ github.event.inputs.tag || github.ref_name }}"
++          python scripts/build.sh changelog "$TAG"
+ 
+       - name: Create GitHub Release
+         uses: softprops/action-gh-release@v2
+@@ -49,6 +58,7 @@
+           password: ${{ secrets.GITHUB_TOKEN }}
+ 
+       - name: Build and push release image
++        id: build
+         uses: docker/build-push-action@v6
+         with:
+           context: .
+@@ -58,6 +68,14 @@
+             ${{ env.IMAGE_NAME }}:latest
+           build-args: |
+             PYTHON_VERSION=3.12
++          provenance: true
++          sbom: true
++
++      - name: Sign container image
++        uses: sigstore/cosign-installer@v3
++
++      - name: Cosign sign
++        run: cosign sign --yes "${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+ 
+   notify:
+     name: Notify maintainers
+@@ -67,3 +85,84 @@
+     steps:
+       - name: Print release summary
+         run: echo "Release ${{ github.ref_name }} finished with status ${{ job.status }}"
++
++  container-scan:
++    name: Scan release image
++    runs-on: ubuntu-latest
++    needs: release
++    steps:
++      - name: Run Trivy vulnerability scanner
++        uses: aquasecurity/trivy-action@0.24.0
++        with:
++          image-ref: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
++          format: table
++          exit-code: 0
++
++  sbom-upload:
++    name: Upload SBOM artifact
++    runs-on: ubuntu-latest
++    needs: release
++    steps:
++      - name: Download SBOM
++        uses: actions/download-artifact@v4
++        with:
++          name: sbom
++          path: sbom
++
++      - name: Archive SBOM
++        run: tar -czf sbom-${{ github.ref_name }}.tar.gz sbom
++
++      - name: Upload to release
++        uses: softprops/action-gh-release@v2
++        with:
++          files: sbom-${{ github.ref_name }}.tar.gz
++
++  policy-check:
++    name: OPA policy gate
++    runs-on: ubuntu-latest
++    needs: container-scan
++    steps:
++      - name: Checkout policy bundle
++        uses: actions/checkout@v4
++        with:
++          repository: demo-org/k8s-policies
++          path: policies
++
++      - name: Evaluate deployment policy
++        run: |
++          docker run --rm -v "$PWD/policies:/policies" openpolicyagent/opa:latest \
++            eval -i deploy/k8s/deployment.yaml -d /policies "data.demo.allow"
++
++  smoke-test:
++    name: Post-release smoke test
++    runs-on: ubuntu-latest
++    needs: policy-check
++    if: success()
++    steps:
++      - name: Hit readiness endpoint
++        run: |
++          curl -fsS https://staging.change-surface.demo/health/ready
++          curl -fsS https://staging.change-surface.demo/api/v1/info
++
++  load-test:
++    name: Post-release load sample
++    runs-on: ubuntu-latest
++    needs: smoke-test
++    if: success()
++    steps:
++      - name: Sample staging traffic
++        run: docker run --rm rakyll/hey -n 50 -c 5 https://staging.change-surface.demo/health/live
++
++  slack:
++    name: Slack notification
++    runs-on: ubuntu-latest
++    needs: smoke-test
++    if: success()
++    steps:
++      - name: Post to Slack
++        env:
++          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_WEBHOOK }}
++        run: |
++          curl -X POST -H 'Content-type: application/json' \
++            --data '{"text":"Released change-surface-api ${{ github.ref_name }}"}' \
++            "$SLACK_WEBHOOK"
+diff --git a/Dockerfile b/Dockerfile
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -42,8 +42,12 @@
+ COPY deploy/ ./deploy/
+ 
+ RUN groupadd -r appgroup && useradd -r -g appgroup -d ${APP_HOME} -s /sbin/nologin appuser \
+-    && chown -R appuser:appgroup ${APP_HOME} \
+-    && chmod +x ${APP_HOME}/scripts/build.sh
++    && chown -R appuser:appgroup ${APP_HOME}
++
++# 临时以 root 调整脚本权限（评审关注点：特权用户）
++USER root
++RUN chmod 755 ${APP_HOME}/scripts/build.sh \
++    && chown appuser:appgroup ${APP_HOME}/scripts/build.sh
+ 
+ USER appuser
+ 
+@@ -76,10 +80,18 @@
+ # 进程与信号处理
+ STOPSIGNAL SIGTERM
+ 
+-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+-    CMD curl -fsS http://127.0.0.1:${APP_PORT}/health/live || exit 1
++HEALTHCHECK --interval=20s --timeout=8s --start-period=20s --retries=5 \
++    CMD curl -fsS http://127.0.0.1:${APP_PORT}/health/ready || exit 1
+ 
+ ENTRYPOINT ["/usr/bin/tini", "--"]
+-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
++CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2", "--proxy-headers"]
+ 
+-# 生产镜像为默认 target；本地调试请使用 docker compose
++# 可选调试阶段（本地 troubleshooting，勿用于生产）
++FROM runtime AS diagnostics
++USER root
++RUN apt-get update && apt-get install -y --no-install-recommends \
++    procps \
++    iproute2 \
++    && rm -rf /var/lib/apt/lists/*
++USER appuser
++CMD ["python", "-m", "src.main"]
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -4,18 +4,18 @@
+ 
+ ## 架构概览
+ 
+-- **应用**：FastAPI + Uvicorn，暴露 `/health/*` 与 `/metrics`
+-- **构建**：多阶段 Dockerfile（builder + runtime）
+-- **CI**：`.github/workflows/ci.yml` 在 `main` 分支 push 时运行 lint / test / build
+-- **发布**：tag `v*.*.*` 触发 release 工作流并推送 GHCR 镜像
+-- **部署**：`deploy/k8s/deployment.yaml` 描述双副本 Deployment
++- **应用**：FastAPI + Uvicorn，暴露 `/health/*`、`/metrics` 与 `/api/v1/deploy`
++- **构建**：多阶段 Dockerfile（builder + runtime），runtime 阶段含 root 权限调整步骤
++- **CI**：`.github/workflows/ci.yml` 支持 `main` push 与 pull request，含 staging 部署 job
++- **发布**：tag 或手动 dispatch 触发 release，镜像签名（cosign）与 SBOM
++- **部署**：`deploy/k8s/deployment.yaml` 三副本 Deployment，镜像 tag 由 CI 注入
+ 
+ ## 本地开发
+ 
+ ```bash
+ python -m venv .venv
+ source .venv/bin/activate
+-pip install fastapi uvicorn pydantic-settings httpx prometheus-client pytest
++pip install fastapi uvicorn pydantic-settings httpx prometheus-client pytest bandit ruff
+ python -m src.main
+ ```
+ 
+@@ -31,6 +31,7 @@
+ ./scripts/build.sh lint
+ ./scripts/build.sh test
+ ./scripts/build.sh image
++./scripts/build.sh push   # 需要已登录 registry
+ ```
+ 
+ ## 环境变量
+@@ -41,11 +42,21 @@
+ | `APP_PORT` | 8080 | 监听端口 |
+ | `LOG_LEVEL` | info | 日志级别 |
+ | `METRICS_ENABLED` | true | 是否暴露 Prometheus 指标 |
++| `REQUEST_TIMEOUT_SECONDS` | 45 | HTTP keep-alive 超时 |
++| `DEPLOY_REGION` | us-east-1 | 部署区域标识 |
++| `FEATURE_CANARY` | false | 金丝雀功能开关 |
+ 
+ ## 健康检查
+ 
+ - `GET /health/live` — 存活探针
+-- `GET /health/ready` — 就绪探针，返回环境与指标开关
++- `GET /health/ready` — 就绪探针，返回环境、指标开关与超时配置
++- `GET /api/v1/deploy` — 部署元数据（pipeline、镜像坐标）
++
++## CI/CD 变更说明
++
++1. Dockerfile 在 runtime 阶段新增 `USER root` 以调整脚本权限（审阅时请评估特权风险）
++2. CI 增加 PR 触发、Python 矩阵测试、GHCR 推送与 staging 部署
++3. Kubernetes 清单改为可变镜像 tag，并挂载 Secret
+ 
+ ## 许可证
+ 
+@@ -56,23 +67,33 @@
+ 
+ | 现象 | 可能原因 | 处理 |
+ |------|----------|------|
+-| 容器启动失败 | 端口被占用 | 修改 `APP_PORT` 或 compose 映射 |
+-| `/health/ready` 404 | 路由未注册 | 确认 `src.main` 已加载 |
++| 容器启动失败 | 端口被占用或 root 权限步骤失败 | 检查 Dockerfile runtime 阶段日志 |
++| `/health/ready` 超时 | `REQUEST_TIMEOUT_SECONDS` 过小 | 在 ConfigMap 中调高超时 |
+ | 指标端点空 | `METRICS_ENABLED=false` | 检查环境变量 |
++| staging 部署失败 | `KUBE_CONFIG_STAGING` 过期 | 轮换密钥并重跑 deploy job |
+ 
+ ## 发布清单
+ 
+-- [ ] CI lint / test / build 通过
+-- [ ] 镜像推送到 GHCR
+-- [ ] 更新 K8s deployment 镜像 tag
++- [ ] CI lint / test / build / deploy 通过
++- [ ] Trivy 扫描无 HIGH 漏洞
++- [ ] 镜像推送到 GHCR 且 cosign 签名完成
++- [ ] 更新 K8s deployment 镜像 tag 与 Secret 引用
++- [ ] post-release smoke 访问 staging 成功
++
++## 安全审阅要点
++
++1. Dockerfile 中 `USER root` 仅应用于 chmod，最终仍回落到 `appuser`
++2. CI 新增 `id-token: write` 用于 OIDC 登录 GHCR
++3. deploy job 使用 `secrets.KUBE_CONFIG_STAGING`，需确认最小权限
+ 
+ 
+ ## 监控
+ 
+-本地可启用 Prometheus profile：
++本地可启用完整 observability profile：
+ 
+ ```bash
+-docker compose --profile observability up prometheus
++docker compose --profile observability --profile cache up
+ ```
+ 
+-生产环境通过 ServiceMonitor 抓取 `/metrics`。
++生产环境通过 ServiceMonitor 抓取 `/metrics`，并将 trace 导出至 OTLP Collector。
++金丝雀发布期间请对比 `deploy_info_requests_total` 与错误率。
+diff --git a/deploy/k8s/deployment.yaml b/deploy/k8s/deployment.yaml
+--- a/deploy/k8s/deployment.yaml
++++ b/deploy/k8s/deployment.yaml
+@@ -8,8 +8,8 @@
+     app.kubernetes.io/component: api
+     app.kubernetes.io/part-of: change-surface
+ spec:
+-  replicas: 2
+-  revisionHistoryLimit: 3
++  replicas: 3
++  revisionHistoryLimit: 5
+   selector:
+     matchLabels:
+       app.kubernetes.io/name: change-surface-api
+@@ -22,6 +22,7 @@
+         prometheus.io/scrape: "true"
+         prometheus.io/port: "8080"
+         prometheus.io/path: "/metrics"
++        deploy.timestamp: "${DEPLOY_TIMESTAMP}"
+     spec:
+       serviceAccountName: change-surface-api
+       securityContext:
+@@ -30,49 +31,70 @@
+         fsGroup: 10001
+       containers:
+         - name: api
+-          image: ghcr.io/demo-org/change-surface-api:latest
+-          imagePullPolicy: IfNotPresent
++          image: ghcr.io/demo-org/change-surface-api:${IMAGE_TAG}
++          imagePullPolicy: Always
+           ports:
+             - name: http
+               containerPort: 8080
+               protocol: TCP
+           env:
+             - name: APP_ENV
+-              value: production
++              value: staging
+             - name: APP_PORT
+               value: "8080"
+             - name: LOG_LEVEL
+-              value: info
++              value: debug
+             - name: METRICS_ENABLED
+               value: "true"
++            - name: REQUEST_TIMEOUT_SECONDS
++              value: "45"
+           envFrom:
+             - configMapRef:
+                 name: change-surface-api-config
++            - secretRef:
++                name: change-surface-api-secrets
+           readinessProbe:
+             httpGet:
+               path: /health/ready
+               port: http
+-            initialDelaySeconds: 5
+-            periodSeconds: 10
++            initialDelaySeconds: 8
++            periodSeconds: 8
++            failureThreshold: 3
+           livenessProbe:
+             httpGet:
+               path: /health/live
+               port: http
+-            initialDelaySeconds: 10
+-            periodSeconds: 20
++            initialDelaySeconds: 15
++            periodSeconds: 15
+           resources:
+             requests:
+-              cpu: 100m
+-              memory: 128Mi
++              cpu: 200m
++              memory: 256Mi
+             limits:
+-              cpu: 500m
+-              memory: 512Mi
++              cpu: "1"
++              memory: 768Mi
+           securityContext:
+             allowPrivilegeEscalation: false
+             readOnlyRootFilesystem: true
+             capabilities:
+               drop: ["ALL"]
+ 
++---
++apiVersion: v1
++kind: Service
++metadata:
++  name: change-surface-api
++  namespace: demo
++  labels:
++    app.kubernetes.io/name: change-surface-api
++spec:
++  type: ClusterIP
++  selector:
++    app.kubernetes.io/name: change-surface-api
++  ports:
++    - name: http
++      port: 80
++      targetPort: http
+ ---
+ apiVersion: v1
+ kind: ConfigMap
+@@ -82,3 +104,34 @@
+ data:
+   APP_BIND: "0.0.0.0"
+   LOG_LEVEL: "info"
++  DEPLOY_REGION: "us-east-1"
++---
++apiVersion: v1
++kind: Secret
++metadata:
++  name: change-surface-api-secrets
++  namespace: demo
++type: Opaque
++stringData:
++  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.staging.change-surface.demo"
++  INTERNAL_API_TOKEN: "replace-me-in-vault"
++---
++apiVersion: autoscaling/v2
++kind: HorizontalPodAutoscaler
++metadata:
++  name: change-surface-api
++  namespace: demo
++spec:
++  scaleTargetRef:
++    apiVersion: apps/v1
++    kind: Deployment
++    name: change-surface-api
++  minReplicas: 2
++  maxReplicas: 6
++  metrics:
++    - type: Resource
++      resource:
++        name: cpu
++        target:
++          type: Utilization
++          averageUtilization: 70
+diff --git a/docker-compose.yml b/docker-compose.yml
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -13,29 +13,53 @@
+       APP_PORT: "8080"
+       LOG_LEVEL: debug
+       METRICS_ENABLED: "true"
++      REQUEST_TIMEOUT_SECONDS: "45"
++      DEPLOY_REGION: local
++      FEATURE_CANARY: "false"
+     healthcheck:
+-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health/live"]
+-      interval: 30s
+-      timeout: 5s
+-      retries: 3
+-      start_period: 10s
++      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health/ready"]
++      interval: 20s
++      timeout: 8s
++      retries: 5
++      start_period: 15s
+     restart: unless-stopped
++    deploy:
++      resources:
++        limits:
++          cpus: "1.0"
++          memory: 768M
+ 
+   prometheus:
+-    image: prom/prometheus:v2.51.0
++    image: prom/prometheus:v2.51.2
+     profiles: ["observability"]
+     ports:
+       - "9090:9090"
+     volumes:
+       - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+ 
+-  mailpit:
+-    image: axllent/mailpit:v1.18
+-    profiles: ["dev-mail"]
++  otel-collector:
++    image: otel/opentelemetry-collector-contrib:0.96.0
++    profiles: ["observability"]
++    command: ["--config=/etc/otel/config.yaml"]
++    volumes:
++      - ./deploy/otel/config.yaml:/etc/otel/config.yaml:ro
+     ports:
+-      - "8025:8025"
+-      - "1025:1025"
+-    environment:
+-      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+-      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+-    restart: unless-stopped
++      - "4317:4317"
++
++  redis:
++    image: redis:7.2-alpine
++    profiles: ["cache"]
++    ports:
++      - "6379:6379"
++    command: ["redis-server", "--save", "", "--appendonly", "no"]
++
++  nginx:
++    image: nginx:1.25-alpine
++    profiles: ["edge"]
++    ports:
++      - "8081:80"
++    volumes:
++      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
++    depends_on:
++      api:
++        condition: service_healthy
+diff --git a/scripts/build.sh b/scripts/build.sh
+--- a/scripts/build.sh
++++ b/scripts/build.sh
+@@ -5,33 +5,42 @@
+ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ IMAGE_NAME="${IMAGE_NAME:-ghcr.io/demo-org/change-surface-api}"
+ TAG="${TAG:-local}"
++BUILD_PLATFORM="${BUILD_PLATFORM:-linux/amd64}"
+ 
+ usage() {
+   cat <<EOF
+ Usage: $0 <command> [args]
+ 
+ Commands:
+-  lint          Run ruff and mypy
+-  test          Run pytest
++  lint          Run ruff, bandit, and mypy
++  test          Run pytest with coverage
+   image         Build Docker image locally
++  push          Build and push image (requires registry login)
+   changelog     Generate release notes snippet
++  scan          Run compose validate and policy check
+ EOF
+ }
+ 
+ cmd_lint() {
+   cd "$ROOT_DIR"
+   ruff check src/
++  bandit -r src/ -ll
+   mypy src/ --ignore-missing-imports
+ }
+ 
+ cmd_test() {
+   cd "$ROOT_DIR"
+-  pytest -q src/
++  pytest -q --cov=src --cov-report=xml src/
+ }
+ 
+ cmd_image() {
+   cd "$ROOT_DIR"
+-  docker build -t "${IMAGE_NAME}:${TAG}" .
++  docker buildx build --platform "$BUILD_PLATFORM" -t "${IMAGE_NAME}:${TAG}" --load .
++}
++
++cmd_push() {
++  cd "$ROOT_DIR"
++  docker buildx build --platform "$BUILD_PLATFORM" -t "${IMAGE_NAME}:${TAG}" --push .
+ }
+ 
+ cmd_changelog() {
+@@ -39,8 +48,9 @@
+   cat > CHANGELOG_SNIPPET.md <<NOTES
+ ## ${tag}
+ 
+-- Container image rebuilt with multi-stage Dockerfile
+-- CI pipeline validates lint, test, and image build
++- Dockerfile runtime stage now uses root for permission adjustment
++- CI adds pull_request triggers, matrix tests, and staging deploy job
++- Kubernetes deployment uses immutable image tags and expanded probes
+ NOTES
+   echo "Wrote CHANGELOG_SNIPPET.md for ${tag}"
+ }
+@@ -51,8 +61,11 @@
+     lint) cmd_lint ;;
+     test) cmd_test ;;
+     image) cmd_image ;;
++    push) cmd_push ;;
+     changelog) cmd_changelog "${2:-}" ;;
+     compose) cmd_compose_validate ;;
++    policy) cmd_policy_check ;;
++    scan) cmd_compose_validate ; cmd_policy_check ;;
+     *) usage; exit 1 ;;
+   esac
+ }
+@@ -63,4 +76,12 @@
+ cmd_compose_validate() {
+   cd "$ROOT_DIR"
+   docker compose config -q
++  echo "docker-compose.yml is valid"
+ }
++
++cmd_policy_check() {
++  cd "$ROOT_DIR"
++  test -f deploy/k8s/deployment.yaml
++  grep -q 'runAsNonRoot: true' deploy/k8s/deployment.yaml
++  echo "Kubernetes security baseline OK"
++}
+diff --git a/src/config.py b/src/config.py
+--- a/src/config.py
++++ b/src/config.py
+@@ -3,7 +3,7 @@
+ 
+ from functools import lru_cache
+ 
+-from pydantic import Field
++from pydantic import Field, field_validator
+ from pydantic_settings import BaseSettings, SettingsConfigDict
+ 
+ 
+@@ -19,11 +19,16 @@
+     app_bind: str = Field(default="0.0.0.0", alias="APP_BIND")
+     log_level: str = Field(default="info", alias="LOG_LEVEL")
+     metrics_enabled: bool = Field(default=True, alias="METRICS_ENABLED")
+-    request_timeout_seconds: int = Field(default=30, alias="REQUEST_TIMEOUT_SECONDS")
++    request_timeout_seconds: int = Field(default=45, alias="REQUEST_TIMEOUT_SECONDS")
+     otel_service_name: str = Field(default="change-surface-api", alias="OTEL_SERVICE_NAME")
+     otel_exporter_endpoint: str = Field(default="", alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+     deploy_region: str = Field(default="us-east-1", alias="DEPLOY_REGION")
+     feature_canary: bool = Field(default=False, alias="FEATURE_CANARY")
++
++    @field_validator("log_level")
++    @classmethod
++    def normalize_log_level(cls, value: str) -> str:
++        return value.lower()
+ 
+ 
+ @lru_cache
+@@ -44,4 +49,34 @@
+ 
+ 
+ def validate_timeout_window(seconds: int) -> int:
+-    return max(5, min(seconds, 60))
++    if seconds < 5:
++        return 5
++    if seconds > 120:
++        return 120
++    return seconds
++
++
++class RuntimePolicy:
++    def __init__(self, settings: Settings) -> None:
++        self.settings = settings
++
++    def export(self) -> dict[str, str | int | bool]:
++        return {
++            "region": self.settings.deploy_region,
++            "canary": self.settings.feature_canary,
++            "timeout": validate_timeout_window(self.settings.request_timeout_seconds),
++        }
++
++    def describe(self) -> str:
++        return (
++            f"env={self.settings.app_env} region={self.settings.deploy_region} "
++            f"canary={self.settings.feature_canary}"
++        )
++
++
++def record_deploy_info(settings: Settings) -> dict[str, str]:
++    return {
++        "service": "change-surface-api",
++        "region": settings.deploy_region,
++        "environment": settings.app_env,
++    }
+diff --git a/src/main.py b/src/main.py
+--- a/src/main.py
++++ b/src/main.py
+@@ -23,6 +23,11 @@
+     "HTTP request latency",
+     ["method", "path"],
+ )
++DEPLOY_INFO = Counter(
++    "deploy_info_requests_total",
++    "Requests to deploy metadata endpoint",
++    ["environment"],
++)
+ 
+ 
+ def _collect_route_manifest(cfg: Settings) -> list[dict[str, str]]:
+@@ -34,6 +39,8 @@
+         {"path": "/api/v1/deploy", "method": "GET", "owner": "release"},
+         {"path": "/api/v1/features", "method": "GET", "owner": "api"},
+         {"path": "/api/v1/routes", "method": "GET", "owner": "api"},
++        {"path": "/api/v1/config/snapshot", "method": "GET", "owner": "api"},
++        {"path": "/api/v1/ops/ping", "method": "GET", "owner": "ops"},
+     ]
+ 
+ 
+@@ -66,7 +73,12 @@
+ @asynccontextmanager
+ async def lifespan(app: FastAPI):
+     settings = get_settings()
+-    logger.info("Starting change-surface-api env=%s port=%s", settings.app_env, settings.app_port)
++    logger.info(
++        "Starting change-surface-api env=%s port=%s timeout=%s",
++        settings.app_env,
++        settings.app_port,
++        settings.request_timeout_seconds,
++    )
+     yield
+     logger.info("Shutting down change-surface-api")
+ 
+@@ -75,7 +87,7 @@
+     cfg = settings or get_settings()
+     app = FastAPI(
+         title="change-surface-api",
+-        version="1.0.0",
++        version="1.1.0",
+         lifespan=lifespan,
+     )
+ 
+@@ -87,6 +99,7 @@
+         path = request.url.path
+         REQUEST_COUNT.labels(request.method, path, response.status_code).inc()
+         REQUEST_LATENCY.labels(request.method, path).observe(elapsed)
++        response.headers["X-Request-Duration-Ms"] = f"{elapsed * 1000:.2f}"
+         return response
+ 
+     @app.get("/health/live")
+@@ -141,6 +154,7 @@
+         port=settings.app_port,
+         log_level=settings.log_level,
+         reload=settings.app_env == "development",
++        timeout_keep_alive=settings.request_timeout_seconds,
+     )
+ 
+ 

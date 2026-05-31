@@ -1,0 +1,53 @@
+{
+  "directory_tree": [
+    "app/",
+    "app/main.py",
+    "app/routes/",
+    "app/routes/credentials.py",
+    "app/routes/health.py",
+    "app/runtime/",
+    "app/runtime/executor.py",
+    "app/services/",
+    "app/models/",
+    "app/logging/",
+    "app/logging/config.py",
+    "config/",
+    "config/settings.py",
+    "tests/",
+    ".env.example"
+  ],
+  "entry_files": ["app/main.py", "config/settings.py"],
+  "path_compare_focus": ["config/settings.py", "app/runtime/executor.py"],
+  "file_to_node": {
+    "config/settings.py": "config_mod",
+    "app/runtime/executor.py": "runtime",
+    "app/routes/credentials.py": "api",
+    "app/main.py": "api"
+  },
+  "index_modules": ["app", "config", "tests"],
+  "index_routes": ["app/routes/credentials.py", "app/routes/health.py"],
+  "readme": "# Demo Security App\n\nFastAPI 示例服务，演示配置模块与运行时执行链路的变更审查。",
+  "summary_line": "本次变更在配置层引入明文凭证，并在运行时关闭沙箱后使用 eval 执行用户代码，同时扩展应用入口与辅助模块。",
+  "summary_bullets": [
+    "config/settings.py 新增 password 与 API_KEY 硬编码字段",
+    "app/runtime/executor.py 在 sandbox=false 时调用 eval(code)",
+    "app/main.py 扩展 root_handler 返回值与启动辅助常量",
+    "共 10 个文件变更，覆盖配置、运行时、路由与日志模块"
+  ],
+  "architecture_seed": {
+    "diagram_type": "architecture",
+    "nodes": [
+      {"id": "client", "label": "客户端请求", "group": "edge", "confidence": "high"},
+      {"id": "api", "label": "API 网关 / 路由", "group": "core", "confidence": "high"},
+      {"id": "config_mod", "label": "config/settings.py", "group": "config", "confidence": "high"},
+      {"id": "runtime", "label": "app/runtime/executor.py", "group": "core", "confidence": "medium"},
+      {"id": "store", "label": "数据存储", "group": "data", "confidence": "medium"}
+    ],
+    "edges": [
+      {"source": "client", "target": "api", "label": "HTTP"},
+      {"source": "api", "target": "config_mod", "label": "读取配置"},
+      {"source": "api", "target": "runtime", "label": "调用执行器"},
+      {"source": "runtime", "target": "store", "label": "持久化"}
+    ]
+  }
+}

@@ -3,9 +3,26 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response
 
+from app.local.demo_patches_meta import get_scenario_by_id
+from app.config import settings
+from app.local.llm_mode import (
+    VALID_LLM_MODES,
+    HINT_RERUN_NOT_SUPPORTED,
+    format_llm_mode_label,
+    get_llm_mode_option,
+    is_rules_only_mode,
+    normalize_llm_mode,
+)
+from app.local.review_depth import VALID_MODES, get_review_depth_option, normalize_review_depth_mode
+from app.llm.task_context import build_task_llm_context
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
+from app.local.export_meta import (
+    EXPORT_NOT_READY_DETAIL,
+    EXPORT_TASK_NOT_FOUND_DETAIL,
+    format_export_filename,
+)
 from app.services.export_md import export_markdown
 from app.services.github import GitHubService
 from app.services.llm_guard import ensure_llm_for_api
@@ -15,16 +32,65 @@ from app.services.task_store import task_store
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 
+def _resolve_llm_fields(body: CreateTaskRequest) -> dict:
+    llm_ctx = build_task_llm_context(
+        llm_mode=body.llm_mode,
+        local_compress_enabled=body.local_compress_enabled,
+        local_model=body.local_model,
+        cloud_flash_model=body.cloud_flash_model,
+        cloud_pro_model=body.cloud_pro_model,
+    )
+    opt = get_llm_mode_option(llm_ctx.llm_mode, settings.llm_mode)
+    return {
+        "llm_mode": llm_ctx.llm_mode,
+        "llm_mode_label": format_llm_mode_label(
+            llm_ctx.llm_mode,
+            local_compress_enabled=llm_ctx.local_compress_enabled,
+            local_model=llm_ctx.local_model,
+            fallback=settings.llm_mode,
+        ),
+        "visualization_mode": opt.visualization_mode,
+        "rerun_supported": opt.rerun_supported,
+        "local_compress_enabled": llm_ctx.local_compress_enabled,
+        "local_model": llm_ctx.local_model,
+        "cloud_flash_model": llm_ctx.cloud_flash_model,
+        "cloud_pro_model": llm_ctx.cloud_pro_model,
+    }
+
+
 @router.post("/tasks", response_model=TaskRecord)
 async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks):
-    ensure_llm_for_api()
+    llm_fields = _resolve_llm_fields(body)
+    if body.llm_mode and body.llm_mode not in VALID_LLM_MODES:
+        raise HTTPException(status_code=400, detail="无效的推理模式")
+    ensure_llm_for_api(
+        llm_mode=llm_fields["llm_mode"],
+        local_compress_enabled=llm_fields["local_compress_enabled"],
+        local_model=llm_fields["local_model"] or None,
+    )
     if body.input_type == InputType.PR_URL and not GitHubService.is_valid_pr_url(body.value):
         raise HTTPException(status_code=400, detail="无效的 GitHub PR URL")
+    mode = normalize_review_depth_mode(body.review_depth_mode, settings.review_depth_mode)
+    if body.review_depth_mode and body.review_depth_mode not in VALID_MODES:
+        raise HTTPException(status_code=400, detail="无效的审阅深度模式")
+    depth_opt = get_review_depth_option(mode, settings.review_depth_mode)
+    demo_scenario_id = (body.demo_scenario_id or "").strip() or None
+    expected_rule_ids: list[str] = []
+    if demo_scenario_id:
+        scenario = get_scenario_by_id(demo_scenario_id)
+        if not scenario:
+            raise HTTPException(status_code=400, detail="无效的演示场景 ID")
+        expected_rule_ids = list(scenario["expected_rule_ids"])
     record = TaskRecord(
         input_type=body.input_type,
         input_value=body.value,
         project_type=body.project_type,
         framework=body.framework,
+        review_depth_mode=mode,
+        review_depth_label=depth_opt.label,
+        demo_scenario_id=demo_scenario_id,
+        expected_rule_ids=expected_rule_ids,
+        **llm_fields,
     )
     await task_store.create(record)
     background_tasks.add_task(_start_task, record.id)
@@ -57,10 +123,16 @@ async def get_task_result(task_id: str):
 
 @router.post("/tasks/{task_id}/rerun", response_model=TaskRecord)
 async def rerun_task(task_id: str, body: RerunRequest, background_tasks: BackgroundTasks):
-    ensure_llm_for_api()
     record = task_store.get(task_id)
     if not record:
         raise HTTPException(status_code=404, detail="任务不存在")
+    if is_rules_only_mode(record.llm_mode):
+        raise HTTPException(status_code=400, detail=HINT_RERUN_NOT_SUPPORTED)
+    ensure_llm_for_api(
+        llm_mode=record.llm_mode,
+        local_compress_enabled=record.local_compress_enabled,
+        local_model=record.local_model or None,
+    )
     if record.rerun_used:
         raise HTTPException(status_code=400, detail="已使用过补上下文重跑，仅允许一次")
     if record.status != TaskStatus.COMPLETED:
@@ -92,12 +164,17 @@ async def rerun_task(task_id: str, body: RerunRequest, background_tasks: Backgro
     return record
 
 
-@router.get("/tasks/{task_id}/export.md", response_class=PlainTextResponse)
+@router.get("/tasks/{task_id}/export.md")
 async def export_task_md(task_id: str):
     record = task_store.get(task_id)
     if not record:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=404, detail=EXPORT_TASK_NOT_FOUND_DETAIL)
     if not record.result:
-        raise HTTPException(status_code=409, detail="任务尚无结果可导出")
+        raise HTTPException(status_code=409, detail=EXPORT_NOT_READY_DETAIL)
     content = export_markdown(record)
-    return PlainTextResponse(content, media_type="text/markdown; charset=utf-8")
+    filename = format_export_filename(task_id)
+    return Response(
+        content=content,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

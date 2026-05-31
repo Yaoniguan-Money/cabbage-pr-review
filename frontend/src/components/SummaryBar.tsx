@@ -1,17 +1,31 @@
 import type { TaskResult } from "../api/client";
+import { formatTemplate } from "../utils/formatTemplate";
 
-export default function SummaryBar({ result }: { result: TaskResult }) {
+export default function SummaryBar({
+  result,
+  ui,
+  compact = false,
+}: {
+  result: TaskResult;
+  ui: Record<string, string>;
+  compact?: boolean;
+}) {
   return (
-    <div className="summary-bar">
-      <h2>摘要</h2>
+    <div className={`summary-bar ${compact ? "summary-bar-compact" : ""}`}>
+      <h2>{ui.summary_heading}</h2>
       <p>{result.summary}</p>
-      <ul>
-        {result.summary_bullets.map((b, i) => (
-          <li key={i}>{b}</li>
-        ))}
-      </ul>
-      <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
-        识别：{result.detected_framework} / {result.detected_project_type}
+      {!compact && result.summary_bullets.length > 0 ? (
+        <ul>
+          {result.summary_bullets.map((b, i) => (
+            <li key={i}>{b}</li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="summary-meta">
+        {formatTemplate(ui.summary_detected, {
+          framework: result.detected_framework,
+          project_type: result.detected_project_type,
+        })}
       </p>
     </div>
   );

@@ -4,8 +4,16 @@ from datetime import datetime
 
 from app.graph.state import AgentOutcomeValue, GraphState
 from app.graph.workflow import AGENT_NODE_ORDER, workflow_app
+from app.llm.compress_context import (
+    get_compress_degradation_notes,
+    get_compress_stats,
+    reset_compress_stats,
+)
+from app.llm.task_context import build_task_llm_context, clear_task_llm_context, set_task_llm_context
+from app.llm.token_usage import get_task_token_stats, reset_task_token_usage
+from app.local.demo_patches_meta import merge_demo_context_overlay
 from app.local.file_io import parse_patch_text, read_local_repo
-from app.models.schemas import InputType, TaskOutcome, TaskRecord, TaskStatus
+from app.models.schemas import CompressStatsSchema, InputType, TaskOutcome, TaskRecord, TaskStatus
 from app.services.github import github_service
 from app.services.git_workspace import GitWorkspace, enrich_context_with_git
 from app.services.task_store import task_store
@@ -48,6 +56,8 @@ async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | Non
         raise ValueError("不支持的输入类型")
 
     ctx, git_ws = await enrich_context_with_git(ctx)
+    if record.demo_scenario_id:
+        ctx = merge_demo_context_overlay(ctx, record.demo_scenario_id)
     return ctx, git_ws
 
 
@@ -115,6 +125,16 @@ async def execute_task(
     task_store.update(record)
 
     git_ws: GitWorkspace | None = None
+    llm_ctx = build_task_llm_context(
+        llm_mode=record.llm_mode,
+        local_compress_enabled=record.local_compress_enabled,
+        local_model=record.local_model or None,
+        cloud_flash_model=record.cloud_flash_model or None,
+        cloud_pro_model=record.cloud_pro_model or None,
+    )
+    set_task_llm_context(llm_ctx)
+    reset_compress_stats()
+    reset_task_token_usage()
     try:
         pr_context, git_ws = await _prepare_context(record)
         record.pr_context = pr_context
@@ -127,9 +147,12 @@ async def execute_task(
             "framework": record.framework,
             "focus_atom_ids": focus_atom_ids or record.rerun_focus_atoms or [],
             "extra_context_paths": extra_context_paths or record.rerun_context_paths or [],
+            "review_depth_mode": record.review_depth_mode,
+            "llm_mode": record.llm_mode,
             "degradation_notes": [],
             "agent_outcomes": {},
             "agent_errors": {},
+            "rule_hits": [],
         }
 
         final_state: GraphState = dict(state)
@@ -149,6 +172,22 @@ async def execute_task(
                     message = (final_state.get("agent_errors", {}) or {}).get(agent_id, "")
                     _set_agent_status(record, agent_id, _agent_progress_status(outcome), message)
 
+        compress_notes = get_compress_degradation_notes()
+        if compress_notes:
+            merged = list(compress_notes) + list(final_state.get("degradation_notes") or [])
+            final_state["degradation_notes"] = merged
+            record.pr_context["degradation_notes"] = merged
+
+        stats = get_compress_stats()
+        if stats.compress_calls > 0 or stats.chars_before > 0:
+            record.compress_stats = CompressStatsSchema(
+                compress_calls=stats.compress_calls,
+                chars_before=stats.chars_before,
+                chars_after=stats.chars_after,
+            )
+
+        record.token_stats = get_task_token_stats()
+
         result = final_state.get("final_result")
         if result:
             result.degradation_notes = _dedupe_notes(
@@ -167,9 +206,11 @@ async def execute_task(
         record.error_message = str(e)
         if record.current_agent:
             _set_agent_status(record, record.current_agent, "failed", str(e))
+        record.token_stats = get_task_token_stats()
     finally:
         if git_ws:
             git_ws.cleanup()
+        clear_task_llm_context()
     record.updated_at = datetime.utcnow()
     task_store.update(record)
 

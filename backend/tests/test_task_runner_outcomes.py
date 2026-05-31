@@ -60,6 +60,7 @@ async def test_execute_task_keeps_rules_only_patch_completed(monkeypatch: pytest
                 degradation_notes=[],
             ),
             [],
+            None,
         )
 
     monkeypatch.setattr(workflow_module, "run_agent4", _rules_only)

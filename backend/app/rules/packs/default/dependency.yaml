@@ -1,0 +1,27 @@
+rules:
+  - id: lockfile-changed
+    message: 依赖锁定文件变更，请确认版本升级原因与供应链安全
+    severity: MEDIUM
+    paths:
+      include:
+        - "**/package-lock.json"
+        - "**/yarn.lock"
+        - "**/pnpm-lock.yaml"
+        - "**/requirements.txt"
+        - "**/poetry.lock"
+        - "**/Pipfile.lock"
+    match:
+      any:
+        - pattern-regex: '.+'
+          target: file_path
+
+  - id: requirements-unpinned
+    message: requirements 新增依赖未固定版本，建议锁定版本
+    severity: LOW
+    paths:
+      include: ["**/requirements*.txt"]
+    match:
+      any:
+        - pattern-regex: '^[a-zA-Z0-9_][a-zA-Z0-9_.\[\]-]*\s*$'
+          target: patch_hunk
+          patch_scope: added_only
