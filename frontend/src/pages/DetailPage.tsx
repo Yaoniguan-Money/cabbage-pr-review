@@ -21,6 +21,7 @@ import {
   type TaskRecord,
   type TaskResult,
 } from "../api/client";
+import { resolveRunningMessage } from "../utils/agentProgressMessage";
 import AiReviewPanel from "../components/AiReviewPanel";
 import ChangesTable from "../components/ChangesTable";
 import CodeDiffPanel from "../components/CodeDiffPanel";
@@ -130,6 +131,16 @@ export default function DetailPage() {
   }, [diagramMeta]);
 
   const patchFiles = useMemo(() => buildPatchFiles(task, result), [task, result]);
+
+  const runningMessage = useMemo(
+    () =>
+      resolveRunningMessage(
+        task?.agent_progress,
+        detailMeta?.ui_strings ?? {},
+        rulesMeta?.ui_strings?.running_message || "",
+      ),
+    [task?.agent_progress, detailMeta?.ui_strings, rulesMeta?.ui_strings?.running_message],
+  );
 
   useEffect(() => {
     if (patchFiles.length > 0 && !selectedFile) {
@@ -283,8 +294,6 @@ export default function DetailPage() {
   const previewDiagramCount =
     diagramMeta?.diagram_count ?? diagramMeta?.diagram_types.length ?? result?.diagrams.length ?? 0;
 
-  const runningAgent = task?.agent_progress.find((a) => a.status === "running");
-
   const renderMainContent = () => {
     if (!task) {
       return <MetaLoading label={detailUi.meta_loading} />;
@@ -307,14 +316,14 @@ export default function DetailPage() {
             diagramPreview={null}
             riskPreview={
               <p className="sidebar-muted">
-                {runningAgent?.message?.trim() || rulesUi.running_message}
+                {runningMessage}
               </p>
             }
           />
         );
       }
       return (
-        <p className="sidebar-muted">{runningAgent?.message?.trim() || rulesUi.running_message}</p>
+        <p className="sidebar-muted">{runningMessage}</p>
       );
     }
 
@@ -457,6 +466,11 @@ export default function DetailPage() {
       {clientMeta?.use_mock_llm && clientMeta.mock_mode_banner ? (
         <div className="risk-item medium alert-banner">{clientMeta.mock_mode_banner}</div>
       ) : null}
+      {!clientMeta?.use_mock_llm && clientMeta?.cloud_unavailable_banner ? (
+        <div className="risk-item medium alert-banner" role="status">
+          {clientMeta.cloud_unavailable_banner}
+        </div>
+      ) : null}
 
       {task && (
         <ReviewHeader
@@ -511,7 +525,7 @@ export default function DetailPage() {
       )}
 
       {task?.status === "running" || task?.status === "pending" ? (
-        <p className="running-banner">{runningAgent?.message?.trim() || rulesUi.running_message}</p>
+        <p className="running-banner">{runningMessage}</p>
       ) : null}
 
       {error && <div className="error">{error}</div>}
@@ -547,7 +561,7 @@ export default function DetailPage() {
               result={result}
               ui={detailUi}
               rulesUi={rulesUi}
-              runningMessage={runningAgent?.message?.trim() || rulesUi.running_message}
+              runningMessage={runningMessage}
               isRunning={task.status === "running" || task.status === "pending"}
               riskPreview={result?.risks.slice(0, riskPreviewCount) ?? []}
               onViewRisks={() => setSection("risks")}

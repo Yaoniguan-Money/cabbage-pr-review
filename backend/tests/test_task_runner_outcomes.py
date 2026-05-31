@@ -38,7 +38,9 @@ async def test_execute_task_completes_with_degraded_outcome(monkeypatch: pytest.
     def _boom(*_args, **_kwargs):
         raise RuntimeError("base scan timeout")
 
-    monkeypatch.setattr(workflow_module, "run_agent1", _boom)
+    from app.graph import scan_nodes
+
+    monkeypatch.setattr(scan_nodes, "run_agent1", _boom)
     record = _make_patch_record()
 
     await execute_task(record)

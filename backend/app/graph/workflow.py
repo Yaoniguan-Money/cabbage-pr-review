@@ -2,38 +2,20 @@ from __future__ import annotations
 
 from langgraph.graph import END, StateGraph
 
-from app.agents.agent1_base_scan import run_agent1
-from app.agents.agent2_head_scan import run_agent2
 from app.agents.agent3_diff import run_agent3
 from app.agents.agent4_review import run_agent4
 from app.agents.agent5_visualize import run_agent5
+from app.graph.parallel_scan import run_parallel_scan
 from app.graph.pipeline_dispatch import dispatch_node
 from app.graph.state import GraphState
 from app.graph.workflow_helpers import EmptyAgentResultError, empty_base, empty_head, run_agent_safe
+from app.local.workflow_meta import AGENT_NODE_ORDER
 from app.models.schemas import DiffCompareSchema, RiskReviewSchema, TaskResultSchema
-from app.rules.workflow_nodes import rules_node1, rules_node2, rules_node3, rules_node4, rules_node5
+from app.rules.workflow_nodes import rules_node3, rules_node4, rules_node5
 
 
-def _llm_node1(state: GraphState) -> GraphState:
-    def _run() -> GraphState:
-        base, notes = run_agent1(state["pr_context"])
-        return {
-            "base_index": base,
-            "degradation_notes": notes,
-        }
-
-    return run_agent_safe(state, 1, _run, fallback={"base_index": empty_base()})
-
-
-def _llm_node2(state: GraphState) -> GraphState:
-    def _run() -> GraphState:
-        head, notes = run_agent2(state["pr_context"])
-        return {
-            "head_index": head,
-            "degradation_notes": notes,
-        }
-
-    return run_agent_safe(state, 2, _run, fallback={"head_index": empty_head()})
+def _scan_parallel_node(state: GraphState) -> GraphState:
+    return run_parallel_scan(state)
 
 
 def _llm_node3(state: GraphState) -> GraphState:
@@ -138,14 +120,6 @@ def _llm_node5(state: GraphState) -> GraphState:
     )
 
 
-def _node1(state: GraphState) -> GraphState:
-    return dispatch_node(state, rules_node1, _llm_node1)
-
-
-def _node2(state: GraphState) -> GraphState:
-    return dispatch_node(state, rules_node2, _llm_node2)
-
-
 def _node3(state: GraphState) -> GraphState:
     return dispatch_node(state, rules_node3, _llm_node3)
 
@@ -160,14 +134,12 @@ def _node5(state: GraphState) -> GraphState:
 
 def build_workflow():
     graph = StateGraph(GraphState)
-    graph.add_node("agent1", _node1)
-    graph.add_node("agent2", _node2)
+    graph.add_node("scan_parallel", _scan_parallel_node)
     graph.add_node("agent3", _node3)
     graph.add_node("agent4", _node4)
     graph.add_node("agent5", _node5)
-    graph.set_entry_point("agent1")
-    graph.add_edge("agent1", "agent2")
-    graph.add_edge("agent2", "agent3")
+    graph.set_entry_point("scan_parallel")
+    graph.add_edge("scan_parallel", "agent3")
     graph.add_edge("agent3", "agent4")
     graph.add_edge("agent4", "agent5")
     graph.add_edge("agent5", END)
@@ -176,4 +148,4 @@ def build_workflow():
 
 workflow_app = build_workflow()
 
-AGENT_NODE_ORDER = ["agent1", "agent2", "agent3", "agent4", "agent5"]
+__all__ = ["workflow_app", "AGENT_NODE_ORDER"]

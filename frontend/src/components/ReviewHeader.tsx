@@ -60,7 +60,11 @@ export default function ReviewHeader({
           </p>
         ) : null}
       </div>
-      <AgentProgressBar progress={task.agent_progress} stepperLabel={ui.agent_stepper_label} />
+      <AgentProgressBar
+        progress={task.agent_progress}
+        stepperLabel={ui.agent_stepper_label}
+        parallelLaneAria={ui.agent_parallel_lane_aria}
+      />
     </header>
   );
 }

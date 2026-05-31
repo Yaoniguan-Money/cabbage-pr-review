@@ -23,11 +23,16 @@ def parse_pr_url(url: str) -> tuple[str, str, int]:
 
 
 class GitHubService:
-    def __init__(self) -> None:
+    def _headers_for_token(self, token: str | None = None) -> dict[str, str]:
         headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
-        if settings.github_token:
-            headers["Authorization"] = f"Bearer {settings.github_token}"
-        self._headers = headers
+        tok = (token or "").strip() or settings.github_token.strip()
+        from app.llm.credentials_resolve import is_public_deploy
+
+        if is_public_deploy():
+            tok = (token or "").strip()
+        if tok:
+            headers["Authorization"] = f"Bearer {tok}"
+        return headers
 
     async def _get_readme(self, client: httpx.AsyncClient, base: str) -> str:
         cache_key = f"readme:{base}"
@@ -65,10 +70,11 @@ class GitHubService:
         except Exception:
             return []
 
-    async def fetch_pr_context(self, pr_url: str) -> dict[str, Any]:
+    async def fetch_pr_context(self, pr_url: str, *, github_token: str | None = None) -> dict[str, Any]:
         owner, repo, number = parse_pr_url(pr_url)
         base_url = f"https://api.github.com/repos/{owner}/{repo}"
-        async with httpx.AsyncClient(timeout=60.0, headers=self._headers) as client:
+        headers = self._headers_for_token(github_token)
+        async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
             pr_resp = await client.get(f"{base_url}/pulls/{number}")
             pr_resp.raise_for_status()
             pr = pr_resp.json()

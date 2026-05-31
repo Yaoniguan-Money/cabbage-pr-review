@@ -7,6 +7,8 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.llm.credentials_resolve import resolve_cloud_config
+from app.llm.task_context import get_task_llm_context
 from app.llm.token_usage import parse_openai_usage, record_token_usage
 
 logger = logging.getLogger(__name__)
@@ -24,22 +26,34 @@ class OpenAICompatibleProvider:
     ) -> None:
         self._api_base = (api_base or settings.cloud_api_base_resolved).rstrip("/")
         self._api_key = (api_key or settings.cloud_api_key_resolved).strip()
-        self._timeout = timeout_sec
+        self._timeout = timeout_sec if timeout_sec != 120.0 else settings.cloud_timeout_sec
+
+    def _resolve_from_task(self) -> tuple[str, str]:
+        ctx = get_task_llm_context()
+        if ctx.cloud_api_key.strip():
+            return ctx.cloud_api_base.rstrip("/"), ctx.cloud_api_key.strip()
+        resolved = resolve_cloud_config(None)
+        if resolved:
+            return resolved.api_base.rstrip("/"), resolved.api_key
+        return self._api_base, self._api_key
 
     def available(self) -> bool:
-        return bool(self._api_key)
+        _, key = self._resolve_from_task()
+        return bool(key)
 
     def list_models(self) -> list[str]:
         return []
 
     def _headers(self) -> dict[str, str]:
+        _, key = self._resolve_from_task()
         return {
-            "Authorization": f"Bearer {self._api_key}",
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
         }
 
     def _url(self) -> str:
-        return f"{self._api_base}/chat/completions"
+        base, _ = self._resolve_from_task()
+        return f"{base}/chat/completions"
 
     def complete_json_sync(
         self,

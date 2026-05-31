@@ -12,6 +12,7 @@ from app.api.routes import (
     llm_mode,
     review_depth,
     rules_meta,
+    runtime_config,
     tasks,
 )
 
@@ -35,4 +36,5 @@ app.include_router(rules_meta.router)
 app.include_router(detail_page_meta.router)
 app.include_router(examples.router)
 app.include_router(demo_patches.router)
+app.include_router(runtime_config.router)
 app.include_router(tasks.router)

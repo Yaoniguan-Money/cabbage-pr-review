@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from app.config import settings
+from app.llm.credentials_resolve import cloud_available_for_request
 from app.llm.ollama_provider import OllamaProvider
 from app.llm.openai_compat import OpenAICompatibleProvider
 from app.llm.task_context import TaskLLMContext, get_task_llm_context
+from app.models.schemas import RuntimeCredentials
 
 _cloud_provider = OpenAICompatibleProvider()
 _local_provider = OllamaProvider()
@@ -19,10 +21,15 @@ def local_provider() -> OllamaProvider:
     return _local_provider
 
 
-def cloud_available() -> bool:
-    if settings.use_mock_llm:
-        return True
-    return _cloud_provider.available()
+def cloud_available(
+    *,
+    runtime_credentials: RuntimeCredentials | None = None,
+    has_runtime_cloud_key: bool = False,
+) -> bool:
+    return cloud_available_for_request(
+        runtime_credentials,
+        has_runtime_cloud_key=has_runtime_cloud_key,
+    )
 
 
 def local_available() -> bool:

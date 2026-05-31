@@ -28,6 +28,8 @@ async def health():
         "local_llm_base_url": settings.local_llm_base_url,
         "local_compress_enabled_default": settings.local_compress_enabled,
         "default_review_depth_mode": settings.review_depth_mode,
+        "deploy_mode": settings.deploy_mode,
+        "allow_runtime_credentials": settings.allow_runtime_credentials,
         # 兼容旧客户端
         "deepseek_flash_model": settings.cloud_flash_model_resolved,
         "deepseek_pro_model": settings.cloud_pro_model_resolved,

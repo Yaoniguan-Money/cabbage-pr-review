@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from app.graph.state import AgentOutcomeValue, GraphState
-from app.graph.workflow import AGENT_NODE_ORDER, workflow_app
+from app.graph.workflow import workflow_app
 from app.llm.compress_context import (
     get_compress_degradation_notes,
     get_compress_stats,
@@ -13,18 +13,24 @@ from app.llm.task_context import build_task_llm_context, clear_task_llm_context,
 from app.llm.token_usage import get_task_token_stats, reset_task_token_usage
 from app.local.demo_patches_meta import merge_demo_context_overlay
 from app.local.file_io import parse_patch_text, read_local_repo
-from app.models.schemas import CompressStatsSchema, InputType, TaskOutcome, TaskRecord, TaskStatus
+from app.local.workflow_meta import WORKFLOW_NODE_AGENT_MAP
+from app.models.schemas import CompressStatsSchema, InputType, RuntimeCredentials, TaskOutcome, TaskRecord, TaskStatus
 from app.services.github import github_service
 from app.services.git_workspace import GitWorkspace, enrich_context_with_git
+from app.services import task_progress
 from app.services.task_store import task_store
 
-NODE_TO_AGENT = {name: i + 1 for i, name in enumerate(AGENT_NODE_ORDER)}
+NODE_TO_AGENTS = WORKFLOW_NODE_AGENT_MAP
 CRITICAL_AGENTS = (3, 4, 5)
 
 
-async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | None]:
+async def _prepare_context(
+    record: TaskRecord,
+    *,
+    github_token: str = "",
+) -> tuple[dict, GitWorkspace | None]:
     if record.input_type == InputType.PR_URL:
-        ctx = await github_service.fetch_pr_context(record.input_value)
+        ctx = await github_service.fetch_pr_context(record.input_value, github_token=github_token or None)
     elif record.input_type == InputType.PATCH:
         patches = parse_patch_text(record.input_value)
         paths = [p["filename"] for p in patches]
@@ -55,7 +61,7 @@ async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | Non
     else:
         raise ValueError("不支持的输入类型")
 
-    ctx, git_ws = await enrich_context_with_git(ctx)
+    ctx, git_ws = await enrich_context_with_git(ctx, github_token=github_token)
     if record.demo_scenario_id:
         ctx = merge_demo_context_overlay(ctx, record.demo_scenario_id)
     return ctx, git_ws
@@ -64,7 +70,7 @@ async def _prepare_context(record: TaskRecord) -> tuple[dict, GitWorkspace | Non
 def _set_agent_status(record: TaskRecord, agent_id: int, status: str, message: str = "") -> None:
     for ap in record.agent_progress:
         if ap.agent_id == agent_id:
-            ap.status = status
+            ap.status = status  # type: ignore[assignment]
             ap.message = message
     record.current_agent = agent_id
     record.updated_at = datetime.utcnow()
@@ -81,6 +87,28 @@ def _dedupe_notes(notes: list[str]) -> list[str]:
 
 def _agent_progress_status(outcome: AgentOutcomeValue) -> str:
     return {"ok": "completed", "degraded": "degraded", "failed": "failed"}[outcome]
+
+
+def _set_agents_running(record: TaskRecord, agent_ids: list[int]) -> None:
+    for aid in agent_ids:
+        _set_agent_status(record, aid, "running")
+
+
+def _sync_agent_progress_from_outcomes(
+    record: TaskRecord,
+    agent_ids: list[int],
+    final_state: GraphState,
+) -> None:
+    outcomes = final_state.get("agent_outcomes", {}) or {}
+    errors = final_state.get("agent_errors", {}) or {}
+    for aid in agent_ids:
+        if aid in outcomes:
+            message = errors.get(aid, "")
+            _set_agent_status(record, aid, _agent_progress_status(outcomes[aid]), message)
+        else:
+            for ap in record.agent_progress:
+                if ap.agent_id == aid and ap.status == "running":
+                    _set_agent_status(record, aid, "completed")
 
 
 def _derive_task_completion(state: GraphState) -> tuple[TaskStatus, TaskOutcome, str | None]:
@@ -112,6 +140,7 @@ async def execute_task(
     *,
     focus_atom_ids: list[str] | None = None,
     extra_context_paths: list[str] | None = None,
+    runtime_credentials: RuntimeCredentials | None = None,
 ) -> None:
     record.status = TaskStatus.RUNNING
     record.outcome = None
@@ -131,12 +160,15 @@ async def execute_task(
         local_model=record.local_model or None,
         cloud_flash_model=record.cloud_flash_model or None,
         cloud_pro_model=record.cloud_pro_model or None,
+        runtime_credentials=runtime_credentials,
     )
     set_task_llm_context(llm_ctx)
+    gh_token = llm_ctx.github_token
     reset_compress_stats()
     reset_task_token_usage()
+    task_progress.bind_task_progress(record.id)
     try:
-        pr_context, git_ws = await _prepare_context(record)
+        pr_context, git_ws = await _prepare_context(record, github_token=gh_token)
         record.pr_context = pr_context
         task_store.update(record)
 
@@ -158,19 +190,17 @@ async def execute_task(
         final_state: GraphState = dict(state)
         async for event in workflow_app.astream(state):
             for node_name, update in event.items():
-                agent_id = NODE_TO_AGENT.get(node_name, 0)
-                if agent_id:
-                    _set_agent_status(record, agent_id, "running")
+                agent_ids = NODE_TO_AGENTS.get(node_name, [])
+                if agent_ids:
+                    _set_agents_running(record, agent_ids)
                 if isinstance(update, dict):
                     final_state.update(update)
                     if final_state.get("degradation_notes"):
                         notes = _dedupe_notes(list(final_state["degradation_notes"]))
                         record.pr_context["degradation_notes"] = notes
                         record.degradation_notes = notes
-                if agent_id:
-                    outcome = (final_state.get("agent_outcomes", {}) or {}).get(agent_id, "ok")
-                    message = (final_state.get("agent_errors", {}) or {}).get(agent_id, "")
-                    _set_agent_status(record, agent_id, _agent_progress_status(outcome), message)
+                if agent_ids:
+                    _sync_agent_progress_from_outcomes(record, agent_ids, final_state)
 
         compress_notes = get_compress_degradation_notes()
         if compress_notes:
@@ -208,6 +238,7 @@ async def execute_task(
             _set_agent_status(record, record.current_agent, "failed", str(e))
         record.token_stats = get_task_token_stats()
     finally:
+        task_progress.clear_task_progress()
         if git_ws:
             git_ws.cleanup()
         clear_task_llm_context()
@@ -215,8 +246,12 @@ async def execute_task(
     task_store.update(record)
 
 
-async def run_task_background(record: TaskRecord) -> None:
+async def run_task_background(
+    record: TaskRecord,
+    *,
+    runtime_credentials: RuntimeCredentials | None = None,
+) -> None:
     async def _runner() -> None:
-        await execute_task(record)
+        await execute_task(record, runtime_credentials=runtime_credentials)
 
     await task_store.run_exclusive(record.id, _runner)

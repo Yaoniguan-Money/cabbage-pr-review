@@ -1,142 +1,314 @@
 # AI PR Review 助手
 
+
+
 基于定稿 v2.0 的 MVP：结构化 PR 影响分析与审阅辅助工具。
+
+
+
+## 公网部署（评委自备 API Key）
+
+服务器**不托管**你的个人 Key。部署见 [docs/CLOUD_DEPLOY.md](./docs/CLOUD_DEPLOY.md)。
+
+评委打开站点后，首页提示：**如想体验最佳效果请配置您的 API Key** → 在「API 与 GitHub 设置」中填写 → 选择 **纯云端** 开始分析。
+
+## 最快体验（零 API Key，推荐首次 clone）
+
+
+
+**前提**：本机已安装并启动 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（或等价引擎），端口 8000 / 8080 未被占用。
+
+
+
+无需复制 `.env`、无需 DeepSeek / GitHub Token。仓库已提交 [`.env.demo`](.env.demo)，`docker compose` 会自动加载；若你另有 `.env` 则会覆盖 demo 默认值。
+
+
+
+```bash
+
+git clone <repo> && cd <repo>
+
+docker compose up --build
+
+```
+
+
+
+Windows 也可一键：
+
+
+
+```powershell
+
+.\scripts\start-demo.ps1
+
+```
+
+
+
+或（已安装 Make 时）：`make demo`
+
+
+
+1. 打开 http://localhost:8080
+
+2. 首页 **评委演示 Patch** 区域点击 **S1 / S2 / S3** → 确认推理模式为 **纯规则**
+
+3. **开始分析** → 查看规则报告与命中，对照 [docs/JUDGE_DEMO.md](./docs/JUDGE_DEMO.md)
+
+
+
+验收：`curl http://localhost:8000/health` 应见 `llm_mode=rules_only`、`rules_pack_loaded=true`、`rules_invalid_count=0`。
+
+
+
+旧文档中的 `docker compose -f docker-compose.demo.yml up` 与上述命令**等价**（见 [`docker-compose.demo.yml`](./docker-compose.demo.yml)）。
+
+
+
+---
+
+
 
 ## 功能
 
+
+
 - 两种界面输入：GitHub PR URL、Patch/Diff（`local_path` API 仍保留，供本机/集成直调，输入页未暴露）
+
 - LangGraph 编排 5 个 Agent（原版本扫描 → PR 扫描 → 差异对比 → 递进审阅 → 可视化）
+
 - 结果页：摘要条、三张 Mermaid 图、风险列表、缺失信息
+
 - 支持一次补上下文重跑、Markdown 导出
+
 - 局部降级：单 Agent 失败不阻断整体
 
-## 配置 DeepSeek API（生产/验收必填）
+- **纯规则模式**（`rules_only`）：零 LLM，YAML 规则引擎，适合零密钥演示与 CI
 
-在项目根目录创建 `.env`（可参考 `.env.example`）：
+
+
+## 生产 / 完整云端审阅（需 DeepSeek API Key）
+
+
+
+复制环境文件并填入密钥（会覆盖 `.env.demo` 中的 `LLM_MODE=rules_only`）：
+
+
+
+```bash
+
+cp .env.example .env
+
+# 编辑 .env：DEEPSEEK_API_KEY、可选 GITHUB_TOKEN、LLM_MODE=cloud_only
+
+docker compose up --build
+
+```
+
+
+
+或：`make prod`（若不存在 `.env` 会从 `.env.example` 复制一份，仍需手动填 Key）
+
+
 
 ```env
+
 DEEPSEEK_API_KEY=你的密钥
+
 DEEPSEEK_BASE_URL=https://api.deepseek.com
+
 DEEPSEEK_FLASH_MODEL=deepseek-chat
+
 DEEPSEEK_PRO_MODEL=deepseek-reasoner
+
 USE_MOCK_LLM=false
+
+LLM_MODE=cloud_only
+
 ```
 
-启动后访问 http://localhost:8000/health ，应看到 `llm_enabled: true`、`model_profile: v22_provider_via_env`。
 
-未配置 Key 且 `USE_MOCK_LLM=false` 时，**纯云端**模式下 `POST /api/tasks` 返回 **503**。
 
-**依赖**：本机与 Docker 镜像均需安装 **git**（PR URL 分析时用于 `git show` 读取 base/head 文件）。
+启动后访问 http://localhost:8000/health ，应看到 `llm_enabled: true`、`cloud_available: true`。
 
-## 快速启动
 
-### 本地开发
+
+未配置 Key 且 `USE_MOCK_LLM=false` 时，若手动选择 **纯云端** 并提交任务，`POST /api/tasks` 返回 **503**（无 Key 时前端会自动优先 **纯规则**，见首页提示横幅）。
+
+
+
+**依赖**：本机与 Docker 镜像均需安装 **git**（PR URL 分析时用于 `git show` 读取 base/head 文件）。分析 GitHub PR 建议配置 `GITHUB_TOKEN`，否则易遇 API 限流（403）。
+
+
+
+## 本地开发
+
+
+
+**环境**：Python **3.12**、Node **20**、**git**（PR URL 路径必装；`git --version` 自检）。
+
+
 
 ```bash
-# 在项目根目录 pr/ 下已有 .env 时，从 backend 启动即可自动加载
+
+# 后端（在项目根或 backend 下；根目录 .env 可选，无 Key 时可用纯规则 + Patch）
+
 cd backend
+
 pip install -r requirements.txt
+
+# Windows PowerShell / CMD：
+
 set PYTHONPATH=.
+
+# Linux / macOS：
+
+# export PYTHONPATH=.
+
+
+
 uvicorn app.main:app --reload --port 8000
 
+
+
 # 前端（新终端）
+
 cd frontend
+
 npm install
+
 npm run dev
+
 ```
 
-浏览器打开 http://localhost:5173
 
-### Docker Compose
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
+浏览器打开 http://localhost:5173（Vite 将 `/api`、`/health` 代理到 8000）。
 
-- 前端：http://localhost:8080
-- 后端 API：http://localhost:8000
-- 健康检查：http://localhost:8000/health
+
+
+无 `.env` 时后端默认 `LLM_MODE=cloud_only`，但云端不可用时会由前端自动选用 **纯规则**；也可复制 `.env.demo` 为 `.env` 固定演示配置。
+
+
 
 ## 测试
 
+
+
 ```bash
+
 cd backend
+
+# Windows:
+
 set PYTHONPATH=.
+
+# Linux / macOS: export PYTHONPATH=.
+
 pytest tests/ -v
+
 ```
 
-测试通过 `tests/conftest.py` **Mock** `flash_json_sync` / `pro_json_sync`，不消耗 DeepSeek 额度、不依赖启发式规则。
+
+
+测试通过 `tests/conftest.py` **Mock** LLM，不消耗 DeepSeek 额度。
+
+
 
 ## 文档依据
 
+
+
 - 主执行：[AI_PR_Review_助手执行计划_定稿_v2.0.docx](./AI_PR_Review_助手执行计划_定稿_v2.0.docx)
+
 - 补充：[AI_PR_Review_助手执行计划_定稿_v2.0.md](./AI_PR_Review_助手执行计划_定稿_v2.0.md)
+
+
 
 冲突时以 v2.0 为准。
 
+
+
 ## 质量回归（v2.1）
+
+
 
 需 Docker + DeepSeek Key，详见 [docs/V2.1_QUALITY.md](./docs/V2.1_QUALITY.md)。
 
+
+
 ```powershell
+
 .\scripts\quality_regression.ps1 -PrUrl "https://github.com/owner/repo/pull/N" -MinRisks 1 -MaxDegradationNotes 0
+
 ```
+
+
 
 CI（GitHub Actions）仅跑 mock LLM 单元测试，不消耗 API 额度。
 
+
+
 ## 审阅深度（PR #4）
+
+
 
 首页可选 **快速 / 标准 / 深度** 三档（文案由 `GET /api/review-depth-options` 下发）。环境变量 `REVIEW_DEPTH_MODE` 为服务端默认档。详见 [docs/V2.1_QUALITY.md](./docs/V2.1_QUALITY.md)。
 
+
+
 ## 推理模式（v2.2）
 
-首页可选 **纯云端 / 混合 / 纯本地**（文案由 `GET /api/llm-mode-options` 下发）。混合模式默认 **开启本地输入压缩**；审阅结论仍由云端 Flash/Pro 生成。详见 [docs/V2.2_LLM_PROVIDER.md](./docs/V2.2_LLM_PROVIDER.md) 与 [docs/LOCAL_LLM_SETUP.md](./docs/LOCAL_LLM_SETUP.md)。
+
+
+首页可选 **纯云端 / 混合 / 纯本地 / 纯规则**（文案由 `GET /api/llm-mode-options` 下发）。详见 [docs/V2.2_LLM_PROVIDER.md](./docs/V2.2_LLM_PROVIDER.md) 与 [docs/LOCAL_LLM_SETUP.md](./docs/LOCAL_LLM_SETUP.md)。
+
+
 
 ## Token 统计（v2.2+）
 
-每个任务完成后，`GET /api/tasks/{id}` 返回 `token_stats`（云端/本地 prompt·completion·合计及 `display_segments` 展示文案）。Markdown 导出含 Token 小节。详见 [docs/TOKEN_STATS.md](./docs/TOKEN_STATS.md)。
+
+
+详见 [docs/TOKEN_STATS.md](./docs/TOKEN_STATS.md)。
+
+
 
 ## 图表可视化（v2.3）
 
-三图差异化渲染、title/caption/图例、节点 risk/confidence 展示；文案与样式由 `GET /api/diagram-meta` 单源下发。详见 [docs/V2.3_DIAGRAMS.md](./docs/V2.3_DIAGRAMS.md)。
+
+
+详见 [docs/V2.3_DIAGRAMS.md](./docs/V2.3_DIAGRAMS.md)。
+
+
 
 ## 纯规则模式（v2.4）
 
-首页可选 **纯规则** 第四档（`rules_only`）：零 LLM，YAML 规则引擎 + Markdown 报告；无需 Cloud/Ollama。详见 [docs/V2.4_RULES_MODE.md](./docs/V2.4_RULES_MODE.md)。
 
-## 评委三步体验（推荐）
 
-面向零配置演示：**真实规则引擎**为主路径，无需 API Key / Ollama。
+详见 [docs/V2.4_RULES_MODE.md](./docs/V2.4_RULES_MODE.md)。评委演示步骤详见 [docs/JUDGE_DEMO.md](./docs/JUDGE_DEMO.md)。
 
-1. `docker compose -f docker-compose.demo.yml up --build` → 打开 http://localhost:8080
-2. 首页点击 **S1 / S2 / S3** 演示 Patch 一键加载 → 确认推理模式为 **纯规则**
-3. **开始分析** → 查看 **规则报告** 页签（含 Markdown 报告与结构化规则命中），对照 [docs/JUDGE_DEMO.md](./docs/JUDGE_DEMO.md) 中的 `rule_id`
 
-启动后可用 `GET /health` 验收规则包是否就绪（demo  compose 默认 `LLM_MODE=rules_only`）：
 
-```bash
-curl http://localhost:8000/health
-```
+可选附录：[`docker-compose.demo-mock.yml`](./docker-compose.demo-mock.yml) 展示 Mock LLM 四图 UI（非规则主叙事）。
 
-| 字段 | 期望（demo / 纯规则） | 说明 |
-|------|----------------------|------|
-| `llm_mode` | `rules_only` | 当前推理模式 |
-| `use_mock_llm` | `false` | demo 主路径不走 Mock LLM |
-| `rules_pack_loaded` | `true` | 默认规则包已成功加载 |
-| `rules_count` | `> 0`（当前约 16） | 有效规则条数 |
-| `rules_invalid_count` | `0` | YAML lint 失败条数；非 0 表示规则包需修复 |
 
-`rules_invalid_count > 0` 时任务仍可运行，但应优先修复 `backend/app/rules/packs/default/` 下对应 YAML，再跑 `pytest backend/tests/test_rules_lint.py`。
-
-可选：[`docker-compose.demo-mock.yml`](./docker-compose.demo-mock.yml) 展示 Mock LLM 四图 UI（附录，见 JUDGE_DEMO）。
 
 ### 开源借鉴与许可证
 
-| 来源 | 许可证 | 本项目用法 |
-|------|--------|------------|
-| [Semgrep](https://github.com/semgrep/semgrep) | LGPL-2.1 | **仅借鉴** YAML 规则字段设计，未引入引擎或 semgrep-rules 规则包 |
-| [reviewdog](https://github.com/reviewdog/reviewdog) | MIT | **仅借鉴** diff 范围运行与 severity 分级思路 |
-| [Danger](https://github.com/danger/danger) | MIT | **仅借鉴** PR 上下文变量与 fail/warn 分级映射 |
 
-默认规则包位于 `backend/app/rules/packs/default/`（随 Docker `COPY app` 一并打包）。
+
+| 来源 | 许可证 | 本项目用法 |
+
+|------|--------|------------|
+
+| [Semgrep](https://github.com/semgrep/semgrep) | LGPL-2.1 | **仅借鉴** YAML 规则字段设计 |
+
+| [reviewdog](https://github.com/reviewdog/reviewdog) | MIT | **仅借鉴** diff 范围运行与 severity 分级 |
+
+| [Danger](https://github.com/danger/danger) | MIT | **仅借鉴** PR 上下文变量与 fail/warn 分级 |
+
+
+
+默认规则包位于 `backend/app/rules/packs/default/`。
+

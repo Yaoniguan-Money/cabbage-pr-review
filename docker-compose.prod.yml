@@ -1,0 +1,55 @@
+# 生产部署：DEPLOY_MODE=public，不在服务器预置 API/GitHub Key
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      - SITE_DOMAIN=${SITE_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    networks:
+      - web
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - path: .env.production
+        required: false
+      - path: .env
+        required: false
+    environment:
+      - DEPLOY_MODE=public
+      - ALLOW_RUNTIME_CREDENTIALS=true
+      - DEMO_PATCHES_DIR=/app/data/demo
+      - CLOUD_TIMEOUT_SEC=300
+    volumes:
+      - ./data:/app/data
+    networks:
+      - web
+    expose:
+      - "8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - web
+    expose:
+      - "80"
+
+networks:
+  web:
+
+volumes:
+  caddy_data:
+  caddy_config:

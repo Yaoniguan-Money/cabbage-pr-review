@@ -8,7 +8,12 @@ from app.config import settings
 
 MOCK_MODE_BANNER = (
     "当前为 Mock LLM 演示模式：审阅结论由占位逻辑生成，不代表真实规则引擎质量。"
-    "规则引擎主路径请使用 docker-compose.demo.yml（rules_only）。"
+    "规则引擎主路径请使用 docker compose up（默认 .env.demo / rules_only）。"
+)
+
+CLOUD_UNAVAILABLE_BANNER = (
+    "当前未配置云端 API，已自动优先纯规则模式。"
+    "在 .env 中设置 DEEPSEEK_API_KEY 或 CLOUD_API_KEY 后可启用纯云端/混合审阅。"
 )
 
 _ERROR_MESSAGES: dict[str, str] = {
@@ -33,9 +38,27 @@ def get_error_messages() -> dict[str, str]:
     return dict(_ERROR_MESSAGES)
 
 
+def cloud_unavailable_banner() -> str:
+    if settings.use_mock_llm:
+        return ""
+    from app.llm.credentials_resolve import server_cloud_configured
+    from app.local.runtime_config_meta import RUNTIME_CREDENTIALS_ONBOARDING
+
+    if server_cloud_configured():
+        return ""
+    if settings.is_public_deploy:
+        return RUNTIME_CREDENTIALS_ONBOARDING
+    from app.llm.router import cloud_available
+
+    if cloud_available():
+        return ""
+    return CLOUD_UNAVAILABLE_BANNER
+
+
 def list_client_meta() -> dict[str, Any]:
     return {
         "error_messages": get_error_messages(),
         "use_mock_llm": settings.use_mock_llm,
-        "mock_mode_banner": MOCK_MODE_BANNER,
+        "mock_mode_banner": MOCK_MODE_BANNER if settings.use_mock_llm else "",
+        "cloud_unavailable_banner": cloud_unavailable_banner(),
     }

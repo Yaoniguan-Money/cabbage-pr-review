@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -18,6 +18,8 @@ import {
 
   fetchRulesCatalog,
 
+  fetchClientMeta,
+
   type DemoPatchScenario,
 
   type ExamplePR,
@@ -36,7 +38,15 @@ import {
 
 } from "../api/client";
 
+import RuntimeCredentialsPanel from "../components/RuntimeCredentialsPanel";
+import UsageGuidePanel from "../components/UsageGuidePanel";
 import { RevealStagger, RevealStaggerItem } from "../components/motion/Reveal";
+import {
+  isCloudCredentialsEnabled,
+  loadRuntimeCredentials,
+  toApiPayload,
+  type StoredRuntimeCredentials,
+} from "../utils/runtimeCredentialsStorage";
 import { pickInitialLlmMode } from "./pickInitialLlmMode";
 
 import {
@@ -107,9 +117,50 @@ export default function InputPage() {
 
   const [availabilityHints, setAvailabilityHints] = useState<LlmAvailabilityHints | null>(null);
 
+  const [cloudUnavailableBanner, setCloudUnavailableBanner] = useState("");
 
+  const [runtimeCreds, setRuntimeCreds] = useState<StoredRuntimeCredentials>(() =>
+    loadRuntimeCredentials(),
+  );
+
+  const applyLlmOptions = useCallback((hasKey: boolean) => {
+    fetchLlmModeOptions(hasKey)
+      .then((data) => {
+        setLlmOptions(data.options);
+        setLocalModels(data.local_models);
+        setCloudAvailable(data.cloud_available);
+        setLocalAvailable(data.local_available);
+        setAvailabilityHints(data.availability_hints);
+        setCompressEnabled(data.default_local_compress_enabled);
+        setSelectedLlmMode(
+          pickInitialLlmMode(data.options, {
+            cloudAvailable: data.cloud_available,
+            localAvailable: data.local_available,
+            defaultCompressEnabled: data.default_local_compress_enabled,
+          }),
+        );
+        if (data.default_local_model) setLocalModel(data.default_local_model);
+        else if (data.local_models[0]) setLocalModel(data.local_models[0]);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : ""));
+  }, []);
+
+  const handlePreviewChange = useCallback(
+    (preview: { cloud_available: boolean }) => {
+      applyLlmOptions(preview.cloud_available);
+    },
+    [applyLlmOptions],
+  );
 
   useEffect(() => {
+
+    fetchClientMeta()
+      .then((meta) => {
+        if (meta.cloud_unavailable_banner?.trim()) {
+          setCloudUnavailableBanner(meta.cloud_unavailable_banner.trim());
+        }
+      })
+      .catch(() => {});
 
     fetchInputPageMeta()
 
@@ -155,43 +206,7 @@ export default function InputPage() {
 
       .catch((e) => setError(e instanceof Error ? e.message : ""));
 
-    fetchLlmModeOptions()
-
-      .then((data) => {
-
-        setLlmOptions(data.options);
-
-        setLocalModels(data.local_models);
-
-        setCloudAvailable(data.cloud_available);
-
-        setLocalAvailable(data.local_available);
-
-        setAvailabilityHints(data.availability_hints);
-
-        setCompressEnabled(data.default_local_compress_enabled);
-
-        setSelectedLlmMode(
-
-          pickInitialLlmMode(data.options, {
-
-            cloudAvailable: data.cloud_available,
-
-            localAvailable: data.local_available,
-
-            defaultCompressEnabled: data.default_local_compress_enabled,
-
-          }),
-
-        );
-
-        if (data.default_local_model) setLocalModel(data.default_local_model);
-
-        else if (data.local_models[0]) setLocalModel(data.local_models[0]);
-
-      })
-
-      .catch((e) => setError(e instanceof Error ? e.message : ""));
+    applyLlmOptions(isCloudCredentialsEnabled(runtimeCreds));
 
   }, []);
 
@@ -251,6 +266,7 @@ export default function InputPage() {
 
     try {
 
+      const credsPayload = toApiPayload(runtimeCreds);
       const task = await createTask({
 
         input_type: tab,
@@ -268,7 +284,10 @@ export default function InputPage() {
         local_compress_enabled: showCompress ? compressEnabled : undefined,
 
         local_model: needsLocal ? localModel || undefined : undefined,
+        cloud_flash_model: runtimeCreds.cloud_flash_model.trim() || undefined,
+        cloud_pro_model: runtimeCreds.cloud_pro_model.trim() || undefined,
         demo_scenario_id: selectedDemoScenarioId || undefined,
+        runtime_credentials: credsPayload,
       });
 
       navigate(`/tasks/${task.id}`);
@@ -330,6 +349,31 @@ export default function InputPage() {
 
   return (
     <div className="input-page">
+      {ui.credentials_warm_tips_title && ui.credentials_warm_tips_body ? (
+        <div className="warm-tips-banner" role="note">
+          <strong className="warm-tips-title">{ui.credentials_warm_tips_title}</strong>
+          <p className="warm-tips-body">{ui.credentials_warm_tips_body}</p>
+        </div>
+      ) : null}
+      <UsageGuidePanel guide={pageMeta?.usage_guide} />
+      {cloudUnavailableBanner ? (
+        <div className="risk-item medium alert-banner" role="status">
+          {cloudUnavailableBanner}
+        </div>
+      ) : null}
+      <RuntimeCredentialsPanel
+        value={runtimeCreds}
+        onChange={(next) => {
+          setRuntimeCreds(next);
+          applyLlmOptions(isCloudCredentialsEnabled(next));
+        }}
+        onSaved={() => {
+          const c = loadRuntimeCredentials();
+          setRuntimeCreds(c);
+          applyLlmOptions(isCloudCredentialsEnabled(c));
+        }}
+        onPreviewChange={handlePreviewChange}
+      />
       {(demoPatches.length > 0 || demoPatchesError) && (
         <section className="demo-hero card" aria-label={ui.demo_patches_heading}>
           <h2 className="demo-hero-title">{ui.demo_patches_heading}</h2>

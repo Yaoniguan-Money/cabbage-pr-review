@@ -27,6 +27,8 @@ TASK_ID_LABEL = "任务 ID"
 TASK_ID_TOGGLE_SHOW = "显示任务 ID"
 TASK_ID_TOGGLE_HIDE = "隐藏任务 ID"
 AGENT_STEPPER_LABEL = "分析进度"
+AGENT_PARALLEL_LANE_ARIA = "并行扫描步骤"
+PARALLEL_RUNNING_HINT = "正在并行扫描原版本与 PR 版本…"
 ALERT_DEGRADATION_TITLE = "分析降级提示"
 BRANCH_INTO = "into {ref}"
 META_LLM_MODE = "推理模式"
@@ -100,6 +102,8 @@ def get_ui_strings() -> dict[str, str]:
         "task_id_toggle_show": TASK_ID_TOGGLE_SHOW,
         "task_id_toggle_hide": TASK_ID_TOGGLE_HIDE,
         "agent_stepper_label": AGENT_STEPPER_LABEL,
+        "agent_parallel_lane_aria": AGENT_PARALLEL_LANE_ARIA,
+        "parallel_running_hint": PARALLEL_RUNNING_HINT,
         "alert_degradation_title": ALERT_DEGRADATION_TITLE,
         "branch_into": BRANCH_INTO,
         "meta_llm_mode": META_LLM_MODE,
