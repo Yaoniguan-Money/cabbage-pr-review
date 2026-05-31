@@ -2,15 +2,21 @@
 
 > 主叙事：**纯规则模式（`rules_only`）** — 零 API Key、零 Ollama、零 Mock，由 YAML 规则引擎真实命中，输出 Markdown 报告与四张 Mermaid 可视化图。
 
+**公网演示（推荐）**：http://47.96.155.7:8080  
+**Demo 资料包（夸克网盘）**：https://pan.quark.cn/s/dc36c81535ea
+
 ## 四步体验
 
-1. **启动（默认真实规则）**
+1. **打开演示站点（公网，无需本地 Docker）**
+
+   浏览器访问 **http://47.96.155.7:8080**，确认 http://47.96.155.7:8000/health 中：
+
+   本地自建时也可：
 
    ```bash
    git clone <repo> && cd <repo>
    docker compose up --build
    # 或：.\scripts\start-demo.ps1（Windows） / make demo
-   # 兼容：docker compose -f docker-compose.demo.yml up --build
    ```
 
    打开 http://localhost:8080 ，确认 http://localhost:8000/health 中：

@@ -2,7 +2,38 @@
 
 结构化 PR 影响分析与审阅辅助工具：LangGraph 编排五个 Agent（原版本扫描 → PR 扫描 → 差异对比 → 递进审阅 → 可视化），并支持 **纯规则模式**（`rules_only`）零 API Key 演示。
 
-> **交付说明**：最终提交 `chore: 发布前清理…` 仅移除文档与临时文件，**未改写**此前任何 commit；完整开发记录见 GitHub **Commits** / **Pull requests**。对外交付以 `main` 分支最新提交为准。
+---
+
+## 在线体验（评委 / 访客入口）
+
+| | 链接 |
+|---|------|
+| **公网演示站点（推荐）** | **http://47.96.155.7:8080** |
+| **健康检查（API）** | http://47.96.155.7:8000/health |
+| **Demo 资料包（夸克网盘）** | **https://pan.quark.cn/s/dc36c81535ea** |
+
+> 网盘分享名：**PR-review demo**。可用夸克 APP 或浏览器打开链接下载；内含演示说明与补充材料（若与线上一致，以公网站点为准）。
+
+### 公网 3 分钟体验（无需 API Key）
+
+1. 浏览器打开 **http://47.96.155.7:8080**（须为 `http`，端口 **8080**）。
+2. 首页展开 **《使用说明》**（可选阅读）。
+3. 在 **评委演示 Patch** 区域点击 **S1 / S2 / S3** → **加载场景**。
+4. 推理模式保持 **纯规则**（`rules_only`，服务器未配置 Key）。
+5. 点击 **开始分析**，在详情页查看规则报告、命中与图表；完整步骤见 [docs/JUDGE_DEMO.md](./docs/JUDGE_DEMO.md)。
+
+### 可选：自备 Key 体验完整 LLM 审阅
+
+- 在首页 **「API 与 GitHub 设置」** 中填写 **DeepSeek API Key**（仅存浏览器 localStorage，**不会**写入服务器）。
+- 将推理模式改为 **纯云端** 后再提交任务。
+- 分析 GitHub PR 链接时建议同时填写 **GitHub Token**，避免 API 限流。
+
+### 服务说明
+
+- 公网实例为 **演示环境**（`DEPLOY_MODE=public`），请勿在服务器配置个人密钥。
+- 若页面无法打开，请确认使用 `http://` 且安全组已放行 **TCP 8080**；部署与排障见 [docs/ALIYUN_DEPLOY.md](./docs/ALIYUN_DEPLOY.md)。
+
+---
 
 ## 技术栈
 
@@ -66,11 +97,13 @@ LLM_MODE=cloud_only
 
 **依赖**：本机与镜像均需 **git**（PR URL 分析用 `git show`）。分析 GitHub PR 建议配置 `GITHUB_TOKEN`，否则易 403 限流。
 
-## 公网部署（评委自备 API Key）
+## 自行部署到公网
 
-**阿里云 ECS（无域名先用 IP:8080）**：见 [docs/ALIYUN_DEPLOY.md](./docs/ALIYUN_DEPLOY.md)，服务器一键：`./scripts/aliyun-setup-demo.sh`。
+当前线上演示地址：**http://47.96.155.7:8080**（阿里云 ECS，方案 A：`docker compose` + 端口 8080）。
 
-**自有域名 + HTTPS**：服务器**不托管**个人 Key，步骤见 [docs/CLOUD_DEPLOY.md](./docs/CLOUD_DEPLOY.md)。
+**阿里云 ECS**：见 [docs/ALIYUN_DEPLOY.md](./docs/ALIYUN_DEPLOY.md)，服务器可执行 `./scripts/aliyun-setup-demo.sh`。
+
+**自有域名 + HTTPS**：见 [docs/CLOUD_DEPLOY.md](./docs/CLOUD_DEPLOY.md)，服务器**不托管**个人 Key。
 
 - 复制 [`.env.production.example`](.env.production.example) 为 `.env.production`，`DEPLOY_MODE=public`，**勿填** `DEEPSEEK_API_KEY` / `GITHUB_TOKEN`
 - 评委在浏览器「API 与 GitHub 设置」填写 Key（仅存 **localStorage**，不上传服务端日志）
