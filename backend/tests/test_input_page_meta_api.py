@@ -14,3 +14,5 @@ def test_input_page_meta_api():
     assert body["input_tabs"]
     assert body["ui_strings"]["submit_idle"]
     assert body["default_project_type"] == "unknown"
+    assert body["app_name"]
+    assert body["app_tagline"]

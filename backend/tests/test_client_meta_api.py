@@ -15,3 +15,4 @@ def test_client_meta_api():
     assert "use_mock_llm" in body
     assert "cloud_unavailable_banner" in body
     assert isinstance(body["mock_mode_banner"], str)
+    assert body["fatal_ui_error"]

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.config import settings
+from app.local.detail_page_meta import APP_NAME, APP_TAGLINE
 from app.models.schemas import InputType
 
 
@@ -120,6 +121,8 @@ _UI_STRINGS: dict[str, str] = {
 
 def list_input_page_meta() -> dict[str, Any]:
     return {
+        "app_name": APP_NAME,
+        "app_tagline": APP_TAGLINE,
         "default_project_type": "unknown",
         "default_framework": "unknown",
         "project_types": [{"id": o.id, "label": o.label} for o in _PROJECT_TYPES],

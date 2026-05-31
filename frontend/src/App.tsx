@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { fetchDetailPageMeta } from "./api/client";
+import { fetchInputPageMeta } from "./api/client";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import { pageTransitionMotion } from "./components/motion/PageTransition";
 import { readMotionTokens } from "./components/motion/readMotionTokens";
 import DetailPage from "./pages/DetailPage";
@@ -14,10 +15,10 @@ function InputShell({ children }: { children: ReactNode }) {
   const [appTagline, setAppTagline] = useState("");
 
   useEffect(() => {
-    fetchDetailPageMeta()
+    fetchInputPageMeta()
       .then((meta) => {
-        setAppName(meta.ui_strings.app_name);
-        setAppTagline(meta.ui_strings.app_tagline);
+        setAppName(meta.app_name ?? "");
+        setAppTagline(meta.app_tagline ?? "");
       })
       .catch(() => {});
   }, []);
@@ -54,16 +55,18 @@ export default function App() {
   );
 
   return (
-    <AnimatePresence mode="wait">
-      {motionProps ? (
-        <motion.div key={location.pathname} className="page-transition" {...motionProps}>
-          {routes}
-        </motion.div>
-      ) : (
-        <div key={location.pathname} className="page-transition">
-          {routes}
-        </div>
-      )}
-    </AnimatePresence>
+    <RouteErrorBoundary>
+      <AnimatePresence mode="wait">
+        {motionProps ? (
+          <motion.div key={location.pathname} className="page-transition" {...motionProps}>
+            {routes}
+          </motion.div>
+        ) : (
+          <div key={location.pathname} className="page-transition">
+            {routes}
+          </div>
+        )}
+      </AnimatePresence>
+    </RouteErrorBoundary>
   );
 }

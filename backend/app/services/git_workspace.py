@@ -46,6 +46,14 @@ class GitWorkspace:
             shutil.rmtree(self.root, ignore_errors=True)
 
 
+def _git_cmd(*parts: str, token: str = "") -> list[str]:
+    """构建 git 命令；凭据通过 extraHeader 传递，避免写入 clone URL。"""
+    if token:
+        header = f"http.https://github.com/.extraHeader=AUTHORIZATION: bearer {token}"
+        return ["git", "-c", header, *parts]
+    return ["git", *parts]
+
+
 def _run_git(args: list[str], cwd: Path) -> None:
     proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=300)
     if proc.returncode != 0:
@@ -66,10 +74,14 @@ def _prepare_github_workspace(
     from app.llm.credentials_resolve import resolve_github_token
 
     token = (github_token or "").strip() or resolve_github_token(None)
-    if token:
-        url = f"https://{token}@github.com/{owner}/{repo}.git"
-    _run_git(["git", "clone", "--filter=blob:none", url, str(repo_dir)], cwd=tmp)
-    _run_git(["git", "fetch", "origin", base_sha, head_sha, "--depth=1"], cwd=repo_dir)
+    _run_git(
+        _git_cmd("clone", "--filter=blob:none", url, str(repo_dir), token=token),
+        cwd=tmp,
+    )
+    _run_git(
+        _git_cmd("fetch", "origin", base_sha, head_sha, "--depth=1", token=token),
+        cwd=repo_dir,
+    )
     return GitWorkspace(root=repo_dir, base_sha=base_sha, head_sha=head_sha, ephemeral=True)
 
 

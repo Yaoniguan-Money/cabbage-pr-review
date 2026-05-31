@@ -89,16 +89,35 @@ export default function DetailPage() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
+  const [metaState, setMetaState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
-    fetchClientMeta().then(setClientMeta).catch(() => setClientMeta(null));
-    fetchDiagramMeta().then(setDiagramMeta).catch(() => setDiagramMeta(null));
-    fetchRulesMeta().then(setRulesMeta).catch(() => setRulesMeta(null));
-    fetchRulesCatalog().then(setRulesCatalog).catch(() => setRulesCatalog(null));
-    fetchDetailPageMeta().then(setDetailMeta).catch(() => setDetailMeta(null));
-    fetchLlmModeOptions()
-      .then((data) => setLlmOptions(data.options))
-      .catch(() => setLlmOptions([]));
+    let cancelled = false;
+    void (async () => {
+      const results = await Promise.allSettled([
+        fetchClientMeta(),
+        fetchDiagramMeta(),
+        fetchRulesMeta(),
+        fetchRulesCatalog(),
+        fetchDetailPageMeta(),
+        fetchLlmModeOptions(),
+      ]);
+      if (cancelled) return;
+      if (results[0].status === "fulfilled") setClientMeta(results[0].value);
+      if (results[1].status === "fulfilled") setDiagramMeta(results[1].value);
+      if (results[2].status === "fulfilled") setRulesMeta(results[2].value);
+      if (results[3].status === "fulfilled") setRulesCatalog(results[3].value);
+      if (results[4].status === "fulfilled") setDetailMeta(results[4].value);
+      if (results[5].status === "fulfilled") setLlmOptions(results[5].value.options);
+      if (results[2].status === "rejected" || results[4].status === "rejected") {
+        setMetaState("error");
+        return;
+      }
+      setMetaState("ready");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const rulesUi = rulesMeta?.ui_strings ?? {};
@@ -240,8 +259,21 @@ export default function DetailPage() {
     return rulesUi.invalid_task ? <p>{rulesUi.invalid_task}</p> : <MetaLoading label={detailUi.meta_loading} />;
   }
 
-  if (!rulesMeta || !detailMeta) {
+  if (metaState === "loading") {
     return <MetaLoading label={detailUi.meta_loading} />;
+  }
+
+  if (metaState === "error" || !rulesMeta || !detailMeta) {
+    const loadError =
+      detailUi.meta_load_error ||
+      clientMeta?.error_messages?.fetch_detail_page_meta ||
+      clientMeta?.fatal_ui_error ||
+      "页面配置加载失败，请刷新后重试";
+    return (
+      <div className="meta-loading" role="alert">
+        <p>{loadError}</p>
+      </div>
+    );
   }
 
   const diagramSectionLabel = diagramMeta?.section_label ?? rulesUi.nav_risks;
@@ -507,16 +539,18 @@ export default function DetailPage() {
               ) : null}
               {showTokenStats && task.token_stats && task.token_stats.display_segments.length > 0 ? (
                 <span className="meta-chip">
-                  {detailUi.meta_token_segment.split("{label}")[0]?.trim() || "Token"}
-                  {": "}
-                  {task.token_stats.display_segments
-                    .map((s) =>
-                      formatTemplate(detailUi.meta_token_segment, {
-                        label: s.label,
-                        total: s.total_tokens.toLocaleString(),
-                      }),
-                    )
-                    .join(" · ")}
+                  {detailUi.meta_token_segment?.includes("{label}")
+                    ? task.token_stats.display_segments
+                        .map((s) =>
+                          formatTemplate(detailUi.meta_token_segment, {
+                            label: s.label,
+                            total: s.total_tokens.toLocaleString(),
+                          }),
+                        )
+                        .join(" · ")
+                    : task.token_stats.display_segments
+                        .map((s) => `${s.label}: ${s.total_tokens.toLocaleString()}`)
+                        .join(" · ")}
                 </span>
               ) : null}
             </>

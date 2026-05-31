@@ -249,6 +249,7 @@ export interface ExamplePR {
 
 export interface ClientMetaResponse {
   error_messages: Record<string, string>;
+  fatal_ui_error?: string;
   use_mock_llm?: boolean;
   mock_mode_banner?: string;
   cloud_unavailable_banner?: string;
@@ -336,6 +337,8 @@ export interface UsageGuideMeta {
 }
 
 export interface InputPageMetaResponse {
+  app_name?: string;
+  app_tagline?: string;
   default_project_type: string;
   default_framework: string;
   project_types: InputPageSelectOption[];

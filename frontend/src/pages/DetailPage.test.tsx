@@ -249,6 +249,21 @@ describe("DetailPage", () => {
     });
   });
 
+  it("关键 meta 加载失败时展示错误而非无限 loading", async () => {
+    vi.mocked(fetchRulesMeta).mockRejectedValue(new Error("rules meta down"));
+    render(
+      <MemoryRouter initialEntries={["/tasks/t1"]}>
+        <Routes>
+          <Route path="/tasks/:taskId" element={<DetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(mockDetailPageMeta.ui_strings.meta_load_error);
+    });
+  });
+
   it("无结果时导出 Markdown 按钮禁用", async () => {
     vi.mocked(getTaskResult).mockResolvedValue(null as never);
     render(

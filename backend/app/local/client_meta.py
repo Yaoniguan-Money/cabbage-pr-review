@@ -6,6 +6,8 @@ from typing import Any
 
 from app.config import settings
 
+FATAL_UI_ERROR = "页面发生错误，请刷新后重试"
+
 MOCK_MODE_BANNER = (
     "当前为 Mock LLM 演示模式：审阅结论由占位逻辑生成，不代表真实规则引擎质量。"
     "规则引擎主路径请使用 docker compose up（默认 .env.demo / rules_only）。"
@@ -57,6 +59,7 @@ def cloud_unavailable_banner() -> str:
 
 def list_client_meta() -> dict[str, Any]:
     return {
+        "fatal_ui_error": FATAL_UI_ERROR,
         "error_messages": get_error_messages(),
         "use_mock_llm": settings.use_mock_llm,
         "mock_mode_banner": MOCK_MODE_BANNER if settings.use_mock_llm else "",

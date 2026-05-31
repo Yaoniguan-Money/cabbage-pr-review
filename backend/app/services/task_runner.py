@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.graph.state import AgentOutcomeValue, GraphState
 from app.graph.workflow import workflow_app
+from app.graph.workflow_helpers import dedupe_notes
 from app.llm.compress_context import (
     get_compress_degradation_notes,
     get_compress_stats,
@@ -77,14 +78,6 @@ def _set_agent_status(record: TaskRecord, agent_id: int, status: str, message: s
     task_store.update(record)
 
 
-def _dedupe_notes(notes: list[str]) -> list[str]:
-    out: list[str] = []
-    for note in notes:
-        if note and note not in out:
-            out.append(note)
-    return out
-
-
 def _agent_progress_status(outcome: AgentOutcomeValue) -> str:
     return {"ok": "completed", "degraded": "degraded", "failed": "failed"}[outcome]
 
@@ -108,7 +101,7 @@ def _sync_agent_progress_from_outcomes(
         else:
             for ap in record.agent_progress:
                 if ap.agent_id == aid and ap.status == "running":
-                    _set_agent_status(record, aid, "completed")
+                    _set_agent_status(record, aid, "degraded", "agent outcome missing")
 
 
 def _derive_task_completion(state: GraphState) -> tuple[TaskStatus, TaskOutcome, str | None]:
@@ -169,7 +162,14 @@ async def execute_task(
     task_progress.bind_task_progress(record.id)
     try:
         pr_context, git_ws = await _prepare_context(record, github_token=gh_token)
+        fetch_warnings = pr_context.pop("fetch_warnings", None)
+        if fetch_warnings:
+            pr_context["degradation_notes"] = dedupe_notes(
+                list(pr_context.get("degradation_notes") or []) + list(fetch_warnings)
+            )
         record.pr_context = pr_context
+        if fetch_warnings:
+            record.degradation_notes = dedupe_notes(list(record.degradation_notes) + list(fetch_warnings))
         task_store.update(record)
 
         state: GraphState = {
@@ -196,7 +196,7 @@ async def execute_task(
                 if isinstance(update, dict):
                     final_state.update(update)
                     if final_state.get("degradation_notes"):
-                        notes = _dedupe_notes(list(final_state["degradation_notes"]))
+                        notes = dedupe_notes(list(final_state["degradation_notes"]))
                         record.pr_context["degradation_notes"] = notes
                         record.degradation_notes = notes
                 if agent_ids:
@@ -220,11 +220,11 @@ async def execute_task(
 
         result = final_state.get("final_result")
         if result:
-            result.degradation_notes = _dedupe_notes(
+            result.degradation_notes = dedupe_notes(
                 list(final_state.get("degradation_notes", [])) + list(result.degradation_notes)
             )
 
-        record.degradation_notes = _dedupe_notes(list(final_state.get("degradation_notes", [])))
+        record.degradation_notes = dedupe_notes(list(final_state.get("degradation_notes", [])))
         record.status, record.outcome, record.error_message = _derive_task_completion(final_state)
         if record.status == TaskStatus.COMPLETED:
             record.result = result

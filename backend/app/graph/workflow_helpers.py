@@ -64,6 +64,34 @@ def is_fatal_agent_error(exc: Exception) -> bool:
     return any(token in msg for token in ("authentication", "unauthorized", "forbidden", "api key", "401", "403"))
 
 
+def dedupe_notes(notes: list[str]) -> list[str]:
+    out: list[str] = []
+    for note in notes:
+        if note and note not in out:
+            out.append(note)
+    return out
+
+
+def run_rules_node_safe(
+    state: GraphState,
+    agent_id: int,
+    fn: Callable[[], dict[str, Any]],
+    *,
+    fallback: dict[str, Any],
+    validator: Callable[[dict[str, Any]], None] | None = None,
+    empty_is_fatal: bool = False,
+) -> GraphState:
+    """规则 workflow 节点与 LLM 路径共用 agent_outcomes 契约。"""
+    return run_agent_safe(
+        state,
+        agent_id,
+        fn,
+        fallback=fallback,
+        validator=validator,
+        empty_is_fatal=empty_is_fatal,
+    )
+
+
 def run_agent_safe(
     state: GraphState,
     agent_id: int,

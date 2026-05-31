@@ -80,6 +80,7 @@ RISK_EMPTY = "暂无风险项"
 
 SEVERITY_FILTER_ALL = "全部"
 META_LOADING = "加载中…"
+META_LOAD_ERROR = "页面配置加载失败，请刷新后重试"
 
 EXPORT_FILENAME_TEMPLATE_UI = EXPORT_FILENAME_TEMPLATE
 EXPORT_DISABLED_HINT_UI = EXPORT_DISABLED_HINT
@@ -148,6 +149,7 @@ def get_ui_strings() -> dict[str, str]:
         "risk_empty": RISK_EMPTY,
         "severity_filter_all": SEVERITY_FILTER_ALL,
         "meta_loading": META_LOADING,
+        "meta_load_error": META_LOAD_ERROR,
         "export_filename_template": EXPORT_FILENAME_TEMPLATE_UI,
         "export_disabled_hint": EXPORT_DISABLED_HINT_UI,
         "export_meta_missing": EXPORT_META_MISSING_UI,

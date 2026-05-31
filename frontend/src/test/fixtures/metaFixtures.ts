@@ -14,6 +14,7 @@ export const mockAvailabilityHints: LlmAvailabilityHints = {
 };
 
 export const mockClientMeta: ClientMetaResponse = {
+  fatal_ui_error: "页面发生错误，请刷新后重试",
   error_messages: {
     create_task: "create-task-err",
     get_task: "get-task-err",
@@ -163,6 +164,7 @@ export const mockDetailPageMeta = {
     risk_empty: "暂无风险项",
     severity_filter_all: "全部",
     meta_loading: "加载中…",
+    meta_load_error: "页面配置加载失败，请刷新后重试",
     export_filename_template: "pr-review-{task_id}.md",
     export_disabled_hint: "任务完成后可导出 Markdown 报告",
     export_meta_missing: "无法加载导出配置，请刷新页面后重试",
