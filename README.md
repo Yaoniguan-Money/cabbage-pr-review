@@ -114,7 +114,7 @@ LLM_MODE=cloud_only
 
 当前线上演示地址：**http://47.96.155.7:8080**（阿里云 ECS，方案 A：`docker compose` + 端口 8080）。
 
-**阿里云 ECS**：见 [docs/ALIYUN_DEPLOY.md](./docs/ALIYUN_DEPLOY.md)，服务器可执行 `./scripts/aliyun-setup-demo.sh`。
+**阿里云 ECS**：见 [docs/ALIYUN_DEPLOY.md](./docs/ALIYUN_DEPLOY.md)。首次 `./scripts/aliyun-setup-demo.sh`；日常更新 `./scripts/aliyun-update.sh`（含国内 apt / pip / npm / Docker Hub 加速）。
 
 **自有域名 + HTTPS**：见 [docs/CLOUD_DEPLOY.md](./docs/CLOUD_DEPLOY.md)，服务器**不托管**个人 Key。
 

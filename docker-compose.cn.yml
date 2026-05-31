@@ -1,0 +1,13 @@
+# 国内 ECS / 阿里云构建加速：与 docker-compose.yml 叠加使用
+# 示例：docker compose -f docker-compose.yml -f docker-compose.cn.yml up --build -d
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        USE_CN_MIRROR: "1"
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        USE_CN_MIRROR: "1"

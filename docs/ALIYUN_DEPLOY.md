@@ -78,10 +78,20 @@ chmod +x scripts/aliyun-setup-demo.sh scripts/aliyun-verify-demo.sh
 2. 推理模式 **纯规则** → **开始分析**  
 3. 详见 [JUDGE_DEMO.md](./JUDGE_DEMO.md)
 
-更新版本：
+更新版本（**推荐国内镜像加速**，apt / pip / npm / Docker Hub 均走国内源）：
 
 ```bash
-cd ~/cabbage-pr-review && git pull && docker compose up --build -d
+cd ~/cabbage-pr-review
+chmod +x scripts/aliyun-update.sh
+./scripts/aliyun-update.sh
+```
+
+或手动：
+
+```bash
+cd ~/cabbage-pr-review && git pull
+bash scripts/configure-docker-mirror-cn.sh   # 首次或 daemon 未配置时
+docker compose -f docker-compose.yml -f docker-compose.cn.yml up --build -d
 ```
 
 ---
@@ -114,7 +124,7 @@ cd ~/cabbage-pr-review && docker compose down
 ## 常见问题
 
 1. **外网打不开、SSH 正常** — 几乎总是安全组未放行 8080/80/443。  
-2. **build 很慢** — 国内可在 `/etc/docker/daemon.json` 配置阿里云镜像加速。  
+2. **build 很慢** — 使用 `docker-compose.cn.yml` 叠加构建（见上文更新命令），或执行 `scripts/configure-docker-mirror-cn.sh` 配置 Docker Hub 加速；阿里云控制台也可申请专属「镜像加速器」地址并写入 `/etc/docker/daemon.json` 的 `registry-mirrors`。  
 3. **方案 B 证书失败** — 域名未解析到本机；先用方案 A。  
 4. **日志** — `docker compose logs -f backend` 或 `docker compose -f docker-compose.prod.yml logs -f`。
 
@@ -126,4 +136,7 @@ cd ~/cabbage-pr-review && docker compose down
 |------|------|
 | [scripts/aliyun-setup-demo.sh](../scripts/aliyun-setup-demo.sh) | 安装 Docker + clone + 方案 A 启动 |
 | [scripts/aliyun-verify-demo.sh](../scripts/aliyun-verify-demo.sh) | 本机健康检查（8000/8080） |
+| [scripts/configure-docker-mirror-cn.sh](../scripts/configure-docker-mirror-cn.sh) | Docker Hub 国内 registry 加速 |
+| [scripts/aliyun-update.sh](../scripts/aliyun-update.sh) | `git pull` + 国内源重建并验收 |
+| [docker-compose.cn.yml](../docker-compose.cn.yml) | 构建时启用 apt / pip / npm 国内源 |
 | [scripts/deploy-cloud.sh](../scripts/deploy-cloud.sh) | 方案 B 生产部署 |

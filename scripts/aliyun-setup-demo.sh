@@ -30,8 +30,14 @@ else
 fi
 
 cd "${INSTALL_DIR}"
-echo "==> 启动 docker compose（.env.demo / rules_only）..."
-docker compose up --build -d
+chmod +x scripts/configure-docker-mirror-cn.sh 2>/dev/null || true
+if [ -f scripts/configure-docker-mirror-cn.sh ]; then
+  echo "==> 配置 Docker 国内镜像加速..."
+  bash scripts/configure-docker-mirror-cn.sh || true
+fi
+
+echo "==> 启动 docker compose（国内构建源 + .env.demo / rules_only）..."
+docker compose -f docker-compose.yml -f docker-compose.cn.yml up --build -d
 
 echo "==> 等待服务就绪..."
 sleep 8
