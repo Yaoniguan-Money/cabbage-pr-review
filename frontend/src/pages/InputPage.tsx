@@ -126,10 +126,13 @@ export default function InputPage() {
   );
 
   const isInitialLlmOptionsLoad = useRef(true);
+  const llmOptionsRequestId = useRef(0);
 
   const applyLlmOptions = useCallback((hasKey: boolean, preserveSelection = false) => {
+    const requestId = ++llmOptionsRequestId.current;
     fetchLlmModeOptions(hasKey)
       .then((data) => {
+        if (requestId !== llmOptionsRequestId.current) return;
         setLlmOptions(data.options);
         setLocalModels(data.local_models);
         setCloudAvailable(data.cloud_available);
@@ -166,14 +169,19 @@ export default function InputPage() {
         if (data.default_local_model) setLocalModel(data.default_local_model);
         else if (data.local_models[0]) setLocalModel(data.local_models[0]);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : ""));
+      .catch((e) => {
+        if (requestId !== llmOptionsRequestId.current) return;
+        setError(e instanceof Error ? e.message : "");
+      });
   }, []);
 
   const handlePreviewChange = useCallback(
     (preview: { cloud_available: boolean }) => {
-      applyLlmOptions(preview.cloud_available, true);
+      const hasKey =
+        preview.cloud_available || isCloudCredentialsEnabled(runtimeCreds);
+      applyLlmOptions(hasKey, true);
     },
-    [applyLlmOptions],
+    [applyLlmOptions, runtimeCreds],
   );
 
   useEffect(() => {
@@ -230,7 +238,9 @@ export default function InputPage() {
 
       .catch((e) => setError(e instanceof Error ? e.message : ""));
 
-    applyLlmOptions(isCloudCredentialsEnabled(runtimeCreds));
+    const savedCreds = loadRuntimeCredentials();
+    setRuntimeCreds(savedCreds);
+    applyLlmOptions(isCloudCredentialsEnabled(savedCreds));
 
   }, []);
 
@@ -246,6 +256,10 @@ export default function InputPage() {
 
   const activeLlm = llmOptions.find((o) => o.id === selectedLlmMode);
 
+  /** 避免 llm-mode-options 慢请求覆盖：浏览器已配置 Key 时视为云端可用 */
+  const effectiveCloudAvailable =
+    cloudAvailable || isCloudCredentialsEnabled(runtimeCreds);
+
   const needsLocal = activeLlm ? needsLocalRuntime(activeLlm, compressEnabled) : false;
 
   const showCompress = Boolean(activeLlm?.compress_toggle);
@@ -254,7 +268,12 @@ export default function InputPage() {
 
   const modeRuntimeAvailable = activeLlm
 
-    ? isLlmModeRuntimeAvailable(activeLlm, cloudAvailable, localAvailable, compressEnabled)
+    ? isLlmModeRuntimeAvailable(
+        activeLlm,
+        effectiveCloudAvailable,
+        localAvailable,
+        compressEnabled,
+      )
 
     : false;
 
@@ -266,7 +285,7 @@ export default function InputPage() {
 
         availabilityHints,
 
-        cloudAvailable,
+        effectiveCloudAvailable,
 
         localAvailable,
 
@@ -316,8 +335,8 @@ export default function InputPage() {
         local_compress_enabled: showCompress ? compressEnabled : undefined,
 
         local_model: needsLocal ? localModel || undefined : undefined,
-        cloud_flash_model: runtimeCreds.cloud_flash_model.trim() || undefined,
-        cloud_pro_model: runtimeCreds.cloud_pro_model.trim() || undefined,
+        cloud_flash_model: credsForSubmit.cloud_flash_model.trim() || undefined,
+        cloud_pro_model: credsForSubmit.cloud_pro_model.trim() || undefined,
         demo_scenario_id: selectedDemoScenarioId || undefined,
         runtime_credentials: credsPayload,
       });
@@ -397,7 +416,9 @@ export default function InputPage() {
         value={runtimeCreds}
         onChange={(next) => {
           setRuntimeCreds(next);
-          applyLlmOptions(isCloudCredentialsEnabled(next), true);
+          const hasKey = isCloudCredentialsEnabled(next);
+          if (hasKey) setCloudAvailable(true);
+          applyLlmOptions(hasKey, true);
         }}
         onSaved={() => {
           const c = loadRuntimeCredentials();
@@ -486,7 +507,7 @@ export default function InputPage() {
             {llmOptions.map((opt) => {
               const optRuntimeAvailable = isLlmModeRuntimeAvailable(
                 opt,
-                cloudAvailable,
+                effectiveCloudAvailable,
                 localAvailable,
                 compressEnabled,
               );
