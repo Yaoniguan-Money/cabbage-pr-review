@@ -12,6 +12,7 @@ import {
 vi.mock("../api/client", () => ({
   exportUrl: (taskId: string) => `/api/tasks/${taskId}/export.md`,
   fetchClientMeta: vi.fn(),
+  fetchDetailPageMeta: vi.fn(),
   fetchDiagramMeta: vi.fn(),
   fetchRulesMeta: vi.fn(),
   fetchLlmModeOptions: vi.fn(),
@@ -22,13 +23,14 @@ vi.mock("../api/client", () => ({
 
 import {
   fetchClientMeta,
+  fetchDetailPageMeta,
   fetchDiagramMeta,
   fetchLlmModeOptions,
   fetchRulesMeta,
   getTask,
   getTaskResult,
 } from "../api/client";
-import { mockClientMeta } from "../test/fixtures/metaFixtures";
+import { mockClientMeta, mockDetailPageMeta } from "../test/fixtures/metaFixtures";
 
 const defaultTask = {
   id: "t1",
@@ -72,12 +74,14 @@ describe("DetailPage", () => {
 
   beforeEach(() => {
     vi.mocked(fetchClientMeta).mockReset();
+    vi.mocked(fetchDetailPageMeta).mockReset();
     vi.mocked(fetchDiagramMeta).mockReset();
     vi.mocked(fetchRulesMeta).mockReset();
     vi.mocked(fetchLlmModeOptions).mockReset();
     vi.mocked(getTask).mockReset();
     vi.mocked(getTaskResult).mockReset();
     vi.mocked(fetchClientMeta).mockResolvedValue(mockClientMeta);
+    vi.mocked(fetchDetailPageMeta).mockResolvedValue(mockDetailPageMeta);
     vi.mocked(fetchDiagramMeta).mockResolvedValue(mockDiagramMeta);
     vi.mocked(fetchRulesMeta).mockResolvedValue(mockRulesMeta);
     vi.mocked(fetchLlmModeOptions).mockResolvedValue(mockDetailLlmOptions);
@@ -98,8 +102,8 @@ describe("DetailPage", () => {
       expect(screen.getByText(mockRulesMeta.ui_strings.degradation_banner)).toBeInTheDocument();
     });
     expect(screen.getByText(mockRulesMeta.ui_strings.no_risks_but_atoms_banner)).toBeInTheDocument();
-    expect(screen.getByText(/已扫描 1\/2 个差异点/)).toBeInTheDocument();
     expect(screen.getByText(/Pro ×2 · Flash ×1/)).toBeInTheDocument();
+    expect(screen.getAllByText(/已扫描 1\/2 个差异点/).length).toBeGreaterThan(0);
   });
 
   it("无 llmOptions 时仍按 markdown_report 展示规则报告", async () => {

@@ -60,6 +60,27 @@ export interface LlmModeOption {
   compress_toggle?: LlmModeCompressToggle;
 }
 
+export interface PrPatchFile {
+  filename: string;
+  status: string;
+  patch: string;
+  additions?: number;
+  deletions?: number;
+}
+
+export interface PrContext {
+  title?: string;
+  html_url?: string;
+  base_ref?: string;
+  head_ref?: string;
+  owner?: string;
+  repo?: string;
+  number?: number;
+  patches?: PrPatchFile[];
+  file_paths?: string[];
+  changed_files_count?: number;
+}
+
 export interface TaskRecord {
   id: string;
   input_type: InputType;
@@ -79,6 +100,7 @@ export interface TaskRecord {
   rerun_supported?: boolean;
   local_compress_enabled?: boolean;
   local_model?: string;
+  pr_context?: PrContext;
   compress_stats?: {
     compress_calls: number;
     chars_before: number;
@@ -110,6 +132,10 @@ export interface DiffAtom {
   change_type: string;
   symbol: string;
   summary: string;
+  patch_excerpt?: string;
+  hunk_patch?: string;
+  added_line_count?: number;
+  removed_line_count?: number;
 }
 
 export interface RiskItem {
@@ -260,6 +286,10 @@ export interface RulesMetaResponse {
   collapse_low_default?: boolean;
 }
 
+export interface DetailPageMetaResponse {
+  ui_strings: Record<string, string>;
+}
+
 const API = "/api";
 
 let clientMetaCache: ClientMetaResponse | null = null;
@@ -369,6 +399,12 @@ export async function fetchLlmModeOptions(): Promise<{
 }> {
   const res = await fetch(`${API}/llm-mode-options`);
   if (!res.ok) await throwApiError(res, "fetch_llm_mode");
+  return res.json();
+}
+
+export async function fetchDetailPageMeta(): Promise<DetailPageMetaResponse> {
+  const res = await fetch(`${API}/detail-page-meta`);
+  if (!res.ok) await throwApiError(res, "fetch_detail_page_meta");
   return res.json();
 }
 

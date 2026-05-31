@@ -79,6 +79,7 @@ export default function InputPage() {
   const [examples, setExamples] = useState<ExamplePR[]>([]);
 
   const [demoPatches, setDemoPatches] = useState<DemoPatchScenario[]>([]);
+  const [demoPatchesError, setDemoPatchesError] = useState("");
 
   const [rulesCatalog, setRulesCatalog] = useState<RulesCatalogResponse | null>(null);
 
@@ -126,7 +127,15 @@ export default function InputPage() {
 
     fetchExamples().then(setExamples).catch(() => {});
 
-    fetchDemoPatches().then(setDemoPatches).catch(() => {});
+    fetchDemoPatches()
+      .then((scenarios) => {
+        setDemoPatches(scenarios);
+        setDemoPatchesError("");
+      })
+      .catch((e) => {
+        setDemoPatches([]);
+        setDemoPatchesError(e instanceof Error ? e.message : "");
+      });
 
     fetchRulesCatalog().then(setRulesCatalog).catch(() => {});
 
@@ -307,156 +316,131 @@ export default function InputPage() {
 
 
 
+  const loadDemoScenario = (scenario: DemoPatchScenario) => {
+    setTab("patch");
+    setValue(scenario.patch_text);
+    const rulesOnly = llmOptions.find((o) => o.id === "rules_only" && o.available !== false);
+    if (rulesOnly) {
+      setSelectedLlmMode(rulesOnly.id);
+    }
+  };
+
   return (
-
-    <div>
-
-      <div className="card-grid">
-
-        {tabs.map((t) => (
-
-          <div
-
-            key={t.id}
-
-            className={`card ${tab === t.id ? "active" : ""}`}
-
-            onClick={() => setTab(t.id)}
-
-            role="button"
-
-          >
-
-            <h3>{t.title}</h3>
-
-            <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{t.hint}</p>
-
-          </div>
-
-        ))}
-
-      </div>
-
-
-
-      <div className="card" style={{ marginTop: "1rem" }}>
-
-        <label>{ui.llm_mode_label}</label>
-
-        <div className="card-grid" style={{ marginTop: "0.5rem" }}>
-
-          {llmOptions.map((opt) => {
-
-            const optRuntimeAvailable = isLlmModeRuntimeAvailable(
-
-              opt,
-
-              cloudAvailable,
-
-              localAvailable,
-
-              compressEnabled,
-
-            );
-
-            return (
-
-              <div
-
-                key={opt.id}
-
-                className={`card ${selectedLlmMode === opt.id ? "active" : ""} ${!optRuntimeAvailable ? "disabled" : ""}`}
-
-                onClick={() => setSelectedLlmMode(opt.id)}
-
-                role="button"
-
-                style={!optRuntimeAvailable ? { opacity: 0.65 } : undefined}
-
-              >
-
-                <h3>{opt.label}</h3>
-
-                <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>{opt.summary}</p>
-
-              </div>
-
-            );
-
-          })}
-
-        </div>
-
-        {activeLlm && (
-
-          <div style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "var(--muted)" }}>
-
-            <ul style={{ margin: "0.5rem 0 0 1rem" }}>
-
-              {activeLlm.detail_bullets.map((b) => (
-
-                <li key={b}>{b}</li>
-
+    <div className="input-page">
+      {(demoPatches.length > 0 || demoPatchesError) && (
+        <section className="demo-hero card" aria-label={ui.demo_patches_heading}>
+          <h2 className="demo-hero-title">{ui.demo_patches_heading}</h2>
+          {ui.demo_patches_hint ? <p className="section-hint">{ui.demo_patches_hint}</p> : null}
+          {ui.demo_step_select ? (
+            <div className="demo-hero-steps">
+              <span className="demo-step-chip">{ui.demo_step_select}</span>
+              <span className="demo-step-chip">{ui.demo_step_mode}</span>
+              <span className="demo-step-chip">{ui.demo_step_run}</span>
+            </div>
+          ) : null}
+          {demoPatchesError ? (
+            <p className="error">{demoPatchesError || ui.error_load_demo_patches}</p>
+          ) : (
+            <div className="demo-hero-actions">
+              {demoPatches.map((scenario) => (
+                <button
+                  key={scenario.id}
+                  className="secondary demo-scenario-btn"
+                  type="button"
+                  title={scenario.description}
+                  onClick={() => loadDemoScenario(scenario)}
+                >
+                  {scenario.title}
+                </button>
               ))}
+            </div>
+          )}
+        </section>
+      )}
 
-            </ul>
+      <section className="form-section">
+        <h2 className="section-label">{ui.input_content_label}</h2>
+        <div className="option-list">
+          {tabs.map((t) => (
+            <div
+              key={t.id}
+              className={`option-item ${tab === t.id ? "active" : ""}`}
+              onClick={() => setTab(t.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setTab(t.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <h3>{t.title}</h3>
+              <p>{t.hint}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-            {activeLlm.quality_warning && (
-
-              <p className="error" style={{ marginTop: "0.5rem" }}>
-
-                {activeLlm.summary}
-
-              </p>
-
-            )}
-
+      <div className="form-panel">
+        <section className="form-section">
+          <h2 className="section-label">{ui.llm_mode_label}</h2>
+          <div className="option-list option-list--grid">
+            {llmOptions.map((opt) => {
+              const optRuntimeAvailable = isLlmModeRuntimeAvailable(
+                opt,
+                cloudAvailable,
+                localAvailable,
+                compressEnabled,
+              );
+              return (
+                <div
+                  key={opt.id}
+                  className={`option-item ${selectedLlmMode === opt.id ? "active" : ""} ${!optRuntimeAvailable ? "disabled" : ""}`}
+                  onClick={() => setSelectedLlmMode(opt.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedLlmMode(opt.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <h3>{opt.label}</h3>
+                  <p>{opt.summary}</p>
+                </div>
+              );
+            })}
           </div>
-
-        )}
-
-
+          {activeLlm && (
+            <div className="option-detail">
+              <ul>
+                {activeLlm.detail_bullets.map((b) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </ul>
+              {activeLlm.quality_warning && <p className="error">{activeLlm.summary}</p>}
+            </div>
+          )}
+        </section>
 
         {showCompress && activeLlm?.compress_toggle && (
-
-          <div style={{ marginTop: "1rem" }}>
-
-            <label>
-
+          <div className="form-section">
+            <label className="checkbox-label">
               <input
-
                 type="checkbox"
-
                 checked={compressEnabled}
-
                 onChange={(e) => setCompressEnabled(e.target.checked)}
-
-              />{" "}
-
+              />
               {activeLlm.compress_toggle.label}
-
             </label>
-
-            {!compressEnabled && (
-
-              <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: "0.25rem" }}>
-
-                {activeLlm.compress_toggle.hint_off}
-
-              </p>
-
-            )}
-
+            {!compressEnabled && <p className="section-hint">{activeLlm.compress_toggle.hint_off}</p>}
           </div>
-
         )}
 
-
-
         {needsLocal && (
-
-          <div style={{ marginTop: "1rem" }}>
-
+          <div className="form-section">
             <label>{ui.local_model_label}</label>
 
             {localModels.length > 0 ? (
@@ -496,68 +480,45 @@ export default function InputPage() {
 
 
         {showDepth && (
-
-          <>
-
-            <label style={{ marginTop: "1rem" }}>{ui.review_depth_label}</label>
-
-            <div className="card-grid" style={{ marginTop: "0.5rem" }}>
-
+          <section className="form-section">
+            <h2 className="section-label">{ui.review_depth_label}</h2>
+            <div className="option-list option-list--grid">
               {depthOptions.map((opt) => (
-
                 <div
-
                   key={opt.id}
-
-                  className={`card ${selectedDepth === opt.id ? "active" : ""}`}
-
+                  className={`option-item ${selectedDepth === opt.id ? "active" : ""}`}
                   onClick={() => setSelectedDepth(opt.id)}
-
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedDepth(opt.id);
+                    }
+                  }}
                   role="button"
-
+                  tabIndex={0}
                 >
-
                   <h3>{opt.label}</h3>
-
-                  <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-
+                  <p>
                     {opt.estimated_time} · {opt.cost_tier_label}
-
                   </p>
-
                 </div>
-
               ))}
-
             </div>
-
             {activeDepth && (
-
-              <div style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "var(--muted)" }}>
-
+              <div className="option-detail">
                 <p>{activeDepth.summary}</p>
-
-                <ul style={{ margin: "0.5rem 0 0 1rem" }}>
-
+                <ul>
                   {activeDepth.detail_bullets.map((b) => (
-
                     <li key={b}>{b}</li>
-
                   ))}
-
                 </ul>
-
               </div>
-
             )}
-
-          </>
-
+          </section>
         )}
 
-
-
-        <label style={{ marginTop: "1rem" }}>{ui.input_content_label}</label>
+        <section className="form-section">
+          <h2 className="section-label">{activeTab?.title ?? ui.input_content_label}</h2>
 
         {tab === "patch" ? (
 
@@ -581,10 +542,8 @@ export default function InputPage() {
 
 
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
-
+        <div className="field-row">
           <div>
-
             <label>{ui.project_type_label}</label>
 
             <select value={projectType} onChange={(e) => setProjectType(e.target.value)}>
@@ -628,51 +587,12 @@ export default function InputPage() {
 
 
         {error && <div className="error">{error}</div>}
-
-        {unavailableHint && (
-
-          <p className="error" style={{ fontSize: "0.9rem" }}>
-
-            {unavailableHint}
-
-          </p>
-
-        )}
-
-        <button onClick={submit} disabled={!canSubmit}>
-
+        {unavailableHint && <p className="error">{unavailableHint}</p>}
+        <button type="button" className="btn-primary" onClick={submit} disabled={!canSubmit}>
           {loading ? ui.submit_loading : ui.submit_idle}
-
         </button>
-
+        </section>
       </div>
-
-
-
-      {demoPatches.length > 0 && (
-        <div className="examples card">
-          <h3>{ui.demo_patches_heading}</h3>
-          {ui.demo_patches_hint ? (
-            <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: "0.25rem" }}>
-              {ui.demo_patches_hint}
-            </p>
-          ) : null}
-          {demoPatches.map((scenario) => (
-            <button
-              key={scenario.id}
-              className="secondary example-chip"
-              type="button"
-              title={scenario.description}
-              onClick={() => {
-                setTab("patch");
-                setValue(scenario.patch_text);
-              }}
-            >
-              {scenario.title}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="examples card">
 
@@ -707,7 +627,7 @@ export default function InputPage() {
       </div>
 
       {rulesCatalog && ui.rules_catalog_heading && (
-        <div className="card" style={{ marginTop: "1rem" }}>
+        <div className="card">
           <h3>{ui.rules_catalog_heading}</h3>
           <button
             type="button"
@@ -717,11 +637,11 @@ export default function InputPage() {
             {rulesCatalogOpen ? ui.rules_catalog_toggle_hide : ui.rules_catalog_toggle_show}
           </button>
           {rulesCatalogOpen && (
-            <div style={{ marginTop: "0.75rem" }}>
-              <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
+            <div className="option-detail">
+              <p>
                 {(ui.rules_catalog_count_label || "").replace("{count}", String(rulesCatalog.rules_count))}
               </p>
-              <ul style={{ margin: "0.5rem 0 0 1rem", fontSize: "0.9rem" }}>
+              <ul>
                 {rulesCatalog.rules.map((rule) => (
                   <li key={rule.id}>
                     <strong>{rule.id}</strong> · {rule.severity} — {rule.message}

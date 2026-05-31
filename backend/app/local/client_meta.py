@@ -24,6 +24,7 @@ _ERROR_MESSAGES: dict[str, str] = {
     "fetch_client_meta": "无法加载客户端元数据",
     "fetch_demo_patches": "无法加载演示 Patch 场景",
     "fetch_rules_catalog": "无法加载规则目录",
+    "fetch_detail_page_meta": "无法加载详情页元数据",
 }
 
 

@@ -11,6 +11,7 @@ interface RuleHitsPanelProps {
   groupByRuleIdLabel?: string;
   collapseLowLabel?: string;
   hitCountLabel?: string;
+  severityFilterAllLabel?: string;
 }
 
 interface RuleHitGroup {
@@ -59,6 +60,7 @@ export default function RuleHitsPanel({
   groupByRuleIdLabel = "按规则分组",
   collapseLowLabel = "折叠 LOW",
   hitCountLabel = "命中 {count} 次",
+  severityFilterAllLabel = "全部",
 }: RuleHitsPanelProps) {
   const [severity, setSeverity] = useState<string>("all");
   const [groupByRule, setGroupByRule] = useState(groupByRuleIdDefault);
@@ -90,24 +92,15 @@ export default function RuleHitsPanel({
   const renderRow = (hit: RuleHitRecord, index: number) => (
     <tr key={`${hit.rule_id}-${hit.file_path}-${index}`}>
       {rowCells(hit).slice(0, columnCount).map((cell, cellIndex) => (
-        <td
-          key={cellIndex}
-          style={{
-            padding: "0.5rem",
-            verticalAlign: "top",
-            wordBreak: cellIndex >= 3 ? "break-word" : undefined,
-          }}
-        >
-          {cell}
-        </td>
+        <td key={cellIndex}>{cell}</td>
       ))}
     </tr>
   );
 
   const renderGroup = (group: RuleHitGroup) => (
     <tbody key={group.rule_id}>
-      <tr>
-        <td colSpan={columnCount} style={{ padding: "0.5rem", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>
+      <tr className="rule-hits-group-header">
+        <td colSpan={columnCount}>
           {group.rule_id} · {group.severity.toUpperCase()} · {formatHitCount(hitCountLabel, group.hits.length)}
         </td>
       </tr>
@@ -117,33 +110,31 @@ export default function RuleHitsPanel({
 
   return (
     <div>
-      <div style={{ marginBottom: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+      <div className="rule-hits-toolbar">
         {severities.map((item) => (
           <button
             key={item}
             type="button"
-            className={severity === item ? "active" : "secondary"}
+            className={`btn-chip secondary ${severity === item ? "active" : ""}`}
             onClick={() => setSeverity(item)}
           >
-            {item === "all" ? "全部" : item}
+            {item === "all" ? severityFilterAllLabel : item}
           </button>
         ))}
-        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginLeft: "0.5rem" }}>
+        <label>
           <input type="checkbox" checked={groupByRule} onChange={(e) => setGroupByRule(e.target.checked)} />
           {groupByRuleIdLabel}
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+        <label>
           <input type="checkbox" checked={collapseLow} onChange={(e) => setCollapseLow(e.target.checked)} />
           {collapseLowLabel}
         </label>
       </div>
-      <table className="rule-hits-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table className="rule-hits-table">
         <thead>
           <tr>
             {headers.map((header) => (
-              <th key={header} style={{ textAlign: "left", padding: "0.5rem", borderBottom: "1px solid var(--border)" }}>
-                {header}
-              </th>
+              <th key={header}>{header}</th>
             ))}
           </tr>
         </thead>
