@@ -8,7 +8,9 @@
 
    ```bash
    git clone <repo> && cd <repo>
-   docker compose -f docker-compose.demo.yml up --build
+   docker compose up --build
+   # 或：.\scripts\start-demo.ps1（Windows） / make demo
+   # 兼容：docker compose -f docker-compose.demo.yml up --build
    ```
 
    打开 http://localhost:8080 ，确认 http://localhost:8000/health 中：

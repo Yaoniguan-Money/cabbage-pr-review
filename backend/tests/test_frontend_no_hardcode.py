@@ -29,6 +29,14 @@ def test_frontend_has_no_diagram_title_map():
         assert token not in text, f"前端发现禁止的图表标题硬编码: {token}"
 
 
+def test_agent_progress_bar_has_no_hardcoded_step_names():
+    path = Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "AgentProgressBar.tsx"
+    text = path.read_text(encoding="utf-8")
+    forbidden = ["原版本扫描", "PR 版本扫描", "差异对比", "递进式审阅", "可视化组织"]
+    for token in forbidden:
+        assert token not in text, f"AgentProgressBar 发现禁止的步骤名硬编码: {token}"
+
+
 def test_mermaid_diagram_has_no_inline_error_strings():
     path = Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "MermaidDiagram.tsx"
     text = path.read_text(encoding="utf-8")

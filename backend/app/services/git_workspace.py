@@ -52,12 +52,22 @@ def _run_git(args: list[str], cwd: Path) -> None:
         raise RuntimeError(f"git {' '.join(args)} 失败: {proc.stderr or proc.stdout}")
 
 
-def _prepare_github_workspace(owner: str, repo: str, base_sha: str, head_sha: str) -> GitWorkspace:
+def _prepare_github_workspace(
+    owner: str,
+    repo: str,
+    base_sha: str,
+    head_sha: str,
+    *,
+    github_token: str = "",
+) -> GitWorkspace:
     tmp = Path(tempfile.mkdtemp(prefix="pr-review-"))
     repo_dir = tmp / "repo"
     url = f"https://github.com/{owner}/{repo}.git"
-    if settings.github_token:
-        url = f"https://{settings.github_token}@github.com/{owner}/{repo}.git"
+    from app.llm.credentials_resolve import resolve_github_token
+
+    token = (github_token or "").strip() or resolve_github_token(None)
+    if token:
+        url = f"https://{token}@github.com/{owner}/{repo}.git"
     _run_git(["git", "clone", "--filter=blob:none", url, str(repo_dir)], cwd=tmp)
     _run_git(["git", "fetch", "origin", base_sha, head_sha, "--depth=1"], cwd=repo_dir)
     return GitWorkspace(root=repo_dir, base_sha=base_sha, head_sha=head_sha, ephemeral=True)
@@ -81,7 +91,11 @@ def _prepare_local_workspace(repo_path: Path) -> GitWorkspace:
     return GitWorkspace(root=repo_path.resolve(), base_sha=base_sha, head_sha=head, ephemeral=False)
 
 
-async def enrich_context_with_git(ctx: dict[str, Any]) -> tuple[dict[str, Any], GitWorkspace | None]:
+async def enrich_context_with_git(
+    ctx: dict[str, Any],
+    *,
+    github_token: str = "",
+) -> tuple[dict[str, Any], GitWorkspace | None]:
     """填充 base_file_contents / head_file_contents；返回可能需任务结束后 cleanup 的工作区。"""
     paths = list(ctx.get("file_paths", []))
     if not paths:
@@ -95,6 +109,7 @@ async def enrich_context_with_git(ctx: dict[str, Any]) -> tuple[dict[str, Any], 
             ctx["repo"],
             ctx["base_sha"],
             ctx["head_sha"],
+            github_token=github_token,
         )
     elif ctx.get("local_root"):
         root = Path(ctx["local_root"])

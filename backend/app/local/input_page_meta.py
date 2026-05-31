@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from app.config import settings
 from app.models.schemas import InputType
 
 
@@ -44,6 +45,39 @@ _TABS: tuple[InputTabMeta, ...] = (
     InputTabMeta("patch", "Patch / Diff", "粘贴 diff 或 patch 文本"),
 )
 
+_USAGE_GUIDE: dict[str, Any] = {
+    "title": "使用说明",
+    "toggle_show": "展开使用说明",
+    "toggle_hide": "收起使用说明",
+    "default_expanded": True,
+    "sections": [
+        {
+            "id": "security_and_demo",
+            "heading": "安全与评委演示",
+            "paragraphs": [
+                "本演示站不会在服务器上保存管理员的 API Key 或 GitHub Token。",
+                "您在下方填写并「保存到本机」的内容，只存在您的浏览器，仅在您点击「开始分析」时用于这一次任务，不会写入服务器硬盘。",
+                "其他访问者无法使用您保存在自己电脑浏览器里的凭据。",
+                "评委建议：在「评委演示 Patch」中任选场景并加载 → 推理模式选择「纯规则」→ 点击「开始分析」，即可完整体验规则引擎、差异分析与报告结构，无需 API Key、无需 GitHub Token。",
+            ],
+        },
+        {
+            "id": "llm_optional",
+            "heading": "完整 LLM 审阅（可选）",
+            "paragraphs": [
+                "若需大模型审阅（非纯规则）：请打开「启用云端 LLM API」，填写 API Key 与模型名称，并点击「保存到本机」；或在本机安装 Ollama 后，选择支持本地模型的推理模式。以上配置仅对您当前浏览器生效，不会影响其他访问者。",
+            ],
+        },
+        {
+            "id": "pr_optional",
+            "heading": "分析 GitHub PR 链接（可选）",
+            "paragraphs": [
+                "若需输入 PR URL 并从 GitHub 拉取变更：请打开「启用 GitHub Token」，填写具有仓库读权限的 Token，并「保存到本机」。未配置时仅适合公开仓库，且可能因 GitHub 限速或网络波动导致拉取失败；关闭开关则本次任务不使用您浏览器中已保存的 Token。",
+            ],
+        },
+    ],
+}
+
 _UI_STRINGS: dict[str, str] = {
     "llm_mode_label": "推理模式（任务开始前选择，运行中不可改）",
     "local_model_label": "本地模型（Ollama）",
@@ -73,6 +107,14 @@ _UI_STRINGS: dict[str, str] = {
     "error_load_review_depth": "无法加载审阅深度选项",
     "error_load_llm_mode": "无法加载推理模式选项",
     "error_submit": "提交失败",
+    "error_pr_github_required": (
+        "公网演示站不会在服务器使用管理员的 GitHub Token。"
+        "请改用「评委演示 Patch」，或在下方启用 GitHub Token 并保存到本机后再分析 PR。"
+    ),
+    "credentials_warm_tips_title": "温馨提示",
+    "credentials_warm_tips_body": (
+        "若希望发挥全部性能，可配置 LLM API、使用本机大模型，或配置 GitHub Token 以稳定拉取 PR。"
+    ),
 }
 
 
@@ -84,4 +126,6 @@ def list_input_page_meta() -> dict[str, Any]:
         "frameworks": [{"id": o.id, "label": o.label} for o in _FRAMEWORKS],
         "input_tabs": [{"id": t.id, "title": t.title, "hint": t.hint} for t in _TABS],
         "ui_strings": dict(_UI_STRINGS),
+        "usage_guide": dict(_USAGE_GUIDE),
+        "is_public_deploy": settings.is_public_deploy,
     }

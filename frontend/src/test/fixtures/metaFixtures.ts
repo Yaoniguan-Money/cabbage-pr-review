@@ -32,6 +32,7 @@ export const mockClientMeta: ClientMetaResponse = {
   },
   use_mock_llm: false,
   mock_mode_banner: "",
+  cloud_unavailable_banner: "",
 };
 
 export const mockDiagramMeta: DiagramMetaResponse = {
@@ -116,6 +117,8 @@ export const mockDetailPageMeta = {
     task_id_toggle_show: "显示任务 ID",
     task_id_toggle_hide: "隐藏任务 ID",
     agent_stepper_label: "分析进度",
+    agent_parallel_lane_aria: "并行扫描步骤",
+    parallel_running_hint: "正在并行扫描原版本与 PR 版本…",
     alert_degradation_title: "分析降级提示",
     branch_into: "into {ref}",
     meta_llm_mode: "推理模式",
@@ -205,7 +208,23 @@ export const mockInputPageMeta: InputPageMetaResponse = {
     error_load_review_depth: "无法加载审阅深度选项",
     error_load_llm_mode: "无法加载推理模式选项",
     error_submit: "提交失败",
+    credentials_warm_tips_title: "温馨提示",
+    credentials_warm_tips_body: "若希望发挥全部性能，可配置 LLM API。",
   },
+  usage_guide: {
+    title: "使用说明",
+    toggle_show: "展开",
+    toggle_hide: "收起",
+    default_expanded: true,
+    sections: [
+      {
+        id: "security_and_demo",
+        heading: "安全与评委演示",
+        paragraphs: ["本演示站不会在服务器上保存管理员的 API Key 或 GitHub Token。"],
+      },
+    ],
+  },
+  is_public_deploy: false,
 };
 
 export const mockLlmOptionsResponse = {

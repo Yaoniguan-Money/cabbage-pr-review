@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import Response
 
@@ -16,7 +14,9 @@ from app.local.llm_mode import (
     normalize_llm_mode,
 )
 from app.local.review_depth import VALID_MODES, get_review_depth_option, normalize_review_depth_mode
+from app.llm.credentials_resolve import resolve_github_token
 from app.llm.task_context import build_task_llm_context
+from app.local.input_page_meta import _UI_STRINGS as INPUT_UI
 from app.models.schemas import CreateTaskRequest, InputType, RerunRequest, TaskRecord, TaskStatus
 from app.local.export_meta import (
     EXPORT_NOT_READY_DETAIL,
@@ -26,6 +26,7 @@ from app.local.export_meta import (
 from app.services.export_md import export_markdown
 from app.services.github import GitHubService
 from app.services.llm_guard import ensure_llm_for_api
+from app.services.task_credentials_store import stash_task_credentials
 from app.services.task_runner import run_task_background
 from app.services.task_store import task_store
 
@@ -39,6 +40,7 @@ def _resolve_llm_fields(body: CreateTaskRequest) -> dict:
         local_model=body.local_model,
         cloud_flash_model=body.cloud_flash_model,
         cloud_pro_model=body.cloud_pro_model,
+        runtime_credentials=body.runtime_credentials,
     )
     opt = get_llm_mode_option(llm_ctx.llm_mode, settings.llm_mode)
     return {
@@ -67,9 +69,13 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
         llm_mode=llm_fields["llm_mode"],
         local_compress_enabled=llm_fields["local_compress_enabled"],
         local_model=llm_fields["local_model"] or None,
+        runtime_credentials=body.runtime_credentials,
     )
     if body.input_type == InputType.PR_URL and not GitHubService.is_valid_pr_url(body.value):
         raise HTTPException(status_code=400, detail="无效的 GitHub PR URL")
+    if body.input_type == InputType.PR_URL and settings.is_public_deploy:
+        if not resolve_github_token(body.runtime_credentials).strip():
+            raise HTTPException(status_code=400, detail=INPUT_UI["error_pr_github_required"])
     mode = normalize_review_depth_mode(body.review_depth_mode, settings.review_depth_mode)
     if body.review_depth_mode and body.review_depth_mode not in VALID_MODES:
         raise HTTPException(status_code=400, detail="无效的审阅深度模式")
@@ -93,14 +99,18 @@ async def create_task(body: CreateTaskRequest, background_tasks: BackgroundTasks
         **llm_fields,
     )
     await task_store.create(record)
+    stash_task_credentials(record.id, body.runtime_credentials)
     background_tasks.add_task(_start_task, record.id)
     return record
 
 
 async def _start_task(task_id: str) -> None:
+    from app.services.task_credentials_store import pop_task_credentials
+
     record = task_store.get(task_id)
+    creds = pop_task_credentials(task_id)
     if record:
-        await run_task_background(record)
+        await run_task_background(record, runtime_credentials=creds)
 
 
 @router.get("/tasks/{task_id}", response_model=TaskRecord)
@@ -132,6 +142,7 @@ async def rerun_task(task_id: str, body: RerunRequest, background_tasks: Backgro
         llm_mode=record.llm_mode,
         local_compress_enabled=record.local_compress_enabled,
         local_model=record.local_model or None,
+        runtime_credentials=body.runtime_credentials,
     )
     if record.rerun_used:
         raise HTTPException(status_code=400, detail="已使用过补上下文重跑，仅允许一次")
@@ -143,11 +154,14 @@ async def rerun_task(task_id: str, body: RerunRequest, background_tasks: Backgro
     record.status = TaskStatus.PENDING
     record.init_agent_progress()
     task_store.update(record)
+    stash_task_credentials(task_id, body.runtime_credentials)
 
     async def _rerun():
         from app.services.task_runner import execute_task
+        from app.services.task_credentials_store import pop_task_credentials
 
         r = task_store.get(task_id)
+        creds = pop_task_credentials(task_id)
         if not r:
             return
 
@@ -156,6 +170,7 @@ async def rerun_task(task_id: str, body: RerunRequest, background_tasks: Backgro
                 r,
                 focus_atom_ids=body.focus_atom_ids,
                 extra_context_paths=body.extra_context_paths,
+                runtime_credentials=creds,
             )
 
         await task_store.run_exclusive(task_id, runner)

@@ -31,7 +31,9 @@ def _ensure_llm() -> None:
         if not local_available() or not ctx.local_model:
             raise LLMRequiredError(HINT_LOCAL_ONLY_BACKEND)
         return
-    if not cloud_available():
+    from app.llm.credentials_resolve import task_cloud_available
+
+    if not task_cloud_available(ctx):
         raise LLMRequiredError(HINT_CLOUD_UNAVAILABLE)
 
 

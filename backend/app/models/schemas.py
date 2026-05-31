@@ -44,6 +44,7 @@ class AgentProgress(BaseModel):
     name: str
     status: Literal["pending", "running", "completed", "degraded", "failed", "skipped"] = "pending"
     message: str = ""
+    parallel_group: str | None = None
 
 
 class GraphNode(BaseModel):
@@ -231,6 +232,26 @@ class TaskResultSchema(BaseModel):
     rule_hits: list[RuleHitRecord] = Field(default_factory=list)
 
 
+class RuntimeCredentials(BaseModel):
+    cloud_api_base: str | None = None
+    cloud_api_key: str | None = None
+    cloud_flash_model: str | None = None
+    cloud_pro_model: str | None = None
+    github_token: str | None = None
+
+
+class RuntimeConfigPreviewRequest(BaseModel):
+    runtime_credentials: RuntimeCredentials | None = None
+
+
+class RuntimeConfigPreviewResponse(BaseModel):
+    cloud_available: bool
+    github_token_configured: bool
+    local_available: bool
+    server_cloud_configured: bool
+    server_github_configured: bool
+
+
 class CreateTaskRequest(BaseModel):
     input_type: InputType
     value: str
@@ -244,6 +265,7 @@ class CreateTaskRequest(BaseModel):
     cloud_pro_model: str | None = None
     rules_preflight_enabled: bool | None = None
     demo_scenario_id: str | None = None
+    runtime_credentials: RuntimeCredentials | None = None
 
     @field_validator("value")
     @classmethod
@@ -256,6 +278,7 @@ class CreateTaskRequest(BaseModel):
 class RerunRequest(BaseModel):
     extra_context_paths: list[str] = Field(default_factory=list, max_length=10)
     focus_atom_ids: list[str] = Field(default_factory=list, max_length=3)
+    runtime_credentials: RuntimeCredentials | None = None
 
     @field_validator("focus_atom_ids")
     @classmethod
@@ -301,13 +324,14 @@ class TaskRecord(BaseModel):
     pr_context: dict[str, Any] = Field(default_factory=dict)
 
     def init_agent_progress(self) -> None:
-        names = [
-            "原版本扫描",
-            "PR 版本扫描",
-            "差异对比",
-            "递进式审阅",
-            "可视化组织",
-        ]
+        from app.local.workflow_meta import get_agent_step_definitions
+
         self.agent_progress = [
-            AgentProgress(agent_id=i + 1, name=names[i], status="pending") for i in range(5)
+            AgentProgress(
+                agent_id=step["agent_id"],
+                name=step["name"],
+                status="pending",
+                parallel_group=step.get("parallel_group"),
+            )
+            for step in get_agent_step_definitions()
         ]

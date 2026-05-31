@@ -39,6 +39,26 @@ class Settings(BaseSettings):
     local_compress_enabled: bool = True
     rules_pack_path: str = ""
 
+    # public：公网部署，忽略服务器 Key，仅接受请求内 runtime_credentials
+    deploy_mode: str = "local"
+    allow_runtime_credentials: bool = True
+    cloud_timeout_sec: float = 120.0
+    # 本地单人开发可选 true；公网/评委环境务必 false（或由 DEPLOY_MODE=public 强制关闭）
+    use_server_github_token: bool = True
+    use_server_cloud_credentials: bool = True
+
+    @property
+    def effective_use_server_github_token(self) -> bool:
+        if self.is_public_deploy:
+            return False
+        return self.use_server_github_token
+
+    @property
+    def effective_use_server_cloud_credentials(self) -> bool:
+        if self.is_public_deploy:
+            return False
+        return self.use_server_cloud_credentials
+
     @property
     def cloud_api_base_resolved(self) -> str:
         return (self.cloud_api_base or self.deepseek_base_url).strip()
@@ -57,7 +77,13 @@ class Settings(BaseSettings):
 
     @property
     def llm_enabled(self) -> bool:
-        return bool(self.cloud_api_key_resolved)
+        from app.llm.credentials_resolve import server_cloud_configured
+
+        return server_cloud_configured()
+
+    @property
+    def is_public_deploy(self) -> bool:
+        return self.deploy_mode.strip().lower() == "public"
 
 
 settings = Settings()

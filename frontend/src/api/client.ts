@@ -8,6 +8,7 @@ export interface AgentProgress {
   name: string;
   status: string;
   message: string;
+  parallel_group?: string | null;
 }
 
 export interface ReviewStats {
@@ -250,6 +251,41 @@ export interface ClientMetaResponse {
   error_messages: Record<string, string>;
   use_mock_llm?: boolean;
   mock_mode_banner?: string;
+  cloud_unavailable_banner?: string;
+}
+
+export interface RuntimeCredentialsPayload {
+  cloud_api_base?: string;
+  cloud_api_key?: string;
+  cloud_flash_model?: string;
+  cloud_pro_model?: string;
+  github_token?: string;
+}
+
+export interface RuntimeConfigMetaResponse {
+  allow_runtime_credentials: boolean;
+  deploy_mode: string;
+  is_public_deploy: boolean;
+  server_cloud_configured: boolean;
+  server_github_configured: boolean;
+  expand_panel_default: boolean;
+  ui_strings: Record<string, string>;
+}
+
+export interface RuntimeConfigPreviewResponse {
+  cloud_available: boolean;
+  github_token_configured: boolean;
+  local_available: boolean;
+  server_cloud_configured: boolean;
+  server_github_configured: boolean;
+}
+
+export interface ProviderPreset {
+  id: string;
+  label: string;
+  api_base: string;
+  flash_model: string;
+  pro_model: string;
 }
 
 export interface DemoPatchScenario {
@@ -285,6 +321,20 @@ export interface InputPageSelectOption {
   label: string;
 }
 
+export interface UsageGuideSection {
+  id: string;
+  heading: string;
+  paragraphs: string[];
+}
+
+export interface UsageGuideMeta {
+  title: string;
+  toggle_show: string;
+  toggle_hide: string;
+  default_expanded: boolean;
+  sections: UsageGuideSection[];
+}
+
 export interface InputPageMetaResponse {
   default_project_type: string;
   default_framework: string;
@@ -292,6 +342,8 @@ export interface InputPageMetaResponse {
   frameworks: InputPageSelectOption[];
   input_tabs: InputPageTabMeta[];
   ui_strings: Record<string, string>;
+  usage_guide?: UsageGuideMeta;
+  is_public_deploy?: boolean;
 }
 
 export interface RulesMetaResponse {
@@ -363,6 +415,7 @@ export async function createTask(body: {
   cloud_flash_model?: string;
   cloud_pro_model?: string;
   demo_scenario_id?: string;
+  runtime_credentials?: RuntimeCredentialsPayload;
 }): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
@@ -387,7 +440,11 @@ export async function getTaskResult(id: string): Promise<TaskResult> {
 
 export async function rerunTask(
   id: string,
-  body: { extra_context_paths: string[]; focus_atom_ids: string[] }
+  body: {
+    extra_context_paths: string[];
+    focus_atom_ids: string[];
+    runtime_credentials?: RuntimeCredentialsPayload;
+  }
 ): Promise<TaskRecord> {
   const res = await fetch(`${API}/tasks/${id}/rerun`, {
     method: "POST",
@@ -407,7 +464,7 @@ export async function fetchReviewDepthOptions(): Promise<{
   return res.json();
 }
 
-export async function fetchLlmModeOptions(): Promise<{
+export async function fetchLlmModeOptions(hasRuntimeCloudKey = false): Promise<{
   options: LlmModeOption[];
   default_llm_mode: string;
   default_local_compress_enabled: boolean;
@@ -417,8 +474,33 @@ export async function fetchLlmModeOptions(): Promise<{
   default_local_model: string;
   availability_hints: LlmAvailabilityHints;
 }> {
-  const res = await fetch(`${API}/llm-mode-options`);
+  const q = hasRuntimeCloudKey ? "?has_runtime_cloud_key=true" : "";
+  const res = await fetch(`${API}/llm-mode-options${q}`);
   if (!res.ok) await throwApiError(res, "fetch_llm_mode");
+  return res.json();
+}
+
+export async function fetchRuntimeConfigMeta(): Promise<RuntimeConfigMetaResponse> {
+  const res = await fetch(`${API}/runtime-config-meta`);
+  if (!res.ok) throw new Error("fetch_runtime_config_meta");
+  return res.json();
+}
+
+export async function fetchProviderPresets(): Promise<{ presets: ProviderPreset[] }> {
+  const res = await fetch(`${API}/provider-presets`);
+  if (!res.ok) throw new Error("fetch_provider_presets");
+  return res.json();
+}
+
+export async function fetchRuntimeConfigPreview(
+  runtime_credentials?: RuntimeCredentialsPayload,
+): Promise<RuntimeConfigPreviewResponse> {
+  const res = await fetch(`${API}/runtime-config/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ runtime_credentials: runtime_credentials ?? null }),
+  });
+  if (!res.ok) throw new Error("fetch_runtime_config_preview");
   return res.json();
 }
 

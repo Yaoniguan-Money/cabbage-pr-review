@@ -1,0 +1,11 @@
+# 将 {$SITE_DOMAIN} 设为你的域名，例如 review.example.com
+{$SITE_DOMAIN:localhost} {
+	encode gzip
+	reverse_proxy frontend:80 {
+		flush_interval -1
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}

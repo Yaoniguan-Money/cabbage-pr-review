@@ -4,7 +4,9 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 
 from app.config import settings
+from app.llm.credentials_resolve import resolve_cloud_config, resolve_github_token
 from app.local.llm_mode import normalize_llm_mode
+from app.models.schemas import RuntimeCredentials
 
 
 @dataclass(frozen=True)
@@ -14,6 +16,9 @@ class TaskLLMContext:
     local_model: str
     cloud_flash_model: str
     cloud_pro_model: str
+    cloud_api_base: str = ""
+    cloud_api_key: str = ""
+    github_token: str = ""
 
 
 _task_llm_ctx: ContextVar[TaskLLMContext | None] = ContextVar("task_llm_ctx", default=None)
@@ -26,17 +31,30 @@ def build_task_llm_context(
     local_model: str | None = None,
     cloud_flash_model: str | None = None,
     cloud_pro_model: str | None = None,
+    runtime_credentials: RuntimeCredentials | None = None,
 ) -> TaskLLMContext:
     mode = normalize_llm_mode(llm_mode, settings.llm_mode)
     compress = settings.local_compress_enabled if local_compress_enabled is None else local_compress_enabled
     if mode != "hybrid":
         compress = False
+    resolved = resolve_cloud_config(
+        runtime_credentials,
+        cloud_flash_model=cloud_flash_model,
+        cloud_pro_model=cloud_pro_model,
+    )
+    cloud_base = resolved.api_base if resolved else settings.cloud_api_base_resolved
+    cloud_key = resolved.api_key if resolved else ""
+    flash = resolved.flash_model if resolved else (cloud_flash_model or settings.cloud_flash_model_resolved).strip()
+    pro = resolved.pro_model if resolved else (cloud_pro_model or settings.cloud_pro_model_resolved).strip()
     return TaskLLMContext(
         llm_mode=mode,
         local_compress_enabled=compress,
         local_model=(local_model or settings.local_llm_default_model or "").strip(),
-        cloud_flash_model=(cloud_flash_model or settings.cloud_flash_model_resolved).strip(),
-        cloud_pro_model=(cloud_pro_model or settings.cloud_pro_model_resolved).strip(),
+        cloud_flash_model=flash,
+        cloud_pro_model=pro,
+        cloud_api_base=cloud_base,
+        cloud_api_key=cloud_key,
+        github_token=resolve_github_token(runtime_credentials),
     )
 
 

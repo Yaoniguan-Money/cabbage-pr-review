@@ -15,6 +15,8 @@ def test_detail_page_meta_api():
     assert ui["status_running"]
     assert ui["task_id_toggle_show"]
     assert ui["agent_stepper_label"]
+    assert ui["agent_parallel_lane_aria"]
+    assert ui["parallel_running_hint"]
     assert "{ref}" in ui["branch_into"]
     assert "{task_id}" in ui["export_filename_template"]
     assert ui["export_disabled_hint"]
