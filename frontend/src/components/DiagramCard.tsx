@@ -37,19 +37,17 @@ export default function DiagramCard({
   }>;
 
   return (
-    <section className="diagram-card" style={{ marginBottom: "2rem" }}>
-      <h3 style={{ marginBottom: "0.35rem" }}>{title}</h3>
-      {caption ? (
-        <p style={{ color: "var(--muted)", fontSize: "0.92rem", marginTop: 0 }}>{caption}</p>
-      ) : null}
+    <section className="diagram-card">
+      <h3>{title}</h3>
+      {caption ? <p className="section-hint">{caption}</p> : null}
       <DiagramLegend items={legend} />
       <MermaidDiagram code={diagram.mermaid} id={renderId} uiStrings={uiStrings} />
       {nodes.length > 0 ? (
-        <details style={{ marginTop: "0.75rem" }}>
-          <summary style={{ cursor: "pointer", color: "var(--muted)", fontSize: "0.9rem" }}>
+        <details className="diagram-details">
+          <summary>
             {uiStrings.node_summary_label}（{nodes.length}）
           </summary>
-          <ul style={{ fontSize: "0.85rem", paddingLeft: "1.2rem" }}>
+          <ul>
             {nodes.slice(0, 50).map((node, idx) => (
               <li key={node.id || idx}>
                 {node.label || node.id}

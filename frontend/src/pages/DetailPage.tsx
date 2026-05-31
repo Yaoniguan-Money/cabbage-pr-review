@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+
 import {
-  exportUrl,
   fetchClientMeta,
+  fetchDetailPageMeta,
   fetchDiagramMeta,
   fetchLlmModeOptions,
   fetchRulesMeta,
@@ -10,24 +11,47 @@ import {
   getTaskResult,
   rerunTask,
   type ClientMetaResponse,
+  type DetailPageMetaResponse,
   type DiagramMetaResponse,
   type LlmModeOption,
   type RulesMetaResponse,
   type TaskRecord,
   type TaskResult,
 } from "../api/client";
-import AgentProgressBar from "../components/AgentProgressBar";
+import AiReviewPanel from "../components/AiReviewPanel";
+import CodeDiffPanel from "../components/CodeDiffPanel";
 import DiagramCard from "../components/DiagramCard";
 import MarkdownReport from "../components/MarkdownReport";
+import OverviewPanel from "../components/OverviewPanel";
+import ReviewHeader from "../components/ReviewHeader";
+import ReviewSidebar from "../components/ReviewSidebar";
 import RuleHitsPanel from "../components/RuleHitsPanel";
 import RerunPanel from "../components/RerunPanel";
 import RiskList from "../components/RiskList";
 import SummaryBar from "../components/SummaryBar";
+import ReviewLayout from "../layouts/ReviewLayout";
+import { buildPatchFiles } from "../utils/buildPatchFiles";
+import { formatTemplate } from "../utils/formatTemplate";
 
-type Section = "overview" | "summary" | "report" | "rule_hits" | "diagrams" | "risks" | "missing";
+type Section = "overview" | "files" | "summary" | "report" | "rule_hits" | "diagrams" | "risks" | "missing";
 
 function MetaLoading() {
   return <div className="meta-loading" aria-busy="true" style={{ minHeight: "4rem" }} />;
+}
+
+function statusLabel(status: string, ui: Record<string, string>): string {
+  switch (status) {
+    case "pending":
+      return ui.status_pending;
+    case "running":
+      return ui.status_running;
+    case "completed":
+      return ui.status_completed;
+    case "failed":
+      return ui.status_failed;
+    default:
+      return status;
+  }
 }
 
 export default function DetailPage() {
@@ -36,21 +60,25 @@ export default function DetailPage() {
   const [result, setResult] = useState<TaskResult | null>(null);
   const [diagramMeta, setDiagramMeta] = useState<DiagramMetaResponse | null>(null);
   const [rulesMeta, setRulesMeta] = useState<RulesMetaResponse | null>(null);
+  const [detailMeta, setDetailMeta] = useState<DetailPageMetaResponse | null>(null);
   const [clientMeta, setClientMeta] = useState<ClientMetaResponse | null>(null);
   const [llmOptions, setLlmOptions] = useState<LlmModeOption[]>([]);
   const [section, setSection] = useState<Section>("overview");
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     fetchClientMeta().then(setClientMeta).catch(() => setClientMeta(null));
     fetchDiagramMeta().then(setDiagramMeta).catch(() => setDiagramMeta(null));
     fetchRulesMeta().then(setRulesMeta).catch(() => setRulesMeta(null));
+    fetchDetailPageMeta().then(setDetailMeta).catch(() => setDetailMeta(null));
     fetchLlmModeOptions()
       .then((data) => setLlmOptions(data.options))
       .catch(() => setLlmOptions([]));
   }, []);
 
-  const ui = rulesMeta?.ui_strings;
+  const rulesUi = rulesMeta?.ui_strings ?? {};
+  const detailUi = detailMeta?.ui_strings ?? {};
   const riskPreviewCount =
     diagramMeta?.overview_risk_preview_count ?? diagramMeta?.diagram_count ?? result?.risks.length ?? 0;
 
@@ -79,6 +107,14 @@ export default function DetailPage() {
     return map;
   }, [diagramMeta]);
 
+  const patchFiles = useMemo(() => buildPatchFiles(task, result), [task, result]);
+
+  useEffect(() => {
+    if (patchFiles.length > 0 && !selectedFile) {
+      setSelectedFile(patchFiles[0].filename);
+    }
+  }, [patchFiles, selectedFile]);
+
   const poll = useCallback(async () => {
     if (!taskId) return;
     try {
@@ -89,12 +125,12 @@ export default function DetailPage() {
         setResult(r);
       }
       if (t.status === "failed") {
-        setError(t.error_message || ui?.task_failed_fallback || clientMeta?.error_messages.get_task || "");
+        setError(t.error_message || rulesUi.task_failed_fallback || clientMeta?.error_messages.get_task || "");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : ui?.load_failed || clientMeta?.error_messages.get_task || "");
+      setError(e instanceof Error ? e.message : rulesUi.load_failed || clientMeta?.error_messages.get_task || "");
     }
-  }, [taskId, ui, clientMeta]);
+  }, [taskId, rulesUi, clientMeta]);
 
   useEffect(() => {
     poll();
@@ -114,14 +150,14 @@ export default function DetailPage() {
   };
 
   if (!taskId) {
-    return ui ? <p>{ui.invalid_task}</p> : <MetaLoading />;
+    return rulesUi.invalid_task ? <p>{rulesUi.invalid_task}</p> : <MetaLoading />;
   }
 
-  if (!ui) {
+  if (!rulesMeta || !detailMeta) {
     return <MetaLoading />;
   }
 
-  const diagramSectionLabel = diagramMeta?.section_label ?? ui.nav_risks;
+  const diagramSectionLabel = diagramMeta?.section_label ?? rulesUi.nav_risks;
   const diagramPreviewLabel = diagramMeta?.section_preview_label ?? diagramSectionLabel;
   const emptyDiagrams = diagramMeta ? diagramMeta.empty_diagrams : "";
 
@@ -129,18 +165,27 @@ export default function DetailPage() {
   const mergeReportAndRuleHits =
     isMarkdownMode && showRuleHits && Boolean(result?.markdown_report?.trim());
 
-  const nav: { id: Section; label: string; show: boolean }[] = [
-    { id: "overview", label: ui.nav_overview, show: true },
-    { id: "summary", label: ui.nav_summary, show: true },
-    { id: "report", label: ui.nav_report, show: isMarkdownMode && Boolean(result?.markdown_report?.trim()) },
+  const nav = [
+    { id: "overview" as const, label: rulesUi.nav_overview, show: true },
+    { id: "files" as const, label: detailUi.nav_files, show: true },
+    { id: "summary" as const, label: rulesUi.nav_summary, show: Boolean(result) },
     {
-      id: "rule_hits",
-      label: ui.nav_rule_hits || "规则命中",
+      id: "report" as const,
+      label: rulesUi.nav_report,
+      show: isMarkdownMode && Boolean(result?.markdown_report?.trim()),
+    },
+    {
+      id: "rule_hits" as const,
+      label: rulesUi.nav_rule_hits,
       show: showRuleHits && !mergeReportAndRuleHits,
     },
-    { id: "diagrams", label: diagramSectionLabel, show: !isMarkdownMode && Boolean(diagramMeta) },
-    { id: "risks", label: ui.nav_risks, show: true },
-    { id: "missing", label: ui.nav_missing, show: true },
+    {
+      id: "diagrams" as const,
+      label: diagramSectionLabel,
+      show: !isMarkdownMode && Boolean(diagramMeta) && Boolean(result),
+    },
+    { id: "risks" as const, label: rulesUi.nav_risks, show: Boolean(result) },
+    { id: "missing" as const, label: rulesUi.nav_missing, show: Boolean(result) },
   ];
 
   const renderDiagramCards = (diagrams: TaskResult["diagrams"], prefix: string) => {
@@ -164,175 +209,246 @@ export default function DetailPage() {
   };
 
   const previewDiagramCount =
-    diagramMeta?.diagram_count ??
-    diagramMeta?.diagram_types.length ??
-    result?.diagrams.length ??
-    0;
+    diagramMeta?.diagram_count ?? diagramMeta?.diagram_types.length ?? result?.diagrams.length ?? 0;
+
+  const renderMainContent = () => {
+    if (!task) {
+      return <MetaLoading />;
+    }
+
+    if (section === "files") {
+      return <CodeDiffPanel files={patchFiles} selectedFile={selectedFile} ui={detailUi} />;
+    }
+
+    if (!result) {
+      if (section === "overview") {
+        return (
+          <OverviewPanel
+            files={patchFiles}
+            result={null}
+            ui={detailUi}
+            rulesUi={rulesUi}
+            isMarkdownMode={isMarkdownMode}
+            overviewRulesHint={rulesUi.overview_rules_hint || rulesUi.rules_mode_note}
+            diagramPreview={null}
+            riskPreview={<p className="sidebar-muted">{rulesUi.running_message}</p>}
+          />
+        );
+      }
+      return <p className="sidebar-muted">{rulesUi.running_message}</p>;
+    }
+
+    return (
+      <>
+        {result.degradation_notes.length > 0 ? (
+          <div className="alert-banner alert-banner--warning" role="alert">
+            <strong className="alert-banner-title">{detailUi.alert_degradation_title}</strong>
+            <p>{rulesUi.degradation_banner}</p>
+          </div>
+        ) : null}
+
+        {result.risks.length === 0 && result.diff_atoms.length > 0 && !isMarkdownMode ? (
+          <div className="risk-item high">{rulesUi.no_risks_but_atoms_banner}</div>
+        ) : null}
+
+        {section === "overview" && (
+          <OverviewPanel
+            files={patchFiles}
+            result={result}
+            ui={detailUi}
+            rulesUi={rulesUi}
+            isMarkdownMode={isMarkdownMode}
+            overviewRulesHint={rulesUi.overview_rules_hint || rulesUi.rules_mode_note}
+            diagramPreview={
+              isMarkdownMode ? null : (
+                <>
+                  <h3 className="content-heading">{diagramPreviewLabel}</h3>
+                  {diagramMeta
+                    ? renderDiagramCards(result.diagrams.slice(0, previewDiagramCount), "ov")
+                    : emptyDiagrams}
+                </>
+              )
+            }
+            riskPreview={<RiskList risks={result.risks.slice(0, riskPreviewCount)} ui={detailUi} />}
+          />
+        )}
+
+        {section === "summary" && <SummaryBar result={result} ui={detailUi} />}
+
+        {section === "report" && result.markdown_report && (
+          <>
+            <MarkdownReport content={result.markdown_report} />
+            {mergeReportAndRuleHits && result.rule_hits ? (
+              <>
+                <h3 className="content-heading">{rulesUi.section_rule_hits || rulesUi.nav_rule_hits}</h3>
+                <RuleHitsPanel
+                  hits={result.rule_hits}
+                  headers={rulesMeta.table_hit_headers}
+                  emptyText={rulesUi.empty_rule_hits}
+                  groupByRuleIdDefault={rulesMeta.group_by_rule_id_default ?? true}
+                  collapseLowDefault={rulesMeta.collapse_low_default ?? false}
+                  groupByRuleIdLabel={rulesUi.group_by_rule_id_label}
+                  collapseLowLabel={rulesUi.collapse_low_severity_label}
+                  hitCountLabel={rulesUi.hit_count_label}
+                  severityFilterAllLabel={detailUi.severity_filter_all}
+                />
+              </>
+            ) : null}
+          </>
+        )}
+
+        {section === "rule_hits" && result.rule_hits && !mergeReportAndRuleHits && (
+          <RuleHitsPanel
+            hits={result.rule_hits}
+            headers={rulesMeta.table_hit_headers}
+            emptyText={rulesUi.empty_rule_hits}
+            groupByRuleIdDefault={rulesMeta.group_by_rule_id_default ?? true}
+            collapseLowDefault={rulesMeta.collapse_low_default ?? false}
+            groupByRuleIdLabel={rulesUi.group_by_rule_id_label}
+            collapseLowLabel={rulesUi.collapse_low_severity_label}
+            hitCountLabel={rulesUi.hit_count_label}
+            severityFilterAllLabel={detailUi.severity_filter_all}
+          />
+        )}
+
+        {section === "diagrams" && <div>{renderDiagramBlock(result.diagrams, "full")}</div>}
+
+        {section === "risks" && <RiskList risks={result.risks} ui={detailUi} />}
+
+        {section === "missing" && (
+          <div>
+            <h3>{rulesUi.missing_section_title}</h3>
+            {result.missing_info.map((m, i) => (
+              <div key={i} className="risk-item low">
+                <strong>{m.module}</strong>
+                <p>{m.reason}</p>
+                {m.suggestion && <p className="risk-suggestion">{m.suggestion}</p>}
+              </div>
+            ))}
+            {result.degradation_notes.map((n, i) => (
+              <div key={`d-${i}`} className="risk-item medium">
+                {n}
+              </div>
+            ))}
+            {!result.missing_info.length && !result.degradation_notes.length && (
+              <p>{rulesUi.empty_missing}</p>
+            )}
+          </div>
+        )}
+
+        {showRerun && result && (
+          <RerunPanel
+            atoms={result.diff_atoms}
+            disabled={!!task.rerun_used || task.status !== "completed"}
+            onRerun={handleRerun}
+            ui={detailUi}
+          />
+        )}
+      </>
+    );
+  };
 
   return (
-    <div>
-      <Link to="/" style={{ color: "var(--accent)" }}>
-        {ui.back_link}
-      </Link>
+    <div className="detail-page">
       {clientMeta?.use_mock_llm && clientMeta.mock_mode_banner ? (
-        <div className="risk-item medium" style={{ marginTop: "0.75rem" }}>
-          {clientMeta.mock_mode_banner}
-        </div>
+        <div className="risk-item medium alert-banner">{clientMeta.mock_mode_banner}</div>
       ) : null}
-      <p style={{ color: "var(--muted)" }}>任务 ID: {taskId}</p>
-
-      {task && <AgentProgressBar progress={task.agent_progress} />}
 
       {task && (
-        <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
-          推理模式：{task.llm_mode_label || task.llm_mode || "—"}
-          {" · "}
-          本次审阅：{task.review_depth_label || task.review_depth_mode || "—"}
-          {result?.review_stats && !isMarkdownMode
-            ? ` | 已扫描 ${result.review_stats.reviewed_atoms}/${result.review_stats.total_atoms} 个差异点`
-            : ""}
-          {showLlmStats && result?.review_stats
-            ? ` | Pro ×${result.review_stats.pro_calls} · Flash ×${result.review_stats.flash_calls}`
-            : ""}
-          {task.compress_stats && task.compress_stats.compress_calls > 0
-            ? ` | 本地压缩 ${task.compress_stats.compress_calls} 次（${task.compress_stats.chars_before}→${task.compress_stats.chars_after} 字符）`
-            : ""}
-          {showTokenStats && task.token_stats && task.token_stats.display_segments.length > 0
-            ? ` | Token：${task.token_stats.display_segments
-                .map((s) => `${s.label} ${s.total_tokens.toLocaleString()}`)
-                .join(" · ")}`
-            : ""}
-        </p>
+        <ReviewHeader
+          task={task}
+          taskId={taskId}
+          ui={detailUi}
+          statusLabel={statusLabel(task.status, detailUi)}
+          metaExtra={
+            <>
+              {result?.review_stats && !isMarkdownMode ? (
+                <span className="meta-chip">
+                  {formatTemplate(detailUi.meta_atoms_scanned, {
+                    reviewed: result.review_stats.reviewed_atoms,
+                    total: result.review_stats.total_atoms,
+                  })}
+                </span>
+              ) : null}
+              {showLlmStats && result?.review_stats ? (
+                <span className="meta-chip">
+                  {formatTemplate(detailUi.meta_llm_calls, {
+                    pro: result.review_stats.pro_calls,
+                    flash: result.review_stats.flash_calls,
+                  })}
+                </span>
+              ) : null}
+              {task.compress_stats && task.compress_stats.compress_calls > 0 ? (
+                <span className="meta-chip">
+                  {formatTemplate(detailUi.meta_compress, {
+                    calls: task.compress_stats.compress_calls,
+                    before: task.compress_stats.chars_before,
+                    after: task.compress_stats.chars_after,
+                  })}
+                </span>
+              ) : null}
+              {showTokenStats && task.token_stats && task.token_stats.display_segments.length > 0 ? (
+                <span className="meta-chip">
+                  {detailUi.meta_token_segment.split("{label}")[0]?.trim() || "Token"}
+                  {": "}
+                  {task.token_stats.display_segments
+                    .map((s) =>
+                      formatTemplate(detailUi.meta_token_segment, {
+                        label: s.label,
+                        total: s.total_tokens.toLocaleString(),
+                      }),
+                    )
+                    .join(" · ")}
+                </span>
+              ) : null}
+            </>
+          }
+        />
       )}
 
-      {task?.status === "running" || task?.status === "pending" ? <p>{ui.running_message}</p> : null}
+      {task?.status === "running" || task?.status === "pending" ? (
+        <p className="running-banner">{rulesUi.running_message}</p>
+      ) : null}
 
       {error && <div className="error">{error}</div>}
 
-      {result && (
-        <div className="detail-layout">
-          <nav aria-label="任务详情导航">
-            <ul className="nav-list">
-              {nav
-                .filter((n) => n.show)
-                .map((n) => (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      className={section === n.id ? "active" : ""}
-                      onClick={() => setSection(n.id)}
-                    >
-                      {n.label}
-                    </button>
-                  </li>
-                ))}
-            </ul>
-            <a href={exportUrl(taskId)} target="_blank" rel="noreferrer">
-              <button type="button" className="secondary" style={{ width: "100%" }}>
-                {ui.export_markdown}
-              </button>
-            </a>
-          </nav>
-
-          <div>
-            {result.degradation_notes.length > 0 ? (
-              <div className="risk-item medium">{ui.degradation_banner}</div>
-            ) : null}
-
-            {result.risks.length === 0 && result.diff_atoms.length > 0 && !isMarkdownMode ? (
-              <div className="risk-item high">{ui.no_risks_but_atoms_banner}</div>
-            ) : null}
-
-            {section === "overview" && (
-              <div>
-                <SummaryBar result={result} />
-                {isMarkdownMode ? (
-                  <p style={{ marginTop: "1rem", color: "var(--muted)", fontSize: "0.9rem" }}>
-                    {ui.overview_rules_hint || ui.rules_mode_note}
-                  </p>
-                ) : (
-                  <>
-                    <h3 style={{ marginTop: "1.5rem" }}>{diagramPreviewLabel}</h3>
-                    {diagramMeta
-                      ? renderDiagramCards(result.diagrams.slice(0, previewDiagramCount), "ov")
-                      : emptyDiagrams}
-                  </>
-                )}
-                <h3 style={{ marginTop: "1.5rem" }}>{ui.overview_risks_preview_title}</h3>
-                <RiskList risks={result.risks.slice(0, riskPreviewCount)} />
-              </div>
-            )}
-
-            {section === "summary" && <SummaryBar result={result} />}
-
-            {section === "report" && result.markdown_report && (
-              <>
-                <MarkdownReport content={result.markdown_report} />
-                {mergeReportAndRuleHits && result.rule_hits ? (
-                  <>
-                    <h3 style={{ marginTop: "1.5rem" }}>{ui.section_rule_hits || ui.nav_rule_hits}</h3>
-                    <RuleHitsPanel
-                      hits={result.rule_hits}
-                      headers={rulesMeta ? rulesMeta.table_hit_headers : []}
-                      emptyText={ui.empty_rule_hits}
-                      groupByRuleIdDefault={rulesMeta?.group_by_rule_id_default ?? true}
-                      collapseLowDefault={rulesMeta?.collapse_low_default ?? false}
-                      groupByRuleIdLabel={ui.group_by_rule_id_label}
-                      collapseLowLabel={ui.collapse_low_severity_label}
-                      hitCountLabel={ui.hit_count_label}
-                    />
-                  </>
-                ) : null}
-              </>
-            )}
-
-            {section === "rule_hits" && result.rule_hits && !mergeReportAndRuleHits && (
-              <RuleHitsPanel
-                hits={result.rule_hits}
-                headers={rulesMeta ? rulesMeta.table_hit_headers : []}
-                emptyText={ui.empty_rule_hits}
-                groupByRuleIdDefault={rulesMeta?.group_by_rule_id_default ?? true}
-                collapseLowDefault={rulesMeta?.collapse_low_default ?? false}
-                groupByRuleIdLabel={ui.group_by_rule_id_label}
-                collapseLowLabel={ui.collapse_low_severity_label}
-                hitCountLabel={ui.hit_count_label}
-              />
-            )}
-
-            {section === "diagrams" && <div>{renderDiagramBlock(result.diagrams, "full")}</div>}
-
-            {section === "risks" && <RiskList risks={result.risks} />}
-
-            {section === "missing" && (
-              <div>
-                <h3>{ui.missing_section_title}</h3>
-                {result.missing_info.map((m, i) => (
-                  <div key={i} className="risk-item low">
-                    <strong>{m.module}</strong>
-                    <p>{m.reason}</p>
-                    {m.suggestion && <p style={{ fontSize: "0.9rem" }}>{m.suggestion}</p>}
-                  </div>
-                ))}
-                {result.degradation_notes.map((n, i) => (
-                  <div key={`d-${i}`} className="risk-item medium">
-                    {n}
-                  </div>
-                ))}
-                {!result.missing_info.length && !result.degradation_notes.length && (
-                  <p>{ui.empty_missing}</p>
-                )}
-              </div>
-            )}
-
-            {showRerun && (
-              <RerunPanel
-                atoms={result.diff_atoms}
-                disabled={!!task?.rerun_used || task?.status !== "completed"}
-                onRerun={handleRerun}
-              />
-            )}
-          </div>
-        </div>
+      {task ? (
+        <ReviewLayout
+          sidebar={
+            <ReviewSidebar
+              taskId={taskId}
+              nav={nav}
+              section={section}
+              onSectionChange={(id) => setSection(id as Section)}
+              files={patchFiles}
+              selectedFile={selectedFile}
+              onSelectFile={setSelectedFile}
+              ui={detailUi}
+              rulesUi={rulesUi}
+              filesSidebarLabel={detailUi.files_sidebar_label}
+              exportLabel={rulesUi.export_markdown}
+              onJumpDiagrams={() => setSection("diagrams")}
+              showDiagramsLink={!isMarkdownMode && Boolean(diagramMeta) && Boolean(result)}
+              diagramsLinkLabel={detailUi.view_diagrams}
+            />
+          }
+          main={renderMainContent()}
+          aside={
+            <AiReviewPanel
+              result={result}
+              ui={detailUi}
+              rulesUi={rulesUi}
+              runningMessage={rulesUi.running_message}
+              isRunning={task.status === "running" || task.status === "pending"}
+              riskPreview={result?.risks.slice(0, riskPreviewCount) ?? []}
+              onViewRisks={() => setSection("risks")}
+              onViewDiagrams={() => setSection("diagrams")}
+              showDiagramsAction={!isMarkdownMode && Boolean(diagramMeta) && Boolean(result?.diagrams.length)}
+            />
+          }
+        />
+      ) : (
+        <MetaLoading />
       )}
     </div>
   );

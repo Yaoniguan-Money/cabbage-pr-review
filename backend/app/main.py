@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     client_meta,
     demo_patches,
+    detail_page_meta,
     diagram_meta,
     examples,
     health,
@@ -31,6 +32,7 @@ app.include_router(input_page_meta.router)
 app.include_router(review_depth.router)
 app.include_router(llm_mode.router)
 app.include_router(rules_meta.router)
+app.include_router(detail_page_meta.router)
 app.include_router(examples.router)
 app.include_router(demo_patches.router)
 app.include_router(tasks.router)
