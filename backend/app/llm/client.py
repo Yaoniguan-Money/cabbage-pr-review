@@ -24,7 +24,11 @@ class LLMClient:
         ctx = get_task_llm_context()
         if normalize_llm_mode(ctx.llm_mode, settings.llm_mode) == "local_only":
             return True
-        return settings.llm_enabled
+        if settings.llm_enabled:
+            return True
+        # 服务器未配置全局 Key 时，回退检查任务级 runtime_credentials
+        from app.llm.credentials_resolve import task_cloud_available
+        return task_cloud_available(ctx)
 
     def flash_json_sync(self, system: str, user: str, schema: type[T]) -> dict[str, Any]:
         if not self._allow_call():
