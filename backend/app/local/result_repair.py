@@ -97,16 +97,29 @@ def _normalize_risk_review(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _normalize_diff_atom(atom: dict[str, Any]) -> dict[str, Any]:
+def _normalize_diff_atom(atom: dict[str, Any], *, index: int = 0) -> dict[str, Any]:
     symbols = [str(x) for x in _ensure_list(atom.get("affected_symbols")) if str(x).strip()]
-    return {**atom, "affected_symbols": symbols}
+    atom_id = str(atom.get("id") or f"atom_{uuid4().hex[:8]}")
+    file_path = str(atom.get("file_path") or atom.get("filename") or atom.get("file") or f"unknown_{index}")
+    change_type = str(atom.get("change_type") or atom.get("status") or "modified")
+    if change_type not in {"added", "modified", "removed", "renamed"}:
+        change_type = "modified"
+    symbol = str(atom.get("symbol") or atom.get("name") or "")
+    return {
+        **atom,
+        "id": atom_id,
+        "file_path": file_path.replace("\\", "/"),
+        "change_type": change_type,
+        "symbol": symbol,
+        "affected_symbols": symbols,
+    }
 
 
 def _normalize_diff_compare(data: dict[str, Any]) -> dict[str, Any]:
     out = dict(data)
     for key in ("file_diffs", "function_diffs", "route_diffs", "dependency_diffs", "all_atoms"):
         items = _ensure_list(data.get(key))
-        out[key] = [_normalize_diff_atom(x) if isinstance(x, dict) else x for x in items]
+        out[key] = [_normalize_diff_atom(x, index=i) if isinstance(x, dict) else x for i, x in enumerate(items)]
     if isinstance(out.get("impact_diagram"), dict):
         out["impact_diagram"] = _normalize_diagram(out["impact_diagram"])
     return out
