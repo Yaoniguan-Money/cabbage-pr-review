@@ -251,6 +251,34 @@ describe("InputPage", () => {
     });
   });
 
+  it("服务器已配置云端 API 时无需浏览器存 Key 即可选纯云端", async () => {
+    const { fetchClientMeta, fetchRuntimeConfigMeta } = await import("../api/client");
+    vi.mocked(fetchClientMeta).mockResolvedValue({
+      ...mockClientMeta,
+      cloud_unavailable_banner: "如想体验最佳效果请配置您的 API Key",
+    });
+    vi.mocked(fetchRuntimeConfigMeta).mockResolvedValue({
+      ...mockRuntimeConfigMeta,
+      server_cloud_configured: true,
+    });
+    vi.mocked(fetchLlmModeOptions).mockResolvedValue(mockLlmOptionsResponse);
+
+    render(
+      <BrowserRouter>
+        <InputPage />
+      </BrowserRouter>,
+    );
+
+    await waitFor(() => {
+      expect(fetchRuntimeConfigMeta).toHaveBeenCalled();
+      expect(screen.queryByText("如想体验最佳效果请配置您的 API Key")).not.toBeInTheDocument();
+    });
+
+    const cloudHeading = screen.getByRole("heading", { name: "纯云端" });
+    const cloudCard = cloudHeading.closest(".option-item");
+    expect(cloudCard).not.toHaveClass("disabled");
+  });
+
   it("创建任务时传递 review_depth_mode 与 llm_mode", async () => {
     vi.mocked(createTask).mockResolvedValue({
       id: "t1",

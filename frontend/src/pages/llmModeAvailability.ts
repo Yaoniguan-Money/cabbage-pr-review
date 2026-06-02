@@ -4,12 +4,13 @@ import {
   type StoredRuntimeCredentials,
 } from "../utils/runtimeCredentialsStorage";
 
-/** 浏览器已配置 Key 时，即使 API 尚未返回 cloud_available 也视为云端可用。 */
+/** 浏览器已配置 Key，或服务器已配 Key 时，视为云端可用。 */
 export function isEffectiveCloudAvailable(
   apiCloudAvailable: boolean,
   creds: StoredRuntimeCredentials,
+  serverCloudConfigured = false,
 ): boolean {
-  return apiCloudAvailable || isCloudCredentialsEnabled(creds);
+  return apiCloudAvailable || isCloudCredentialsEnabled(creds) || serverCloudConfigured;
 }
 
 /** 当前 UI 状态下是否需要本地 Ollama（由 API 字段推导，不写死 mode id）。 */

@@ -20,6 +20,8 @@ import {
 
   fetchClientMeta,
 
+  fetchRuntimeConfigMeta,
+
   type DemoPatchScenario,
 
   type ExamplePR,
@@ -35,6 +37,8 @@ import {
   type LlmAvailabilityHints,
 
   type RulesCatalogResponse,
+
+  type RuntimeConfigPreviewResponse,
 
 } from "../api/client";
 
@@ -125,6 +129,8 @@ export default function InputPage() {
 
   const [cloudUnavailableBanner, setCloudUnavailableBanner] = useState("");
 
+  const [serverCloudConfigured, setServerCloudConfigured] = useState(false);
+
   const [runtimeCreds, setRuntimeCreds] = useState<StoredRuntimeCredentials>(() =>
     loadRuntimeCredentials(),
   );
@@ -145,7 +151,11 @@ export default function InputPage() {
         setAvailabilityHints(data.availability_hints);
         setCompressEnabled(data.default_local_compress_enabled);
 
-        const effectiveCloud = isEffectiveCloudAvailable(data.cloud_available, creds);
+        const effectiveCloud = isEffectiveCloudAvailable(
+          data.cloud_available,
+          creds,
+          serverCloudConfigured,
+        );
         const env = {
           cloudAvailable: effectiveCloud,
           localAvailable: data.local_available,
@@ -154,8 +164,9 @@ export default function InputPage() {
         const shouldPreserve = preserveSelection && !isInitialLlmOptionsLoad.current;
         isInitialLlmOptionsLoad.current = false;
 
-        const trySelectCloudWhenCredsReady = (prev: string): string | null => {
-          if (!hasKey) return null;
+        const trySelectCloudWhenReady = (prev: string): string | null => {
+          const cloudReady = hasKey || data.cloud_available || serverCloudConfigured;
+          if (!cloudReady) return null;
           const cloudOnly = data.options.find((o) => o.id === "cloud_only");
           if (
             !cloudOnly ||
@@ -184,7 +195,7 @@ export default function InputPage() {
         };
 
         setSelectedLlmMode((prev) => {
-          const upgrade = trySelectCloudWhenCredsReady(prev);
+          const upgrade = trySelectCloudWhenReady(prev);
           if (upgrade) return upgrade;
 
           if (shouldPreserve && prev) {
@@ -211,11 +222,19 @@ export default function InputPage() {
         if (requestId !== llmOptionsRequestId.current) return;
         setError(e instanceof Error ? e.message : "");
       });
-  }, []);
+  }, [serverCloudConfigured]);
 
-  const handlePreviewChange = useCallback(() => {
-    applyLlmOptions(loadRuntimeCredentials(), true);
-  }, [applyLlmOptions]);
+  const handlePreviewChange = useCallback(
+    (preview: RuntimeConfigPreviewResponse) => {
+      if (preview.server_cloud_configured) {
+        setServerCloudConfigured(true);
+        setCloudAvailable(true);
+        setCloudUnavailableBanner("");
+      }
+      applyLlmOptions(loadRuntimeCredentials(), true);
+    },
+    [applyLlmOptions],
+  );
 
   const handleRuntimeCredsUpdate = useCallback(
     (next: StoredRuntimeCredentials) => {
@@ -238,6 +257,16 @@ export default function InputPage() {
           !isCloudCredentialsEnabled(loadRuntimeCredentials())
         ) {
           setCloudUnavailableBanner(meta.cloud_unavailable_banner.trim());
+        }
+      })
+      .catch(() => {});
+
+    fetchRuntimeConfigMeta()
+      .then((meta) => {
+        if (meta.server_cloud_configured) {
+          setServerCloudConfigured(true);
+          setCloudAvailable(true);
+          setCloudUnavailableBanner("");
         }
       })
       .catch(() => {});
@@ -299,7 +328,7 @@ export default function InputPage() {
     if (!selectedLlmMode || llmOptions.length === 0) return;
     const opt = llmOptions.find((o) => o.id === selectedLlmMode);
     if (!opt) return;
-    const effective = isEffectiveCloudAvailable(cloudAvailable, runtimeCreds);
+    const effective = isEffectiveCloudAvailable(cloudAvailable, runtimeCreds, serverCloudConfigured);
     if (isLlmModeRuntimeAvailable(opt, effective, localAvailable, compressEnabled)) return;
     setSelectedLlmMode(
       pickInitialLlmMode(llmOptions, {
@@ -315,6 +344,7 @@ export default function InputPage() {
     runtimeCreds,
     localAvailable,
     compressEnabled,
+    serverCloudConfigured,
   ]);
 
 
@@ -330,7 +360,11 @@ export default function InputPage() {
   const activeLlm = llmOptions.find((o) => o.id === selectedLlmMode);
 
   /** 避免 llm-mode-options 慢请求覆盖：浏览器已配置 Key 时视为云端可用 */
-  const effectiveCloudAvailable = isEffectiveCloudAvailable(cloudAvailable, runtimeCreds);
+  const effectiveCloudAvailable = isEffectiveCloudAvailable(
+    cloudAvailable,
+    runtimeCreds,
+    serverCloudConfigured,
+  );
 
   const needsLocal = activeLlm ? needsLocalRuntime(activeLlm, compressEnabled) : false;
 
