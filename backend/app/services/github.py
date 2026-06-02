@@ -31,7 +31,8 @@ def parse_pr_url(url: str) -> tuple[str, str, int]:
 class GitHubService:
     def _headers_for_token(self, token: str | None = None) -> dict[str, str]:
         headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
-        tok = resolve_github_token(token)
+        # token 为任务级已解析的字符串；仅无 token 时回退服务器 .env
+        tok = (token or "").strip() or resolve_github_token(None)
         if tok:
             headers["Authorization"] = f"Bearer {tok}"
         return headers

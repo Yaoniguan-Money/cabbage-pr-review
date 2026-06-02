@@ -31,13 +31,17 @@ def test_headers_public_deploy_ignores_server_token(monkeypatch):
     assert "Authorization" not in headers
 
 
-def test_headers_with_resolved_token(monkeypatch):
-    monkeypatch.setattr(
-        "app.services.github.resolve_github_token",
-        lambda token: (token or "").strip() or "ghp_resolved",
-    )
+def test_headers_with_explicit_task_token():
     headers = GitHubService()._headers_for_token("ghp_task_token")
     assert headers.get("Authorization") == "Bearer ghp_task_token"
+
+
+def test_headers_fallback_to_server_token(monkeypatch):
+    monkeypatch.setattr("app.config.settings.deploy_mode", "local")
+    monkeypatch.setattr("app.config.settings.github_token", "ghp_from_env")
+    monkeypatch.setattr("app.config.settings.use_server_github_token", True)
+    headers = GitHubService()._headers_for_token(None)
+    assert headers.get("Authorization") == "Bearer ghp_from_env"
 
 
 @pytest.mark.asyncio
