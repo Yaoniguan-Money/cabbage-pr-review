@@ -19,10 +19,10 @@ class LLMRequiredError(RuntimeError):
     """未配置可用 LLM 后端时抛出。"""
 
 
-def _ensure_llm() -> None:
+def _ensure_llm(runtime_credentials=None) -> None:
     if settings.use_mock_llm:
         return
-    from app.llm.router import cloud_available, local_available
+    from app.llm.router import local_available
     from app.llm.task_context import get_task_llm_context
 
     ctx = get_task_llm_context()
@@ -31,9 +31,10 @@ def _ensure_llm() -> None:
         if not local_available() or not ctx.local_model:
             raise LLMRequiredError(HINT_LOCAL_ONLY_BACKEND)
         return
-    from app.llm.credentials_resolve import task_cloud_available
+    from app.llm.credentials_resolve import credentials_has_cloud, task_cloud_available
 
-    if not task_cloud_available(ctx):
+    # task context 尚未设置（如 create_task 预检阶段）时，回退检查 runtime_credentials
+    if not task_cloud_available(ctx) and not credentials_has_cloud(runtime_credentials):
         raise LLMRequiredError(resolve_cloud_unavailable_hint())
 
 

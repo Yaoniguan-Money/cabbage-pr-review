@@ -54,6 +54,6 @@ def ensure_llm_for_api(
     try:
         from app.agents.llm_helpers import _ensure_llm
 
-        _ensure_llm()
+        _ensure_llm(runtime_credentials=runtime_credentials)
     except LLMRequiredError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
