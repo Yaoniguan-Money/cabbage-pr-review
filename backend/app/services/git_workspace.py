@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -46,18 +48,35 @@ class GitWorkspace:
             shutil.rmtree(self.root, ignore_errors=True)
 
 
-def _git_cmd(*parts: str, token: str = "") -> list[str]:
-    """构建 git 命令；凭据通过 extraHeader 传递，避免写入 clone URL。"""
+def redact_git_secrets(text: str, *secrets: str) -> str:
+    """避免 git 失败信息把 PAT 写入任务 error_message。"""
+    out = text or ""
+    for secret in secrets:
+        if secret and len(secret) > 8:
+            out = out.replace(secret, "***")
+    return re.sub(r"ghp_[A-Za-z0-9_]+", "ghp_***", out)
+
+
+def _github_repo_url(owner: str, repo: str, token: str = "") -> str:
     if token:
-        header = f"http.https://github.com/.extraHeader=AUTHORIZATION: bearer {token}"
-        return ["git", "-c", header, *parts]
-    return ["git", *parts]
+        return f"https://x-access-token:{token}@github.com/{owner}/{repo}.git"
+    return f"https://github.com/{owner}/{repo}.git"
 
 
-def _run_git(args: list[str], cwd: Path) -> None:
-    proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=300)
+def _git_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return env
+
+
+def _run_git(args: list[str], cwd: Path, *, redact: str = "") -> None:
+    proc = subprocess.run(
+        args, cwd=cwd, capture_output=True, text=True, timeout=300, env=_git_env()
+    )
     if proc.returncode != 0:
-        raise RuntimeError(f"git {' '.join(args)} 失败: {proc.stderr or proc.stdout}")
+        detail = redact_git_secrets(proc.stderr or proc.stdout or "", redact)
+        cmd = redact_git_secrets(" ".join(args), redact)
+        raise RuntimeError(f"git {cmd} 失败: {detail}")
 
 
 def _prepare_github_workspace(
@@ -70,17 +89,19 @@ def _prepare_github_workspace(
 ) -> GitWorkspace:
     tmp = Path(tempfile.mkdtemp(prefix="pr-review-"))
     repo_dir = tmp / "repo"
-    url = f"https://github.com/{owner}/{repo}.git"
     from app.llm.credentials_resolve import resolve_github_token
 
     token = (github_token or "").strip() or resolve_github_token(None)
+    url = _github_repo_url(owner, repo, token)
     _run_git(
-        _git_cmd("clone", "--filter=blob:none", url, str(repo_dir), token=token),
+        ["git", "clone", "--filter=blob:none", url, str(repo_dir)],
         cwd=tmp,
+        redact=token,
     )
     _run_git(
-        _git_cmd("fetch", "origin", base_sha, head_sha, "--depth=1", token=token),
+        ["git", "fetch", "origin", base_sha, head_sha, "--depth=1"],
         cwd=repo_dir,
+        redact=token,
     )
     return GitWorkspace(root=repo_dir, base_sha=base_sha, head_sha=head_sha, ephemeral=True)
 

@@ -17,7 +17,7 @@ from app.local.file_io import parse_patch_text, read_local_repo
 from app.local.workflow_meta import WORKFLOW_NODE_AGENT_MAP
 from app.models.schemas import CompressStatsSchema, InputType, RuntimeCredentials, TaskOutcome, TaskRecord, TaskStatus
 from app.services.github import github_service
-from app.services.git_workspace import GitWorkspace, enrich_context_with_git
+from app.services.git_workspace import GitWorkspace, enrich_context_with_git, redact_git_secrets
 from app.services import task_progress
 from app.services.task_store import task_store
 
@@ -233,7 +233,7 @@ async def execute_task(
     except Exception as e:
         record.status = TaskStatus.FAILED
         record.outcome = TaskOutcome.FAILED
-        record.error_message = str(e)
+        record.error_message = redact_git_secrets(str(e), gh_token)
         if record.current_agent:
             _set_agent_status(record, record.current_agent, "failed", str(e))
         record.token_stats = get_task_token_stats()

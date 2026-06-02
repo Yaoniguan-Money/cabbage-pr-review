@@ -1,7 +1,18 @@
 import subprocess
 from pathlib import Path
 
-from app.services.git_workspace import GitWorkspace
+from app.services.git_workspace import GitWorkspace, _github_repo_url, redact_git_secrets
+
+
+def test_github_repo_url_with_token():
+    url = _github_repo_url("octo", "repo", "ghp_secret_token_12345")
+    assert url == "https://x-access-token:ghp_secret_token_12345@github.com/octo/repo.git"
+
+
+def test_redact_git_secrets():
+    raw = "failed with ghp_abc123xyz and bearer ghp_abc123xyz"
+    assert "ghp_abc123xyz" not in redact_git_secrets(raw, "ghp_abc123xyz")
+    assert "ghp_***" in redact_git_secrets(raw)
 
 
 def test_git_show_file(tmp_path: Path):
