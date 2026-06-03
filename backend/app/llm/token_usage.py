@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextvars import ContextVar
+import threading
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -62,21 +62,38 @@ class _TaskTokenAccumulator:
             self.any_estimated = True
 
 
-_task_token_acc: ContextVar[_TaskTokenAccumulator | None] = ContextVar(
-    "task_token_acc", default=None
-)
+# per-task dict 隔离，避免 ThreadPoolExecutor 多线程共享同一个 ContextVar 可变对象
+_accumulators: dict[str, _TaskTokenAccumulator] = {}
+_acc_lock = threading.Lock()
 
 
-def reset_task_token_usage() -> None:
-    _task_token_acc.set(_TaskTokenAccumulator())
+_DEFAULT_TASK = "_default"
+
+
+def _current_task_id() -> str:
+    """从 task_progress ContextVar 读取当前 task_id，避免循环导入。"""
+    from app.services.task_progress import _task_id_ctx
+
+    return _task_id_ctx.get() or _DEFAULT_TASK
+
+
+def reset_task_token_usage(task_id: str = "") -> None:
+    tid = task_id or _current_task_id()
+    if not tid:
+        return
+    with _acc_lock:
+        _accumulators[tid] = _TaskTokenAccumulator()
 
 
 def _get_acc() -> _TaskTokenAccumulator:
-    acc = _task_token_acc.get()
-    if acc is None:
-        acc = _TaskTokenAccumulator()
-        _task_token_acc.set(acc)
-    return acc
+    tid = _current_task_id()
+    if not tid:
+        # 无 task context 时回退临时对象
+        return _TaskTokenAccumulator()
+    with _acc_lock:
+        if tid not in _accumulators:
+            _accumulators[tid] = _TaskTokenAccumulator()
+        return _accumulators[tid]
 
 
 def record_token_usage(
@@ -169,8 +186,10 @@ def format_token_stats_display(
     return segments
 
 
-def get_task_token_stats() -> TaskTokenStatsSchema | None:
-    acc = _task_token_acc.get()
+def get_task_token_stats(task_id: str = "") -> TaskTokenStatsSchema | None:
+    tid = task_id or _current_task_id()
+    with _acc_lock:
+        acc = _accumulators.get(tid)
     if not acc or not acc.tiers:
         return None
 
@@ -224,3 +243,9 @@ def get_task_token_stats() -> TaskTokenStatsSchema | None:
             estimated=acc.any_estimated,
         ),
     )
+
+
+def cleanup_task_token_usage(task_id: str) -> None:
+    """任务结束后清理，防止内存泄漏。"""
+    with _acc_lock:
+        _accumulators.pop(task_id, None)

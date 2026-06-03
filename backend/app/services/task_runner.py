@@ -176,8 +176,8 @@ async def execute_task(
     # 脱敏日志：记录任务级 key 来源
     _log_task_key_setup(record.id, llm_ctx, runtime_credentials)
     gh_token = llm_ctx.github_token
-    reset_compress_stats()
-    reset_task_token_usage()
+    reset_compress_stats(task_id=record.id)
+    reset_task_token_usage(task_id=record.id)
     task_progress.bind_task_progress(record.id)
     try:
         pr_context, git_ws = await _prepare_context(record, github_token=gh_token)
@@ -227,7 +227,7 @@ async def execute_task(
             final_state["degradation_notes"] = merged
             record.pr_context["degradation_notes"] = merged
 
-        stats = get_compress_stats()
+        stats = get_compress_stats(task_id=record.id)
         if stats.compress_calls > 0 or stats.chars_before > 0:
             record.compress_stats = CompressStatsSchema(
                 compress_calls=stats.compress_calls,
@@ -235,7 +235,7 @@ async def execute_task(
                 chars_after=stats.chars_after,
             )
 
-        record.token_stats = get_task_token_stats()
+        record.token_stats = get_task_token_stats(task_id=record.id)
 
         result = final_state.get("final_result")
         if result:
@@ -255,12 +255,17 @@ async def execute_task(
         record.error_message = redact_git_secrets(str(e), gh_token)
         if record.current_agent:
             _set_agent_status(record, record.current_agent, "failed", str(e))
-        record.token_stats = get_task_token_stats()
+        record.token_stats = get_task_token_stats(task_id=record.id)
     finally:
         task_progress.clear_task_progress()
         if git_ws:
             git_ws.cleanup()
         clear_task_llm_context()
+        from app.llm.compress_context import cleanup_compress_stats
+        from app.llm.token_usage import cleanup_task_token_usage
+
+        cleanup_compress_stats(record.id)
+        cleanup_task_token_usage(record.id)
     record.updated_at = datetime.utcnow()
     task_store.update(record)
 

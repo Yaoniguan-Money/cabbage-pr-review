@@ -1,48 +1,39 @@
 from __future__ import annotations
 
-import asyncio
+import threading
 from typing import Callable
 
-from app.models.schemas import TaskOutcome, TaskRecord, TaskStatus
+from app.models.schemas import TaskRecord
 
 
 class TaskStore:
-    """In-memory task store with single-runner execution semantics."""
+    """In-memory task store；允许多用户并发执行任务。"""
 
     def __init__(self) -> None:
         self._tasks: dict[str, TaskRecord] = {}
-        self._lock = asyncio.Lock()
-        self._running: str | None = None
+        self._lock = threading.Lock()
 
     def get(self, task_id: str) -> TaskRecord | None:
-        return self._tasks.get(task_id)
+        with self._lock:
+            return self._tasks.get(task_id)
 
     def list_all(self) -> list[TaskRecord]:
-        return list(self._tasks.values())
+        with self._lock:
+            return list(self._tasks.values())
 
     async def create(self, record: TaskRecord) -> TaskRecord:
         record.init_agent_progress()
-        self._tasks[record.id] = record
+        with self._lock:
+            self._tasks[record.id] = record
         return record
 
     async def run_exclusive(self, task_id: str, runner: Callable) -> None:
-        async with self._lock:
-            if self._running and self._running != task_id:
-                task = self._tasks[task_id]
-                task.status = TaskStatus.FAILED
-                task.outcome = TaskOutcome.FAILED
-                task.error_message = "另有分析任务正在执行，请等待完成后再试"
-                return
-            self._running = task_id
-        try:
-            await runner()
-        finally:
-            async with self._lock:
-                if self._running == task_id:
-                    self._running = None
+        """直接执行，不做全局单任务限制。多次调用可以在不同 task_id 上并发。"""
+        await runner()
 
     def update(self, record: TaskRecord) -> None:
-        self._tasks[record.id] = record
+        with self._lock:
+            self._tasks[record.id] = record
 
 
 task_store = TaskStore()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass
 
 from app.llm.ollama_provider import OllamaProvider
@@ -25,23 +26,64 @@ class CompressStats:
     chars_after: int = 0
 
 
-_compress_stats: CompressStats = CompressStats()
-_compress_degradation_notes: list[str] = []
+# per-task dict 隔离，避免 ThreadPoolExecutor 多线程竞态
+_stats: dict[str, CompressStats] = {}
+_degradation_notes: dict[str, list[str]] = {}
+_lock = threading.Lock()
 _ollama = OllamaProvider()
 
 
-def reset_compress_stats() -> None:
-    global _compress_stats, _compress_degradation_notes
-    _compress_stats = CompressStats()
-    _compress_degradation_notes = []
+_DEFAULT_TASK = "_default"
 
 
-def get_compress_stats() -> CompressStats:
-    return _compress_stats
+def _current_task_id() -> str:
+    from app.services.task_progress import _task_id_ctx
+
+    return _task_id_ctx.get() or _DEFAULT_TASK
 
 
-def get_compress_degradation_notes() -> list[str]:
-    return list(_compress_degradation_notes)
+def _get_stats(task_id: str = "") -> CompressStats:
+    tid = task_id or _current_task_id()
+    with _lock:
+        if tid not in _stats:
+            _stats[tid] = CompressStats()
+        return _stats[tid]
+
+
+def _get_notes(task_id: str = "") -> list[str]:
+    tid = task_id or _current_task_id()
+    with _lock:
+        if tid not in _degradation_notes:
+            _degradation_notes[tid] = []
+        return _degradation_notes[tid]
+
+
+def reset_compress_stats(task_id: str = "") -> None:
+    tid = task_id or _current_task_id()
+    if not tid:
+        return
+    with _lock:
+        _stats[tid] = CompressStats()
+        _degradation_notes[tid] = []
+
+
+def get_compress_stats(task_id: str = "") -> CompressStats:
+    tid = task_id or _current_task_id()
+    with _lock:
+        return _stats.get(tid, CompressStats())
+
+
+def get_compress_degradation_notes(task_id: str = "") -> list[str]:
+    tid = task_id or _current_task_id()
+    with _lock:
+        return list(_degradation_notes.get(tid, []))
+
+
+def cleanup_compress_stats(task_id: str) -> None:
+    """任务结束后清理，防止内存泄漏。"""
+    with _lock:
+        _stats.pop(task_id, None)
+        _degradation_notes.pop(task_id, None)
 
 
 def should_compress_file(
@@ -65,8 +107,8 @@ def compress_text(content: str, *, path: str, ctx: TaskLLMContext | None = None)
         return content
     if len(content) <= 2000:
         return content
-    global _compress_stats
-    _compress_stats.chars_before += len(content)
+    stats = _get_stats()
+    stats.chars_before += len(content)
     try:
         user_msg = f"文件路径: {path}\n\n---\n{truncate(content, 12000)}"
         summary = _ollama.complete_text_sync(
@@ -76,15 +118,15 @@ def compress_text(content: str, *, path: str, ctx: TaskLLMContext | None = None)
             tier="local_compress",
         )
         out = summary.strip() or content
-        _compress_stats.compress_calls += 1
-        _compress_stats.chars_after += len(out)
+        stats.compress_calls += 1
+        stats.chars_after += len(out)
         return out
     except Exception as e:
         logger.warning("压缩失败 %s: %s，回退 truncate", path, e)
-        global _compress_degradation_notes
-        _compress_degradation_notes.append(f"本地压缩降级 {path}: {e}，已回退 truncate")
+        notes = _get_notes()
+        notes.append(f"本地压缩降级 {path}: {e}，已回退 truncate")
         out = truncate(content, 8000)
-        _compress_stats.chars_after += len(out)
+        stats.chars_after += len(out)
         return out
 
 
