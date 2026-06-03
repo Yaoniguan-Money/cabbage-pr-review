@@ -128,6 +128,23 @@ def _derive_task_completion(state: GraphState) -> tuple[TaskStatus, TaskOutcome,
     return TaskStatus.COMPLETED, TaskOutcome.OK, None
 
 
+def _log_task_key_setup(task_id: str, llm_ctx, runtime_credentials) -> None:
+    import logging
+
+    _logger = logging.getLogger(__name__)
+    has_rt = runtime_credentials is not None
+    rt_key_len = (
+        len((runtime_credentials.cloud_api_key or "").strip()) if has_rt else 0
+    )
+    ctx_key_len = len(llm_ctx.cloud_api_key.strip())
+    source = "runtime" if ctx_key_len > 0 else ("settings" if rt_key_len > 0 else "none")
+    _logger.info(
+        "task_llm_context task_id=%s has_runtime_credentials=%s runtime_cloud_key_len=%s "
+        "resolved_cloud_key_len=%s resolved_cloud_key_source=%s",
+        task_id, has_rt, rt_key_len, ctx_key_len, source,
+    )
+
+
 async def execute_task(
     record: TaskRecord,
     *,
@@ -156,6 +173,8 @@ async def execute_task(
         runtime_credentials=runtime_credentials,
     )
     set_task_llm_context(llm_ctx)
+    # 脱敏日志：记录任务级 key 来源
+    _log_task_key_setup(record.id, llm_ctx, runtime_credentials)
     gh_token = llm_ctx.github_token
     reset_compress_stats()
     reset_task_token_usage()

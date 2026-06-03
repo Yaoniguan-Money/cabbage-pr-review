@@ -34,8 +34,19 @@ def _ensure_llm(runtime_credentials=None) -> None:
     from app.llm.credentials_resolve import credentials_has_cloud, task_cloud_available
 
     # task context 尚未设置（如 create_task 预检阶段）时，回退检查 runtime_credentials
-    if not task_cloud_available(ctx) and not credentials_has_cloud(runtime_credentials):
+    has_ctx_key = task_cloud_available(ctx)
+    has_rt_key = credentials_has_cloud(runtime_credentials)
+    if not has_ctx_key and not has_rt_key:
         raise LLMRequiredError(resolve_cloud_unavailable_hint())
+
+    # 脱敏日志：记录 key 来源但不打印 key 本体
+    if has_ctx_key:
+        source = f"task_context(key_len={len(ctx.cloud_api_key.strip())})"
+    elif has_rt_key:
+        source = f"runtime_credentials(key_len={len((runtime_credentials.cloud_api_key or '').strip())})"
+    else:
+        source = "none"
+    logger.info("_ensure_llm mode=%s key_source=%s", mode, source)
 
 
 def call_flash_json(system: str, user: str, schema: type[T]) -> tuple[T, list[str]]:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextvars
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -54,10 +55,13 @@ def run_parallel_scan(state: GraphState) -> GraphState:
     }
     errors: dict[int, str] = {}
 
+    # ThreadPoolExecutor 不会自动传递 ContextVar；为每个 worker 复制一份上下文，
+    # 确保 Agent1/2 的 worker thread 能读取 task_llm_ctx（runtime_credentials）。
     with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = {
-            executor.submit(_run_scan_branch, state, agent_id): agent_id for agent_id in (1, 2)
-        }
+        futures: dict[Any, int] = {}
+        for agent_id in (1, 2):
+            ctx_copy = contextvars.copy_context()
+            futures[executor.submit(ctx_copy.run, _run_scan_branch, state, agent_id)] = agent_id
         for future in as_completed(futures):
             agent_id = futures[future]
             try:

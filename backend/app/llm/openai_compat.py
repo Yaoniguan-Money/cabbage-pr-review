@@ -14,6 +14,15 @@ from app.llm.token_usage import parse_openai_usage, record_token_usage
 logger = logging.getLogger(__name__)
 
 
+def _sanitized_cloud_source(base: str, key: str, ctx_key: str) -> str:
+    """脱敏返回 key 来源标识，不打印 key 本体。"""
+    if ctx_key.strip():
+        return f"runtime(key_len={len(ctx_key.strip())})"
+    if key.strip():
+        return "settings"
+    return "none"
+
+
 class OpenAICompatibleProvider:
     """任意 OpenAI 兼容 chat/completions 云端后端。"""
 
@@ -51,6 +60,15 @@ class OpenAICompatibleProvider:
             "Content-Type": "application/json",
         }
 
+    def _log_cloud_key_source(self, model: str, tier: str) -> None:
+        ctx = get_task_llm_context()
+        ctx_key = ctx.cloud_api_key.strip()
+        source = _sanitized_cloud_source(self._api_base, self._api_key, ctx_key)
+        logger.info(
+            "LLM call model=%s tier=%s key_source=%s",
+            model, tier, source,
+        )
+
     def _url(self) -> str:
         base, _ = self._resolve_from_task()
         return f"{base}/chat/completions"
@@ -65,6 +83,7 @@ class OpenAICompatibleProvider:
     ) -> dict[str, Any]:
         if not self.available():
             raise RuntimeError("cloud_unavailable")
+        self._log_cloud_key_source(model, tier or "unknown")
         payload = {
             "model": model,
             "messages": [
