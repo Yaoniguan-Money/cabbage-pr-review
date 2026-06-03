@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -366,6 +366,12 @@ export default function InputPage() {
     serverCloudConfigured,
   );
 
+  /** 前端凭据状态：已保存云端 Key 且开关已启用 */
+  const hasLocalCloudKey = useMemo(
+    () => runtimeCreds.enable_cloud && Boolean(runtimeCreds.cloud_api_key.trim()),
+    [runtimeCreds],
+  );
+
   const needsLocal = activeLlm ? needsLocalRuntime(activeLlm, compressEnabled) : false;
 
   const showCompress = Boolean(activeLlm?.compress_toggle);
@@ -506,7 +512,12 @@ export default function InputPage() {
 
   return (
     <div className="input-page">
-      {ui.credentials_warm_tips_title && ui.credentials_warm_tips_body ? (
+      {hasLocalCloudKey ? (
+        <div className="warm-tips-banner warm-tips-success" role="status">
+          <strong className="warm-tips-title">已配置 API Key</strong>
+          <p className="warm-tips-body">已使用本机 API Key，凭据仅保存在当前浏览器。</p>
+        </div>
+      ) : ui.credentials_warm_tips_title && ui.credentials_warm_tips_body ? (
         <div className="warm-tips-banner" role="note">
           <strong className="warm-tips-title">{ui.credentials_warm_tips_title}</strong>
           <p className="warm-tips-body">{ui.credentials_warm_tips_body}</p>

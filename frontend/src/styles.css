@@ -1829,6 +1829,15 @@ button:disabled {
   color: inherit;
 }
 
+.warm-tips-success {
+  border-color: var(--status-complete-border, #22c55e40);
+  background: var(--status-complete-bg, #22c55e10);
+}
+
+.warm-tips-success .warm-tips-title {
+  color: var(--status-complete, #16a34a);
+}
+
 .runtime-credentials-panel {
   margin-bottom: var(--space-4);
 }

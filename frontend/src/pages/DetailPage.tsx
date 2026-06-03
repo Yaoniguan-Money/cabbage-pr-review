@@ -40,6 +40,7 @@ import { SectionTransition } from "../components/motion/SectionTransition";
 import ReviewLayout from "../layouts/ReviewLayout";
 import { buildPatchFiles } from "../utils/buildPatchFiles";
 import { formatTemplate } from "../utils/formatTemplate";
+import { loadRuntimeCredentials, isCloudCredentialsEnabled } from "../utils/runtimeCredentialsStorage";
 
 type Section =
   | "overview"
@@ -498,7 +499,9 @@ export default function DetailPage() {
       {clientMeta?.use_mock_llm && clientMeta.mock_mode_banner ? (
         <div className="risk-item medium alert-banner">{clientMeta.mock_mode_banner}</div>
       ) : null}
-      {!clientMeta?.use_mock_llm && clientMeta?.cloud_unavailable_banner ? (
+      {!clientMeta?.use_mock_llm &&
+      clientMeta?.cloud_unavailable_banner &&
+      !isCloudCredentialsEnabled(loadRuntimeCredentials()) ? (
         <div className="risk-item medium alert-banner" role="status">
           {clientMeta.cloud_unavailable_banner}
         </div>
