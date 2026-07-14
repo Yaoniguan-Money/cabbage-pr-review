@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "project": "AI PR Review",
+  "run_date": "2026-07-14",
+  "dataset_config": "evidence/config/dataset-selection.json",
+  "review_config": "evidence/config/review-experiment.json",
+  "dataset_manifest": "evidence/dataset-manifest.json",
+  "modes": [
+    {
+      "id": "rules_only",
+      "run_type": "offline deterministic static rules",
+      "provider": null,
+      "repetitions_per_patch": 1
+    },
+    {
+      "id": "live_llm_single_pass_qwen_plus",
+      "run_type": "live provider component experiment",
+      "provider": "Alibaba Cloud Model Studio OpenAI-compatible endpoint",
+      "model": "qwen-plus",
+      "temperature": 0.2,
+      "repetitions_per_patch": 1
+    }
+  ],
+  "blindness": "The reviewer receives a neutral title and patch only. Source issue titles, problem statements, labels, categories, severities, construction direction, and gold locations are withheld.",
+  "retry_policy": "At most two attempts for transport errors, HTTP 408/409/429, and HTTP 5xx. Permanent HTTP errors and schema/repair failures are not retried.",
+  "selection_policy": "All 50 fixed cases are reported in one deterministic shuffled order. No best-of selection and no case deletion.",
+  "classification_failure_policy": "Provider/protocol failures are reported separately and excluded from TP/FP/FN/TN; they are never converted to negative predictions."
+}

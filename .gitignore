@@ -21,3 +21,4 @@ backend/.pytest_cache/
 *.egg-info/
 .DS_Store
 frontend/tsconfig.tsbuildinfo
+evidence/source/

@@ -1,0 +1,542 @@
+{
+  "numTotalTestSuites": 21,
+  "numPassedTestSuites": 21,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 35,
+  "numPassedTests": 35,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1784014916655,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "AgentProgressBar"
+          ],
+          "fullName": "AgentProgressBar shows parallel-active lane when two steps in same group are running",
+          "status": "passed",
+          "title": "shows parallel-active lane when two steps in same group are running",
+          "duration": 47.94910000000027,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "AgentProgressBar"
+          ],
+          "fullName": "AgentProgressBar does not mark parallel-active when only one scan step is running",
+          "status": "passed",
+          "title": "does not mark parallel-active when only one scan step is running",
+          "duration": 5.559200000000146,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919996,
+      "endTime": 1784014920049.559,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/components/AgentProgressBar.test.tsx"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "MermaidDiagram"
+          ],
+          "fullName": "MermaidDiagram 渲染失败时展示错误和原始代码",
+          "status": "passed",
+          "title": "渲染失败时展示错误和原始代码",
+          "duration": 69.22069999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014920054,
+      "endTime": 1784014920123.2207,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/components/MermaidDiagram.test.tsx"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "RuleHitsPanel"
+          ],
+          "fullName": "RuleHitsPanel 无命中时展示空态文案",
+          "status": "passed",
+          "title": "无命中时展示空态文案",
+          "duration": 34.58730000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "RuleHitsPanel"
+          ],
+          "fullName": "RuleHitsPanel 渲染表头与 message 列",
+          "status": "passed",
+          "title": "渲染表头与 message 列",
+          "duration": 25.08710000000019,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "RuleHitsPanel"
+          ],
+          "fullName": "RuleHitsPanel 按严重级别筛选",
+          "status": "passed",
+          "title": "按严重级别筛选",
+          "duration": 150.31899999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "RuleHitsPanel"
+          ],
+          "fullName": "RuleHitsPanel 折叠 LOW 时隐藏低严重级别命中",
+          "status": "passed",
+          "title": "折叠 LOW 时隐藏低严重级别命中",
+          "duration": 14.992200000000139,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "RuleHitsPanel"
+          ],
+          "fullName": "RuleHitsPanel 按规则分组时展示分组标题与命中次数",
+          "status": "passed",
+          "title": "按规则分组时展示分组标题与命中次数",
+          "duration": 10.771300000000338,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "RuleHitsPanel"
+          ],
+          "fullName": "RuleHitsPanel 取消分组后按行平铺展示",
+          "status": "passed",
+          "title": "取消分组后按行平铺展示",
+          "duration": 37.70839999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919998,
+      "endTime": 1784014920271.7085,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/components/RuleHitsPanel.test.tsx"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "DetailPage"
+          ],
+          "fullName": "DetailPage 降级且空风险时展示提示条",
+          "status": "passed",
+          "title": "降级且空风险时展示提示条",
+          "duration": 183.82810000000063,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "DetailPage"
+          ],
+          "fullName": "DetailPage 无 llmOptions 时仍按 markdown_report 展示规则报告",
+          "status": "passed",
+          "title": "无 llmOptions 时仍按 markdown_report 展示规则报告",
+          "duration": 59.82290000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "DetailPage"
+          ],
+          "fullName": "DetailPage rules_only 合并规则报告与规则命中 Tab",
+          "status": "passed",
+          "title": "rules_only 合并规则报告与规则命中 Tab",
+          "duration": 51.96280000000024,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "DetailPage"
+          ],
+          "fullName": "DetailPage 有结果时点击导出 Markdown 触发下载",
+          "status": "passed",
+          "title": "有结果时点击导出 Markdown 触发下载",
+          "duration": 74.32060000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "DetailPage"
+          ],
+          "fullName": "DetailPage 关键 meta 加载失败时展示错误而非无限 loading",
+          "status": "passed",
+          "title": "关键 meta 加载失败时展示错误而非无限 loading",
+          "duration": 5.1994000000004235,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "DetailPage"
+          ],
+          "fullName": "DetailPage 无结果时导出 Markdown 按钮禁用",
+          "status": "passed",
+          "title": "无结果时导出 Markdown 按钮禁用",
+          "duration": 14.107299999999668,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014921588,
+      "endTime": 1784014921977.1074,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/pages/DetailPage.test.tsx"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 展示首页使用说明与凭据开关",
+          "status": "passed",
+          "title": "展示首页使用说明与凭据开关",
+          "duration": 104.2222999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 展示首页温馨提示",
+          "status": "passed",
+          "title": "展示首页温馨提示",
+          "duration": 50.75890000000027,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 从 API 渲染审阅深度与推理模式文案",
+          "status": "passed",
+          "title": "从 API 渲染审阅深度与推理模式文案",
+          "duration": 11.69439999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 云端不可用时展示 client-meta 横幅",
+          "status": "passed",
+          "title": "云端不可用时展示 client-meta 横幅",
+          "duration": 100.63020000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 保存凭据后纯云端可点选且隐藏云端不可用横幅",
+          "status": "passed",
+          "title": "保存凭据后纯云端可点选且隐藏云端不可用横幅",
+          "duration": 103.58140000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 服务器已配置云端 API 时无需浏览器存 Key 即可选纯云端",
+          "status": "passed",
+          "title": "服务器已配置云端 API 时无需浏览器存 Key 即可选纯云端",
+          "duration": 18.51379999999972,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage"
+          ],
+          "fullName": "InputPage 创建任务时传递 review_depth_mode 与 llm_mode",
+          "status": "passed",
+          "title": "创建任务时传递 review_depth_mode 与 llm_mode",
+          "duration": 7.253799999999501,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "InputPage",
+            "local 不可用"
+          ],
+          "fullName": "InputPage local 不可用 local 不可用时混合模式卡片为 disabled",
+          "status": "passed",
+          "title": "local 不可用时混合模式卡片为 disabled",
+          "duration": 33.023299999999836,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014920487,
+      "endTime": 1784014920918.0232,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/pages/InputPage.test.tsx"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "pickInitialLlmMode"
+          ],
+          "fullName": "pickInitialLlmMode default 且运行时可用时选中 default",
+          "status": "passed",
+          "title": "default 且运行时可用时选中 default",
+          "duration": 2.415899999999965,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "pickInitialLlmMode"
+          ],
+          "fullName": "pickInitialLlmMode cloud 不可用时自动选中纯规则",
+          "status": "passed",
+          "title": "cloud 不可用时自动选中纯规则",
+          "duration": 0.32360000000016953,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919951,
+      "endTime": 1784014919953.416,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/pages/pickInitialLlmMode.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "resolveRunningMessage"
+          ],
+          "fullName": "resolveRunningMessage uses parallel_running_hint when two agents in same group are running",
+          "status": "passed",
+          "title": "uses parallel_running_hint when two agents in same group are running",
+          "duration": 2.397899999999936,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "resolveRunningMessage"
+          ],
+          "fullName": "resolveRunningMessage uses first running agent message when not parallel",
+          "status": "passed",
+          "title": "uses first running agent message when not parallel",
+          "duration": 0.3825000000001637,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919907,
+      "endTime": 1784014919909.398,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/utils/agentProgressMessage.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "buildPatchFiles"
+          ],
+          "fullName": "buildPatchFiles 优先使用 pr_context.patches",
+          "status": "passed",
+          "title": "优先使用 pr_context.patches",
+          "duration": 3.2090000000002874,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "buildPatchFiles"
+          ],
+          "fullName": "buildPatchFiles patches 无 additions/deletions 时从 patch 文本统计",
+          "status": "passed",
+          "title": "patches 无 additions/deletions 时从 patch 文本统计",
+          "duration": 0.3852000000001681,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "buildPatchFiles"
+          ],
+          "fullName": "buildPatchFiles 无 patches 时回退 diff_atoms.hunk_patch",
+          "status": "passed",
+          "title": "无 patches 时回退 diff_atoms.hunk_patch",
+          "duration": 0.30769999999984066,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919878,
+      "endTime": 1784014919882.3853,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/utils/buildPatchFiles.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "parseContentDispositionFilename"
+          ],
+          "fullName": "parseContentDispositionFilename 解析 quoted filename",
+          "status": "passed",
+          "title": "解析 quoted filename",
+          "duration": 2.244499999999789,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "parseContentDispositionFilename"
+          ],
+          "fullName": "parseContentDispositionFilename 无 header 时返回 null",
+          "status": "passed",
+          "title": "无 header 时返回 null",
+          "duration": 0.3423999999999978,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919922,
+      "endTime": 1784014919925.3423,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/utils/parseContentDispositionFilename.test.ts"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "runtimeCredentialsStorage"
+          ],
+          "fullName": "runtimeCredentialsStorage 保存时若已填 Key 则自动启用云端开关",
+          "status": "passed",
+          "title": "保存时若已填 Key 则自动启用云端开关",
+          "duration": 3.2644000000000233,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "runtimeCredentialsStorage"
+          ],
+          "fullName": "runtimeCredentialsStorage 加载时 enable_cloud 为 false 但有 Key 则自动视为已启用",
+          "status": "passed",
+          "title": "加载时 enable_cloud 为 false 但有 Key 则自动视为已启用",
+          "duration": 0.48129999999991924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "runtimeCredentialsStorage"
+          ],
+          "fullName": "runtimeCredentialsStorage 保存时若已填 GitHub Token 则自动启用 GitHub 开关",
+          "status": "passed",
+          "title": "保存时若已填 GitHub Token 则自动启用 GitHub 开关",
+          "duration": 0.36950000000024374,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1784014919878,
+      "endTime": 1784014919882.4812,
+      "status": "passed",
+      "message": "",
+      "name": "<project-root>/frontend/src/utils/runtimeCredentialsStorage.test.ts"
+    }
+  ]
+}

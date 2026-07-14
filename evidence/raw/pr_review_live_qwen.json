@@ -1,0 +1,2052 @@
+{
+  "schema_version": 1,
+  "mode": "live_llm_single_pass_qwen_plus",
+  "config": {
+    "schema_version": 1,
+    "rules_mode": "default YAML rule pack, balanced scope, no LLM",
+    "live_llm_mode": "single-pass structured reviewer using app.llm.openai_compat.OpenAICompatibleProvider",
+    "live_provider": "Alibaba Cloud Model Studio",
+    "live_api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "live_api_key_env": "DASHSCOPE_API_KEY",
+    "live_model": "qwen-plus",
+    "temperature": 0.2,
+    "timeout_seconds": 120,
+    "max_attempts_per_patch": 2,
+    "pricing_snapshot_utc_date": "2026-07-14",
+    "pricing_cny_per_thousand_tokens_upper_bound": {
+      "input": 0.002,
+      "output": 0.006
+    },
+    "cost_policy": "Conservative estimate uses the qwen-plus prices stated in Alibaba Cloud's official model-evaluation billing example on 2026-07-14; the console remains the billing source of truth.",
+    "match_policy": {
+      "patch_detection": "A patch is predicted positive when at least one structured risk is returned.",
+      "file_localization": "At least one predicted risk path exactly equals a target location path.",
+      "line_localization": "For a correctly localized target file, a predicted inclusive line span overlaps an exact changed target line.",
+      "severity": "At least one file-localized risk has the annotated target severity.",
+      "category": "At least one file-localized risk has the annotated category."
+    }
+  },
+  "results": [
+    {
+      "case_id": "prcase-042",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3901.81659999962,
+      "tokens": {
+        "prompt": 633,
+        "completion": 183,
+        "total": 816
+      },
+      "risks": [
+        {
+          "id": "risk_e569f061",
+          "title": "风险项 1",
+          "description": "if issubclass(enum_class, enum.Flag):\n            if PY311:\n                members = list(self.value)\n            else:\n                members, _ = enum._decompose(enum_class, self.value)\n                members = reversed(members)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if issubclass(enum_class, enum.Flag):\n            if PY311:\n                members = list(self.value)\n            else:\n                members, _ = enum._decompose(enum_class, self.value)\n                members = reversed(members)",
+          "suggestion": "The `reversed(members)` call produces an iterator, not a list; subsequent list comprehension `for item in members` will exhaust it once. This causes empty output for non-PY311 Flag enums. Replace `reversed(members)` with `list(reversed(members))` or use `reversed(list(members))`.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/migrations/serializer.py"
+          ],
+          "line_start": 128,
+          "line_end": 135,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-049",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 1045.6505000001926,
+      "tokens": {
+        "prompt": 439,
+        "completion": 6,
+        "total": 445
+      },
+      "risks": [],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-008",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5466.577500000312,
+      "tokens": {
+        "prompt": 512,
+        "completion": 214,
+        "total": 726
+      },
+      "risks": [
+        {
+          "id": "risk_e0be8f4a",
+          "title": "风险项 1",
+          "description": "except signing.BadSignature:\n            try:\n                # Return an empty session if data is not in the pre-Django 3.1\n                # format.\n                return self._legacy_decode(session_data)\n            except Exception:\n                logger = logging.getLogger('django.security.SuspiciousSession')\n                logger.warning('Session data corrupted')\n                return {}",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "except signing.BadSignature:\n            try:\n                # Return an empty session if data is not in the pre-Django 3.1\n                # format.\n                return self._legacy_decode(session_data)\n            except Exception:\n                logger = logging.getLogger('django.security.SuspiciousSession')\n                logger.warning('Session data corrupted')\n                return {}",
+          "suggestion": "The removal of the specific BadSignature exception handler and its fallback to _legacy_decode with logging erodes security posture: corrupted or maliciously crafted session data that previously triggered explicit SuspiciousSession logging and safe empty-session fallback now falls through to a generic except Exception that calls _legacy_decode unconditionally — potentially allowing deserialization of malformed or unsafe payloads without audit trail or defensive mitigation.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/sessions/backends/base.py"
+          ],
+          "line_start": 124,
+          "line_end": 132,
+          "category": "security"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-034",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3291.5044000001217,
+      "tokens": {
+        "prompt": 633,
+        "completion": 139,
+        "total": 772
+      },
+      "risks": [
+        {
+          "id": "risk_3e299cd8",
+          "title": "风险项 1",
+          "description": "return re.sub(r'[-\\s]+', '-', value).strip('-_')",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "return re.sub(r'[-\\s]+', '-', value).strip('-_')",
+          "suggestion": "The new .strip('-_') removes leading/trailing dashes and underscores *after* the final dash normalization, but the docstring claims it strips them *before* normalization. This contradicts the documented behavior and may break expectations for inputs like '--foo--' or '_foo_' where users rely on pre-normalization stripping.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/text.py"
+          ],
+          "line_start": 400,
+          "line_end": 400,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-039",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3054.401699999289,
+      "tokens": {
+        "prompt": 464,
+        "completion": 130,
+        "total": 594
+      },
+      "risks": [
+        {
+          "id": "risk_5cfaa807",
+          "title": "风险项 1",
+          "description": "bound_method = wraps(method)(partial(method.__get__(self, type(self))))",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "bound_method = wraps(method)(partial(method.__get__(self, type(self))))",
+          "suggestion": "wraps() expects a callable as first argument and returns a decorator; applying it to partial(...) breaks the binding semantics and may cause TypeError or loss of method metadata (e.g., __name__, __doc__). Remove wraps(method) — the original partial-based binding is correct and sufficient.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/decorators.py"
+          ],
+          "line_start": 40,
+          "line_end": 40,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-033",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3739.951000000474,
+      "tokens": {
+        "prompt": 524,
+        "completion": 181,
+        "total": 705
+      },
+      "risks": [
+        {
+          "id": "risk_faca3a58",
+          "title": "风险项 1",
+          "description": "async def get_response_async(self, request):\n        try:\n            return await sync_to_async(self.serve)(request)\n        except Http404 as e:\n            return await sync_to_async(response_for_exception)(request, e)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "async def get_response_async(self, request):\n        try:\n            return await sync_to_async(self.serve)(request)\n        except Http404 as e:\n            return await sync_to_async(response_for_exception)(request, e)",
+          "suggestion": "The exception handler calls sync_to_async on response_for_exception but does not preserve the original exception context or status code handling logic; response_for_exception may rely on synchronous request state (e.g., request.META, request.path) that could be inconsistent under async execution. Use a dedicated async-compatible exception responder or ensure response_for_exception is safe for async wrapping.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/staticfiles/handlers.py"
+          ],
+          "line_start": 57,
+          "line_end": 61,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-015",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4130.666000000019,
+      "tokens": {
+        "prompt": 511,
+        "completion": 214,
+        "total": 725
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of Python 2 pickled object 'L' suffix handling",
+          "description": "The removal of code that strips trailing 'L' from hexadecimal string components breaks backward compatibility with objects pickled under Python 2 (issue #13470), potentially causing ValueError or incorrect MPF reconstruction during unpickling.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "if num[1].endswith('L'):\\n                    num[1] = num[1][:-1]",
+          "suggestion": "Restore the 'L' stripping logic or verify that Python 2 pickled objects with trailing 'L' are no longer supported and cannot appear in practice; otherwise unpickling such objects will fail or produce incorrect values.",
+          "related_atoms": [],
+          "file_paths": [
+            "sympy/core/numbers.py"
+          ],
+          "line_start": 1045,
+          "line_end": 1049,
+          "category": "compatibility"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-032",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4304.088899999442,
+      "tokens": {
+        "prompt": 435,
+        "completion": 213,
+        "total": 648
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Incompatible use of __qualname__ in migration serializer",
+          "description": "Replacing __name__ with __qualname__ causes serialized references to nested classes (e.g., inner classes or methods) to include outer scope names, violating Django's migration serialization contract and causing deserialization failures when applying migrations.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "return \"%s.%s\" % (module, self.value.__qualname__), {\"import %s\" % module}",
+          "suggestion": "Use __name__ instead of __qualname__ to preserve backward compatibility and avoid serialization of nested class members (e.g., MyClass.NestedClass becomes 'MyClass.NestedClass' instead of expected 'NestedClass'), which breaks migration deserialization.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/migrations/serializer.py"
+          ],
+          "line_start": 272,
+          "line_end": 272,
+          "category": "compatibility"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-041",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4588.050999999723,
+      "tokens": {
+        "prompt": 535,
+        "completion": 175,
+        "total": 710
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Unvalidated encoder parameter may cause runtime TypeError",
+          "description": "Passing a non-JSONEncoder instance to 'encoder' will cause json.dumps to raise TypeError at runtime; no validation or type hinting exists in the new signature.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "def json_script(value, element_id=None, encoder=None):",
+          "suggestion": "Add type annotation for 'encoder' parameter (e.g., 'encoder: Optional[Type[json.JSONEncoder]] = None') and validate it is a JSONEncoder subclass before use to prevent runtime TypeError from json.dumps.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/html.py"
+          ],
+          "line_start": 62,
+          "line_end": 62,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-038",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 1020.144000000073,
+      "tokens": {
+        "prompt": 675,
+        "completion": 6,
+        "total": 681
+      },
+      "risks": [],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-023",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3146.1288000000422,
+      "tokens": {
+        "prompt": 474,
+        "completion": 109,
+        "total": 583
+      },
+      "risks": [
+        {
+          "id": "risk_3a437663",
+          "title": "风险项 1",
+          "description": "self.rhs.clear_select_clause()\\nself.rhs.add_fields(['pk'])",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "self.rhs.clear_select_clause()\\nself.rhs.add_fields(['pk'])",
+          "suggestion": "Restore the guard `if not self.rhs.has_select_fields:` to prevent unintended overwriting of user-specified select fields in subqueries that already declare fields.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/lookups.py"
+          ],
+          "line_start": 265,
+          "line_end": 267,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-044",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4500.444199999947,
+      "tokens": {
+        "prompt": 1234,
+        "completion": 223,
+        "total": 1457
+      },
+      "risks": [
+        {
+          "id": "risk_fd5f6ac0",
+          "title": "风险项 1",
+          "description": "global __version__info__  # cache it.",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "global __version__info__  # cache it.",
+          "suggestion": "Fix typo: '__version__info__' should be '__version_info__' (double underscore before and after 'info', not triple underscore before 'info'). This causes NameError on first access to __version_info__.",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/__init__.py"
+          ],
+          "line_start": 145,
+          "line_end": 145,
+          "category": "logic"
+        },
+        {
+          "id": "risk_cfc4a75e",
+          "title": "风险项 2",
+          "description": "__version_info__ = _parse_to_version_info(__version__)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "__version_info__ = _parse_to_version_info(__version__)",
+          "suggestion": "Assign to __version_info__ before using it in return statement; currently assigned after return condition, so __version_info__ is undefined when name == '__version_info__'. Move assignment before the conditional return.",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/__init__.py"
+          ],
+          "line_start": 146,
+          "line_end": 146,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 2 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-043",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3424.309500000163,
+      "tokens": {
+        "prompt": 512,
+        "completion": 138,
+        "total": 650
+      },
+      "risks": [
+        {
+          "id": "risk_c92147c5",
+          "title": "风险项 1",
+          "description": "if bulk_return and (\n                on_conflict is None or on_conflict == OnConflict.UPDATE\n            ):",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if bulk_return and (\n                on_conflict is None or on_conflict == OnConflict.UPDATE\n            ):",
+          "suggestion": "The condition allows OnConflict.UPDATE to bypass batched insert logic even when update_fields or unique_fields are missing or invalid, potentially causing database errors or silent data corruption. Add validation that update_fields and unique_fields are provided and non-empty when on_conflict == OnConflict.UPDATE.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/query.py"
+          ],
+          "line_start": 1840,
+          "line_end": 1842,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-029",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 1054.7161999993477,
+      "tokens": {
+        "prompt": 453,
+        "completion": 6,
+        "total": 459
+      },
+      "risks": [],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-005",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3473.1904999998733,
+      "tokens": {
+        "prompt": 419,
+        "completion": 143,
+        "total": 562
+      },
+      "risks": [
+        {
+          "id": "risk_121dcf9a",
+          "title": "风险项 1",
+          "description": "req = prepared_request was removed, but send() is now called with prepared_request instead of req; this bypasses any subsequent mutation or logging logic that expected the original req object to be passed",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "req = prepared_request was removed, but send() is now called with prepared_request instead of req; this bypasses any subsequent mutation or logging logic that expected the original req object to be passed",
+          "suggestion": "Ensure all side effects relying on the original req object (e.g., telemetry, middleware hooks, or auth state inspection) are preserved; if req was intentionally replaced for correctness, verify no callers depend on its identity or pre-prepare state",
+          "related_atoms": [],
+          "file_paths": [
+            "requests/sessions.py"
+          ],
+          "line_start": 172,
+          "line_end": 172,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-017",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3548.799600000166,
+      "tokens": {
+        "prompt": 404,
+        "completion": 169,
+        "total": 573
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Mouse release logic removed",
+          "description": "The removal of canvas.release_mouse(ax) may prevent proper cleanup of mouse capture state, leading to inconsistent UI behavior (e.g., stuck mouse grab, unresponsive interaction) in interactive backends like Qt or Tk.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "self.canvas.release_mouse(ax)",
+          "suggestion": "Restore the call to self.canvas.release_mouse(ax) or verify that mouse release is handled elsewhere without side effects; removal may cause resource leaks or stale mouse state in interactive backends.",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/figure.py"
+          ],
+          "line_start": 934,
+          "line_end": 934,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-011",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2747.2201999999015,
+      "tokens": {
+        "prompt": 434,
+        "completion": 115,
+        "total": 549
+      },
+      "risks": [
+        {
+          "id": "risk_b96be0f7",
+          "title": "风险项 1",
+          "description": "# discard any changes to the dpi due to pixel ratio changes\\n        state[\"_dpi\"] = state.get('_original_dpi', state['_dpi'])",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "# discard any changes to the dpi due to pixel ratio changes\\n        state[\"_dpi\"] = state.get('_original_dpi', state['_dpi'])",
+          "suggestion": "Restore the DPI restoration logic to prevent pickled figures from retaining stale or incorrect DPI values after pixel ratio adjustments.",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/figure.py"
+          ],
+          "line_start": 3026,
+          "line_end": 3027,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-001",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2747.9617000008147,
+      "tokens": {
+        "prompt": 441,
+        "completion": 100,
+        "total": 541
+      },
+      "risks": [
+        {
+          "id": "risk_8c8fcd6c",
+          "title": "风险项 1",
+          "description": "FILE_UPLOAD_PERMISSIONS = None",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "FILE_UPLOAD_PERMISSIONS = None",
+          "suggestion": "Revert to default 0o644 or explicitly document security implications of None (which causes Django to use system umask, potentially leading to overly permissive file permissions)",
+          "related_atoms": [],
+          "file_paths": [
+            "django/conf/global_settings.py"
+          ],
+          "line_start": 307,
+          "line_end": 307,
+          "category": "security"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-025",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 1220.4435000003286,
+      "tokens": {
+        "prompt": 605,
+        "completion": 6,
+        "total": 611
+      },
+      "risks": [],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-009",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 11275.76980000049,
+      "tokens": {
+        "prompt": 823,
+        "completion": 675,
+        "total": 1498
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "风险项 1",
+          "description": "try:\\n    scheme, netloc, path, query, fragment = urlsplit(value)\\nexcept ValueError:  # for example, \\\"Invalid IPv6 URL\\\"\\n    raise ValidationError(self.message, code=self.code, params={'value': value})",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "try:\\n    scheme, netloc, path, query, fragment = urlsplit(value)\\nexcept ValueError:  # for example, \\\"Invalid IPv6 URL\\\"\\n    raise ValidationError(self.message, code=self.code, params={'value': value})",
+          "suggestion": "urlsplit() is called twice in the same scope (lines 113–115 and line 128 and line 139), causing redundant parsing and potential inconsistency if value mutates or urlsplit has side effects; extract result once before all uses.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/validators.py"
+          ],
+          "line_start": 112,
+          "line_end": 115,
+          "category": "performance"
+        },
+        {
+          "id": "r2",
+          "title": "风险项 2",
+          "description": "host_match = re.search(r'^\\\\[(.+)\\\\](?::\\\\d{1,5})?$', urlsplit(value).netloc)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "host_match = re.search(r'^\\\\[(.+)\\\\](?::\\\\d{1,5})?$', urlsplit(value).netloc)",
+          "suggestion": "urlsplit(value) is called again without caching; this repeats expensive parsing and may yield different results than prior calls if urlsplit is not idempotent or value is mutable — violates consistency and harms performance.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/validators.py"
+          ],
+          "line_start": 128,
+          "line_end": 128,
+          "category": "logic"
+        },
+        {
+          "id": "r3",
+          "title": "风险项 3",
+          "description": "if len(urlsplit(value).hostname) > 253:",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if len(urlsplit(value).hostname) > 253:",
+          "suggestion": "urlsplit(value) called a third time; hostname access may fail with AttributeError if netloc is empty or malformed, and repeated parsing introduces inconsistency and overhead — cache urlsplit result once at start of __call__.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/validators.py"
+          ],
+          "line_start": 139,
+          "line_end": 139,
+          "category": "exception"
+        },
+        {
+          "id": "r4",
+          "title": "风险项 4",
+          "description": "try:\\n    super().__call__(value)\\nexcept ValidationError as e:\\n    # Trivial case failed. Try for possible IDN domain\\n    if value:\\n        try:\\n            scheme, netloc, path, query, fragment = urlsplit(value)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "try:\\n    super().__call__(value)\\nexcept ValidationError as e:\\n    # Trivial case failed. Try for possible IDN domain\\n    if value:\\n        try:\\n            scheme, netloc, path, query, fragment = urlsplit(value)",
+          "suggestion": "The original `splitted_url` was computed unconditionally before `super().__call__()`, ensuring consistent URL parsing even when trivial validation passes; now `urlsplit(value)` is only invoked on ValidationError path, so IPv6 and hostname length checks (lines 128, 139) operate on potentially unparsed or differently parsed values — breaks invariant that all checks use same urlsplit result.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/validators.py"
+          ],
+          "line_start": 110,
+          "line_end": 113,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 4 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-035",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 6547.8894999996555,
+      "tokens": {
+        "prompt": 597,
+        "completion": 352,
+        "total": 949
+      },
+      "risks": [
+        {
+          "id": "risk_a2806a10",
+          "title": "风险项 1",
+          "description": "return hash((\\n                self.message,\\n                self.code,\\n                tuple(sorted(make_hashable(self.params))) if self.params else None,\\n            ))",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "return hash((\\n                self.message,\\n                self.code,\\n                tuple(sorted(make_hashable(self.params))) if self.params else None,\\n            ))",
+          "suggestion": "Replace 'self.message' with 'self.messages' or handle message pluralization correctly; ValidationError.message is not a guaranteed attribute—use 'self.messages' (list) or 'self.error_list' consistently.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/exceptions.py"
+          ],
+          "line_start": 188,
+          "line_end": 197,
+          "category": "logic"
+        },
+        {
+          "id": "risk_55a00ad8",
+          "title": "风险项 2",
+          "description": "return hash(tuple(sorted(make_hashable(self.error_dict))))",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "return hash(tuple(sorted(make_hashable(self.error_dict))))",
+          "suggestion": "make_hashable(self.error_dict) may not preserve dict key order or handle nested mutability safely; use frozenset of (key, hash(value)) pairs instead to ensure deterministic, safe hashing.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/exceptions.py"
+          ],
+          "line_start": 194,
+          "line_end": 194,
+          "category": "logic"
+        },
+        {
+          "id": "risk_9801648e",
+          "title": "风险项 3",
+          "description": "return hash(tuple(sorted(self.error_list, key=operator.attrgetter('message'))))",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "return hash(tuple(sorted(self.error_list, key=operator.attrgetter('message'))))",
+          "suggestion": "Sorting by 'message' alone is insufficient for stable hashing—'message', 'code', and 'params' must all be included and normalized; missing make_hashable on params and code risks TypeError or inconsistent hash.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/exceptions.py"
+          ],
+          "line_start": 196,
+          "line_end": 196,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 3 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-037",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4237.575799999831,
+      "tokens": {
+        "prompt": 499,
+        "completion": 185,
+        "total": 684
+      },
+      "risks": [
+        {
+          "id": "risk_825f3ba6",
+          "title": "风险项 1",
+          "description": "if self.verbose_name_plural is None:\n            if self.verbose_name is None:\n                self.verbose_name_plural = self.model._meta.verbose_name_plural\n            else:\n                self.verbose_name_plural = format_lazy('{}s', self.verbose_name)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "if self.verbose_name_plural is None:\n            if self.verbose_name is None:\n                self.verbose_name_plural = self.model._meta.verbose_name_plural\n            else:\n                self.verbose_name_plural = format_lazy('{}s', self.verbose_name)",
+          "suggestion": "The new logic overrides self.model._meta.verbose_name_plural with a pluralized version of self.verbose_name even when self.verbose_name is explicitly set to a non-plural form (e.g., 'news'), leading to incorrect pluralization like 'newss'. The original behavior correctly used model metadata; this change breaks backward compatibility and correctness for models with custom verbose_name_plural.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/admin/options.py"
+          ],
+          "line_start": 2041,
+          "line_end": 2045,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-002",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 6430.3234999997585,
+      "tokens": {
+        "prompt": 531,
+        "completion": 347,
+        "total": 878
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Regex anchor removal enables unintended trailing characters",
+          "description": "Removing '\\Z' (end-of-string anchor) from both regex patterns allows matching strings with trailing characters after the intended username, potentially bypassing validation and accepting invalid usernames.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "regex = r'^[\\w.@+-]+$'",
+          "suggestion": "Restore end-of-string anchor: change 'r'^[\\w.@+-]+$'' to 'r'^[\\w.@+-]+\\Z'' in both ASCIIUsernameValidator and UnicodeUsernameValidator.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/auth/validators.py"
+          ],
+          "line_start": 10,
+          "line_end": 10,
+          "category": "logic"
+        },
+        {
+          "id": "r2",
+          "title": "Regex anchor removal enables unintended trailing characters",
+          "description": "Removing '\\Z' (end-of-string anchor) from both regex patterns allows matching strings with trailing characters after the intended username, potentially bypassing validation and accepting invalid usernames.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "regex = r'^[\\w.@+-]+$'",
+          "suggestion": "Restore end-of-string anchor: change 'r'^[\\w.@+-]+$'' to 'r'^[\\w.@+-]+\\Z'' in both ASCIIUsernameValidator and UnicodeUsernameValidator.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/auth/validators.py"
+          ],
+          "line_start": 27,
+          "line_end": 27,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-047",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3175.939499999913,
+      "tokens": {
+        "prompt": 443,
+        "completion": 138,
+        "total": 581
+      },
+      "risks": [
+        {
+          "id": "risk_0787654a",
+          "title": "风险项 1",
+          "description": "if isinstance(hook, (list, tuple, set)):\\n            self.hooks[event].extend(hook)\\n        else:\\n            self.hooks[event].append(hook)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "if isinstance(hook, (list, tuple, set)):\\n            self.hooks[event].extend(hook)\\n        else:\\n            self.hooks[event].append(hook)",
+          "suggestion": "Add validation that `hook` is not None before type checking, and ensure `self.hooks[event]` exists and is a list; otherwise, this may raise AttributeError or TypeError on invalid event or uninitialized hooks.",
+          "related_atoms": [],
+          "file_paths": [
+            "requests/models.py"
+          ],
+          "line_start": 466,
+          "line_end": 469,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-007",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2829.2845999994825,
+      "tokens": {
+        "prompt": 450,
+        "completion": 127,
+        "total": 577
+      },
+      "risks": [
+        {
+          "id": "risk_caf5223e",
+          "title": "风险项 1",
+          "description": "except ValueError as e:\\n            # Network filesystems may return null bytes in file paths.\\n            logger.debug('\"%s\" raised when resolving path: \"%s\"' % (str(e), path))\\n            continue",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "except ValueError as e:\\n            # Network filesystems may return null bytes in file paths.\\n            logger.debug('\"%s\" raised when resolving path: \"%s\"' % (str(e), path))\\n            continue",
+          "suggestion": "Restore the ValueError handler to prevent crashes when resolving paths containing null bytes on network filesystems.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/autoreload.py"
+          ],
+          "line_start": 146,
+          "line_end": 149,
+          "category": "exception"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-036",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2605.0585000002684,
+      "tokens": {
+        "prompt": 439,
+        "completion": 103,
+        "total": 542
+      },
+      "risks": [
+        {
+          "id": "risk_f07bf5a2",
+          "title": "风险项 1",
+          "description": "comments=self._get_dynamic_attr('item_comments', item),",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "comments=self._get_dynamic_attr('item_comments', item),",
+          "suggestion": "Ensure 'item_comments' is defined and validated for all feed items; missing or invalid return values may cause feed generation failure or expose unintended data.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/syndication/views.py"
+          ],
+          "line_start": 215,
+          "line_end": 215,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-004",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2630.1823000003424,
+      "tokens": {
+        "prompt": 432,
+        "completion": 98,
+        "total": 530
+      },
+      "risks": [
+        {
+          "id": "risk_35681e93",
+          "title": "风险项 1",
+          "description": "and has_change_permission\n-            and has_add_permission",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "and has_change_permission\n-            and has_add_permission",
+          "suggestion": "Restore 'and has_add_permission' to preserve intended authorization logic for 'show_save_as_new' button visibility.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/admin/templatetags/admin_modify.py"
+          ],
+          "line_start": 103,
+          "line_end": 103,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-019",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4019.3570999999793,
+      "tokens": {
+        "prompt": 501,
+        "completion": 116,
+        "total": 617
+      },
+      "risks": [
+        {
+          "id": "risk_91016918",
+          "title": "风险项 1",
+          "description": "Removed deprecation warning for constructing Variable from DataArray tuple, eliminating user guidance and forward-compatibility signal before the planned TypeError enforcement in 0.19.0.",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "Removed deprecation warning for constructing Variable from DataArray tuple, eliminating user guidance and forward-compatibility signal before the planned TypeError enforcement in 0.19.0.",
+          "suggestion": "Restore the deprecation warning or replace it with a clear error message if the behavior is intentionally changed to fail immediately.",
+          "related_atoms": [],
+          "file_paths": [
+            "xarray/core/variable.py"
+          ],
+          "line_start": 123,
+          "line_end": 132,
+          "category": "compatibility"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-050",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3943.058099999689,
+      "tokens": {
+        "prompt": 690,
+        "completion": 189,
+        "total": 879
+      },
+      "risks": [
+        {
+          "id": "risk_67107e48",
+          "title": "风险项 1",
+          "description": "return {monom[1] for monom in degrees}",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "return {monom[1] for monom in degrees}",
+          "suggestion": "Change return type to list to preserve order and backward compatibility; sets are unordered and may break callers expecting deterministic ordering or list-specific methods.",
+          "related_atoms": [],
+          "file_paths": [
+            "sympy/integrals/intpoly.py"
+          ],
+          "line_start": 559,
+          "line_end": 559,
+          "category": "compatibility"
+        },
+        {
+          "id": "risk_e886c6e6",
+          "title": "风险项 2",
+          "description": "return set(poly_dict.values())",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "return set(poly_dict.values())",
+          "suggestion": "Change return type to list to maintain API consistency with prior behavior and avoid nondeterministic iteration order affecting downstream logic.",
+          "related_atoms": [],
+          "file_paths": [
+            "sympy/integrals/intpoly.py"
+          ],
+          "line_start": 596,
+          "line_end": 596,
+          "category": "compatibility"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 2 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-024",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4304.473000000144,
+      "tokens": {
+        "prompt": 527,
+        "completion": 198,
+        "total": 725
+      },
+      "risks": [
+        {
+          "id": "risk_b08dbc92",
+          "title": "风险项 1",
+          "description": "obj.combined_queries = tuple(query.clone() for query in self.combined_queries)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "obj.combined_queries = tuple(query.clone() for query in self.combined_queries)",
+          "suggestion": "Restore the line to ensure combined_queries are properly cloned; omission breaks query cloning correctness for UNION/INTERSECT/EXCEPT queries.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/sql/query.py"
+          ],
+          "line_start": 308,
+          "line_end": 308,
+          "category": "logic"
+        },
+        {
+          "id": "risk_d780cfb3",
+          "title": "风险项 2",
+          "description": "for query in self.combined_queries:\n            query.set_empty()",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "for query in self.combined_queries:\n            query.set_empty()",
+          "suggestion": "Restore the loop to ensure combined_queries are set empty when main query is emptied; omission causes inconsistent state in compound queries.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/sql/query.py"
+          ],
+          "line_start": 1780,
+          "line_end": 1781,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 2 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-045",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 1197.1430999992663,
+      "tokens": {
+        "prompt": 615,
+        "completion": 6,
+        "total": 621
+      },
+      "risks": [],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-031",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 12912.014600000475,
+      "tokens": {
+        "prompt": 724,
+        "completion": 694,
+        "total": 1418
+      },
+      "risks": [
+        {
+          "id": "risk_e1a0429a",
+          "title": "风险项 1",
+          "description": "choice_max_length = 0",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "choice_max_length = 0",
+          "suggestion": "Initialize choice_max_length to 0 only if self.max_length is not None, otherwise initialization is unnecessary and may mask logic errors in subsequent conditional branches.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/fields/__init__.py"
+          ],
+          "line_start": 260,
+          "line_end": 260,
+          "category": "logic"
+        },
+        {
+          "id": "risk_99fea8d5",
+          "title": "风险项 2",
+          "description": "if self.max_length is not None and group_choices:\n                    choice_max_length = max(\n                        choice_max_length,\n                        *(len(value) for value, _ in group_choices if isinstance(value, str)),\n                    )",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if self.max_length is not None and group_choices:\n                    choice_max_length = max(\n                        choice_max_length,\n                        *(len(value) for value, _ in group_choices if isinstance(value, str)),\n                    )",
+          "suggestion": "The generator expression may raise TypeError if any 'value' is not a string and len() is called on it; add explicit type check before len(), e.g., 'if isinstance(value, str)' already exists but is inside the generator — move filtering outside or use safe len fallback.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/fields/__init__.py"
+          ],
+          "line_start": 275,
+          "line_end": 278,
+          "category": "exception"
+        },
+        {
+          "id": "risk_060c6c47",
+          "title": "风险项 3",
+          "description": "if self.max_length is not None and isinstance(value, str):\n                    choice_max_length = max(choice_max_length, len(value))",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if self.max_length is not None and isinstance(value, str):\n                    choice_max_length = max(choice_max_length, len(value))",
+          "suggestion": "This branch handles flat [value, human_name] case, but 'value' may be non-string (e.g., int); len() will raise TypeError. Add guard: 'isinstance(value, str)' is present, but len(value) must only execute when value is str — correct, but redundant check needed if value could be other types; however, existing code assumes value is str here — risk is that non-str values bypass this branch and go unhandled, yet no validation occurs. The real defect is inconsistency: group_choices branch filters str values, flat branch does not — both should apply same filtering or raise consistent error.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/fields/__init__.py"
+          ],
+          "line_start": 284,
+          "line_end": 284,
+          "category": "exception"
+        },
+        {
+          "id": "risk_ee11d247",
+          "title": "风险项 4",
+          "description": "if self.max_length is not None and choice_max_length > self.max_length:\n                return [\n                    checks.Error(\n                        \"'max_length' is too small to fit the longest value \"\n                        \"in 'choices' (%d characters).\" % choice_max_length,\n                        obj=self,\n                        id='fields.E009',\n                    ),\n                ]",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if self.max_length is not None and choice_max_length > self.max_length:\n                return [\n                    checks.Error(\n                        \"'max_length' is too small to fit the longest value \"\n                        \"in 'choices' (%d characters).\" % choice_max_length,\n                        obj=self,\n                        id='fields.E009',\n                    ),\n                ]",
+          "suggestion": "String interpolation with '%d' is unsafe if choice_max_length is not an int; though derived from len(), len() of str returns int, but if group_choices contains non-str values that slip through, choice_max_length could be 0 or uninitialized — however, initialization at line 260 ensures it's always int. Still, use .format() or f-string for safety and consistency with Django's style.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/fields/__init__.py"
+          ],
+          "line_start": 291,
+          "line_end": 298,
+          "category": "security"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 4 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-010",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4418.1109000001015,
+      "tokens": {
+        "prompt": 594,
+        "completion": 164,
+        "total": 758
+      },
+      "risks": [
+        {
+          "id": "risk_902a9ddb",
+          "title": "风险项 1",
+          "description": "dual_coef_indptr = np.arange(0, dual_coef_indices.size + 1,\n                                     dual_coef_indices.size / n_class)\n        self.dual_coef_ = sp.csr_matrix(\n            (dual_coef_data, dual_coef_indices, dual_coef_indptr),\n            (n_class, n_SV))",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "dual_coef_indptr = np.arange(0, dual_coef_indices.size + 1,\n                                     dual_coef_indices.size / n_class)\n        self.dual_coef_ = sp.csr_matrix(\n            (dual_coef_data, dual_coef_indices, dual_coef_indptr),\n            (n_class, n_SV))",
+          "suggestion": "Reintroduce the n_SV == 0 guard; np.arange with non-integer step produces float array, violating CSR indptr integer dtype requirement and causing runtime error",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/svm/base.py"
+          ],
+          "line_start": 291,
+          "line_end": 295,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-030",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4679.354300000341,
+      "tokens": {
+        "prompt": 429,
+        "completion": 217,
+        "total": 646
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Logic defect: memoryview conversion may silently truncate or misinterpret data",
+          "description": "The change adds `memoryview` to the `isinstance` check but calls `bytes(value)` unconditionally. `bytes(memoryview)` creates a copy of the underlying bytes, but if the memoryview is non-contiguous (e.g., from a sliced array or multi-dimensional buffer), `bytes()` raises `BufferError`. This introduces a new runtime exception path not present before.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "if isinstance(value, (bytes, memoryview)):\n            return bytes(value)",
+          "suggestion": "Handle memoryview explicitly: convert via `value.tobytes()` which safely handles all memoryview objects, including non-contiguous ones.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/http/response.py"
+          ],
+          "line_start": 232,
+          "line_end": 232,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-022",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3307.2071999995387,
+      "tokens": {
+        "prompt": 523,
+        "completion": 115,
+        "total": 638
+      },
+      "risks": [
+        {
+          "id": "risk_44ac8860",
+          "title": "风险项 1",
+          "description": "elif operand is None:",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "elif operand is None:",
+          "suggestion": "Replace 'operand is None' with 'operand is not None and operand.mask is None' to preserve original logic that checked operand.mask before accessing it; otherwise this introduces AttributeError when operand is not None but operand.mask is None.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/nddata/mixins/ndarithmetic.py"
+          ],
+          "line_start": 523,
+          "line_end": 523,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-040",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4244.5520000001125,
+      "tokens": {
+        "prompt": 416,
+        "completion": 202,
+        "total": 618
+      },
+      "risks": [
+        {
+          "id": "risk_867d0f49",
+          "title": "风险项 1",
+          "description": "__add__ = new_method_proxy(operator.add)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "__add__ = new_method_proxy(operator.add)",
+          "suggestion": "Ensure __add__ proxy correctly handles NotImplemented return values to avoid TypeError when operands are incompatible; verify behavior matches built-in + semantics for all wrapped types.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/functional.py"
+          ],
+          "line_start": 435,
+          "line_end": 435,
+          "category": "logic"
+        },
+        {
+          "id": "risk_d89e3233",
+          "title": "风险项 2",
+          "description": "def __radd__(self, other):\n        return other + self",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "def __radd__(self, other):\n        return other + self",
+          "suggestion": "Replace 'return other + self' with 'return operator.add(other, self._wrapped)' to avoid infinite recursion when 'other' is not a primitive and delegates to self.__add__.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/functional.py"
+          ],
+          "line_start": 438,
+          "line_end": 438,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 2 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-013",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 8007.692700000007,
+      "tokens": {
+        "prompt": 669,
+        "completion": 327,
+        "total": 996
+      },
+      "risks": [
+        {
+          "id": "risk_ad458aa2",
+          "title": "风险项 1",
+          "description": "def _regex_transformer(value: str) -> Pattern[str]:\n    \"\"\"Return `re.compile(value)`.\"\"\"\n    try:\n        return re.compile(value)\n    except re.error as e:\n        msg = f\"Error in provided regular expression: {value} beginning at index {e.pos}: {e.msg}\"\n        raise argparse.ArgumentTypeError(msg)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "def _regex_transformer(value: str) -> Pattern[str]:\n    \"\"\"Return `re.compile(value)`.\"\"\"\n    try:\n        return re.compile(value)\n    except re.error as e:\n        msg = f\"Error in provided regular expression: {value} beginning at index {e.pos}: {e.msg}\"\n        raise argparse.ArgumentTypeError(msg)",
+          "suggestion": "The function _regex_transformer was removed, but its error-handling logic (including detailed regex compilation failure messages with position and message) is now lost. The new direct use of re.compile(pattern) in _regexp_csv_transfomer and the 'regexp' entry in _TRANSFORMERS will now raise raw re.error instead of argparse.ArgumentTypeError, causing unhandled exceptions and poor CLI UX.",
+          "related_atoms": [],
+          "file_paths": [
+            "pylint/config/argument.py"
+          ],
+          "line_start": 102,
+          "line_end": 108,
+          "category": "exception"
+        },
+        {
+          "id": "risk_09b90b46",
+          "title": "风险项 2",
+          "description": "\"regexp\": re.compile,",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "\"regexp\": re.compile,",
+          "suggestion": "Using re.compile directly as a transformer bypasses argument type error handling: invalid regexes will now raise re.error instead of argparse.ArgumentTypeError, breaking argparse's expected error reporting flow and potentially crashing the CLI or showing unformatted Python exceptions to users.",
+          "related_atoms": [],
+          "file_paths": [
+            "pylint/config/argument.py"
+          ],
+          "line_start": 115,
+          "line_end": 115,
+          "category": "exception"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 2 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-016",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3286.426699999538,
+      "tokens": {
+        "prompt": 445,
+        "completion": 132,
+        "total": 577
+      },
+      "risks": [
+        {
+          "id": "risk_0d293021",
+          "title": "风险项 1",
+          "description": "if os.path.exists(fname):\\n        with open(fname, \"rb\") as f:\\n            return not self._is_expired(f)\\n        return False",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if os.path.exists(fname):\\n        with open(fname, \"rb\") as f:\\n            return not self._is_expired(f)\\n        return False",
+          "suggestion": "Remove the unconditional 'return False' after the 'with open' block; it is unreachable and masks potential exceptions (e.g., PermissionError, OSError) that should propagate or be handled explicitly.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/cache/backends/filebased.py"
+          ],
+          "line_start": 94,
+          "line_end": 97,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-048",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 8989.164300000084,
+      "tokens": {
+        "prompt": 893,
+        "completion": 527,
+        "total": 1420
+      },
+      "risks": [
+        {
+          "id": "risk_58e3294f",
+          "title": "风险项 1",
+          "description": "if isinstance(call.func, ast.Name) and call.func.id == \"all\":\n            return self._visit_all(call)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if isinstance(call.func, ast.Name) and call.func.id == \"all\":\n            return self._visit_all(call)",
+          "suggestion": "The _visit_all method unconditionally returns (ast.Num(n=1), \"\") without preserving original call context (e.g., lineno, col_offset), causing assertion error location reporting to be incorrect or lost.",
+          "related_atoms": [],
+          "file_paths": [
+            "src/_pytest/assertion/rewrite.py"
+          ],
+          "line_start": 967,
+          "line_end": 967,
+          "category": "logic"
+        },
+        {
+          "id": "risk_28bb5378",
+          "title": "风险项 2",
+          "description": "assertion_module = ast.Module(\n            body=[ast.Assert(test=gen_exp.elt, lineno=1, msg=\"\", col_offset=1)]\n        )",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "assertion_module = ast.Module(\n            body=[ast.Assert(test=gen_exp.elt, lineno=1, msg=\"\", col_offset=1)]\n        )",
+          "suggestion": "Hardcoded lineno=1 and col_offset=1 in ast.Assert breaks source location fidelity; must use call.lineno and call.col_offset to preserve accurate error reporting.",
+          "related_atoms": [],
+          "file_paths": [
+            "src/_pytest/assertion/rewrite.py"
+          ],
+          "line_start": 992,
+          "line_end": 992,
+          "category": "logic"
+        },
+        {
+          "id": "risk_70ce87c3",
+          "title": "风险项 3",
+          "description": "for_loop = ast.For(\n            iter=gen_exp.generators[0].iter,\n            target=gen_exp.generators[0].target,\n            body=assertion_module.body,\n            orelse=[],\n        )",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "for_loop = ast.For(\n            iter=gen_exp.generators[0].iter,\n            target=gen_exp.generators[0].target,\n            body=assertion_module.body,\n            orelse=[],\n        )",
+          "suggestion": "Assumes exactly one generator in gen_exp.generators; fails with SyntaxError on multi-generator comprehensions (e.g., 'all(x for x in y for z in w)') — must validate len(gen_exp.generators) == 1 or handle multiple generators.",
+          "related_atoms": [],
+          "file_paths": [
+            "src/_pytest/assertion/rewrite.py"
+          ],
+          "line_start": 998,
+          "line_end": 998,
+          "category": "logic"
+        },
+        {
+          "id": "risk_bfdbe5ce",
+          "title": "风险项 4",
+          "description": "if isinstance(call.func, ast.Name) and call.func.id == \"all\":\n            return self._visit_all(call)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "if isinstance(call.func, ast.Name) and call.func.id == \"all\":\n            return self._visit_all(call)",
+          "suggestion": "Duplicate logic added to both visit_Call_35 and visit_Call_legacy without shared abstraction; increases maintenance burden and risk of inconsistent behavior between Python versions.",
+          "related_atoms": [],
+          "file_paths": [
+            "src/_pytest/assertion/rewrite.py"
+          ],
+          "line_start": 1023,
+          "line_end": 1023,
+          "category": "other"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 4 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-028",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2723.667000000205,
+      "tokens": {
+        "prompt": 434,
+        "completion": 112,
+        "total": 546
+      },
+      "risks": [
+        {
+          "id": "risk_7cfe15ac",
+          "title": "风险项 1",
+          "description": "'path': self.path() if callable(self.path) else self.path,",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "'path': self.path() if callable(self.path) else self.path,",
+          "suggestion": "Ensure self.path() is safe to call during formfield initialization; if self.path is a property or method requiring instance state not yet available, this may raise AttributeError or TypeError.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/db/models/fields/__init__.py"
+          ],
+          "line_start": 1712,
+          "line_end": 1712,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-021",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 2567.0894999993834,
+      "tokens": {
+        "prompt": 447,
+        "completion": 97,
+        "total": 544
+      },
+      "risks": [
+        {
+          "id": "risk_ae86303a",
+          "title": "风险项 1",
+          "description": "cright[-right.shape[0]:, -right.shape[1]:] = 1",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "cright[-right.shape[0]:, -right.shape[1]:] = 1",
+          "suggestion": "Restore assignment of 'right' instead of scalar 1 to preserve intended matrix composition logic",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/modeling/separable.py"
+          ],
+          "line_start": 245,
+          "line_end": 245,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-012",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5576.83089999955,
+      "tokens": {
+        "prompt": 713,
+        "completion": 254,
+        "total": 967
+      },
+      "risks": [
+        {
+          "id": "risk_10b3823c",
+          "title": "风险项 1",
+          "description": "np.clip(xa, -1, self.N, out=xa) clips to upper bound self.N, but later xa[xa > self.N - 1] = self._i_over relies on values strictly greater than self.N - 1 being preserved; clipping to self.N means xa == self.N survives the clip and then gets overwritten by xa[xa > self.N - 1], incorrectly converting valid self.N-1+1 == self.N values (which should map to _i_over) while also failing to protect against values > self.N that exceed the clip's upper bound",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "np.clip(xa, -1, self.N, out=xa) clips to upper bound self.N, but later xa[xa > self.N - 1] = self._i_over relies on values strictly greater than self.N - 1 being preserved; clipping to self.N means xa == self.N survives the clip and then gets overwritten by xa[xa > self.N - 1], incorrectly converting valid self.N-1+1 == self.N values (which should map to _i_over) while also failing to protect against values > self.N that exceed the clip's upper bound",
+          "suggestion": "Change np.clip(xa, -1, self.N, out=xa) to np.clip(xa, -1, self.N - 1, out=xa) to ensure no value exceeds self.N - 1 before the over-range assignment, or reorder the logic to apply xa[xa > self.N - 1] = self._i_over *before* clipping",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/colors.py"
+          ],
+          "line_start": 720,
+          "line_end": 720,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-006",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 6517.87239999976,
+      "tokens": {
+        "prompt": 537,
+        "completion": 351,
+        "total": 888
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Early exit for empty arrays removed",
+          "description": "The removal of early-return checks for empty axes and xy arrays may cause np.broadcast_arrays or subsequent operations to fail with ValueError or produce incorrect results when input arrays contain zero-sized dimensions.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "if any([x.size == 0 for x in axes]):\\n                return axes",
+          "suggestion": "Restore the early-return logic for empty axes before broadcast_arrays, or ensure broadcast_arrays and downstream code handle zero-sized arrays robustly.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/wcs/wcs.py"
+          ],
+          "line_start": 1215,
+          "line_end": 1216,
+          "category": "logic"
+        },
+        {
+          "id": "r2",
+          "title": "Early exit for zero-dimensional xy array removed",
+          "description": "Removal of 'if 0 in xy.shape: return xy' may cause _denormalize_sky or func(xy, origin) to be called on degenerate arrays, potentially raising unexpected exceptions or producing invalid results.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "if 0 in xy.shape:\\n                return xy",
+          "suggestion": "Restore the zero-shape guard before _denormalize_sky and func calls, or validate that those functions safely handle zero-sized inputs.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/wcs/wcs.py"
+          ],
+          "line_start": 1238,
+          "line_end": 1239,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-014",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 6483.21660000056,
+      "tokens": {
+        "prompt": 1007,
+        "completion": 345,
+        "total": 1352
+      },
+      "risks": [
+        {
+          "id": "risk_af130bc3",
+          "title": "风险项 1",
+          "description": "y = xp.asarray(y)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "y = xp.asarray(y)",
+          "suggestion": "Ensure xp is defined and imported before use; currently xp is undefined in this scope, causing NameError at runtime.",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 162,
+          "line_end": 162,
+          "category": "exception"
+        },
+        {
+          "id": "risk_24c46d2a",
+          "title": "风险项 2",
+          "description": "y = xp.asarray(y, dtype=object)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "y = xp.asarray(y, dtype=object)",
+          "suggestion": "Ensure xp is defined and imported before use; currently xp is undefined in this scope, causing NameError at runtime.",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 165,
+          "line_end": 165,
+          "category": "exception"
+        },
+        {
+          "id": "risk_bf0297ae",
+          "title": "风险项 3",
+          "description": "y = xp.asarray(y)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "y = xp.asarray(y)",
+          "suggestion": "Ensure xp is defined and imported before use; currently xp is undefined in this scope, causing NameError at runtime.",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 309,
+          "line_end": 309,
+          "category": "exception"
+        },
+        {
+          "id": "risk_f281ee11",
+          "title": "风险项 4",
+          "description": "y = xp.asarray(y, dtype=object)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "y = xp.asarray(y, dtype=object)",
+          "suggestion": "Ensure xp is defined and imported before use; currently xp is undefined in this scope, causing NameError at runtime.",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 312,
+          "line_end": 312,
+          "category": "exception"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 4 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-046",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 3926.737700000558,
+      "tokens": {
+        "prompt": 750,
+        "completion": 179,
+        "total": 929
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Incompatible file mode for tomllib.load",
+          "description": "tomllib.load requires a text-mode file object, but the change passes text=False, causing the file to be opened in binary mode. This will cause runtime failure when loading TOML files.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "import tomllib\n            app.config.from_file(\"config.toml\", load=tomllib.load, text=False)",
+          "suggestion": "tomllib.load expects text mode by default; passing text=False causes binary mode which is incompatible with tomllib.load and will raise TypeError or UnicodeDecodeError.",
+          "related_atoms": [],
+          "file_paths": [
+            "src/flask/config.py"
+          ],
+          "line_start": 248,
+          "line_end": 248,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-018",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5056.152900000598,
+      "tokens": {
+        "prompt": 551,
+        "completion": 252,
+        "total": 803
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Uncaught exceptions and loss of encoding fallback",
+          "description": "The change removes both the apparent_encoding fallback and exception handling around decoder creation. If r.encoding is None or an invalid encoding name, codecs.getincrementaldecoder(r.encoding) will raise TypeError or LookupError respectively, causing unhandled exceptions instead of graceful degradation or informative error.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Removed fallback to r.apparent_encoding when r.encoding is None, and removed exception handling for LookupError/TypeError during decoder construction. Now directly calls codecs.getincrementaldecoder(r.encoding) without validation, which will raise TypeError or LookupError unhandled if r.encoding is None or invalid.",
+          "suggestion": "Restore the fallback to r.apparent_encoding when r.encoding is None, and wrap decoder construction in a try-except block that raises a descriptive UnicodeError for LookupError and TypeError.",
+          "related_atoms": [],
+          "file_paths": [
+            "requests/utils.py"
+          ],
+          "line_start": 363,
+          "line_end": 367,
+          "category": "exception"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-020",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4116.5970000001835,
+      "tokens": {
+        "prompt": 1166,
+        "completion": 172,
+        "total": 1338
+      },
+      "risks": [
+        {
+          "id": "risk_a3ef46c2",
+          "title": "风险项 1",
+          "description": "a = dup_max_norm(f, K)\nb = abs(dup_LC(f, K))\nn = dup_degree(f)\nreturn K.sqrt(K(n + 1))*2**n*a*b",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "a = dup_max_norm(f, K)\nb = abs(dup_LC(f, K))\nn = dup_degree(f)\nreturn K.sqrt(K(n + 1))*2**n*a*b",
+          "suggestion": "The new formula K.sqrt(K(n + 1))*2**n*a*b is not equivalent to the original Knuth-Cohen Mignotte bound and lacks the Euclidean norm, binomial coefficient scaling, and correction terms. This invalidates the bound's theoretical guarantee for root isolation or factor search; revert or formally prove equivalence.",
+          "related_atoms": [],
+          "file_paths": [
+            "sympy/polys/factortools.py"
+          ],
+          "line_start": 127,
+          "line_end": 130,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-003",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4001.1438000001363,
+      "tokens": {
+        "prompt": 682,
+        "completion": 175,
+        "total": 857
+      },
+      "risks": [
+        {
+          "id": "risk_b0057b64",
+          "title": "风险项 1",
+          "description": "Removed email from hash input: 'email_field = user.get_email_field_name()\\n        email = getattr(user, email_field, '') or ''\\n        return f'{user.pk}{user.password}{login_timestamp}{timestamp}{email}'', replaced with 'return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)'",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "Removed email from hash input: 'email_field = user.get_email_field_name()\\n        email = getattr(user, email_field, '') or ''\\n        return f'{user.pk}{user.password}{login_timestamp}{timestamp}{email}'', replaced with 'return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)'",
+          "suggestion": "Restore email (or equivalent stable identifier) in the hash to prevent token collisions across users with identical pk, password, login timestamp, and timestamp — e.g., add back email or use a deterministic, non-empty fallback like user.username",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/auth/tokens.py"
+          ],
+          "line_start": 81,
+          "line_end": 83,
+          "category": "security"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 1 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-026",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5962.263899999925,
+      "tokens": {
+        "prompt": 995,
+        "completion": 322,
+        "total": 1317
+      },
+      "risks": [
+        {
+          "id": "risk_fa920a29",
+          "title": "风险项 1",
+          "description": "lines = [lines[idx]] + lines + [lines[idx]]",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "lines = [lines[idx]] + lines + [lines[idx]]",
+          "suggestion": "Accessing lines[idx] assumes idx < len(lines); if header_rows is empty or longer than lines, this raises IndexError. Must validate idx bounds before indexing.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/io/ascii/rst.py"
+          ],
+          "line_start": 41,
+          "line_end": 41,
+          "category": "exception"
+        },
+        {
+          "id": "risk_9377853d",
+          "title": "风险项 2",
+          "description": "self.data.start_line = 2 + len(self.header.header_rows)",
+          "risk_level": "high",
+          "confidence": "medium",
+          "evidence": "self.data.start_line = 2 + len(self.header.header_rows)",
+          "suggestion": "Direct assignment to self.data.start_line bypasses encapsulation; SimpleRSTData.start_line was removed (line 30), so this assignment targets a non-existent attribute and will raise AttributeError at runtime.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/io/ascii/rst.py"
+          ],
+          "line_start": 78,
+          "line_end": 78,
+          "category": "logic"
+        },
+        {
+          "id": "risk_2758b001",
+          "title": "风险项 3",
+          "description": "def __init__(self, header_rows=None): super().__init__(delimiter_pad=None, bookend=False, header_rows=header_rows)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "def __init__(self, header_rows=None): super().__init__(delimiter_pad=None, bookend=False, header_rows=header_rows)",
+          "suggestion": "Passing header_rows to super().__init__() is invalid: FixedWidth.__init__() does not accept header_rows; this causes TypeError on instantiation.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/io/ascii/rst.py"
+          ],
+          "line_start": 46,
+          "line_end": 46,
+          "category": "exception"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 3 项（仅结构归一）"
+      ],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-027",
+      "mode": "live_llm_single_pass_qwen_plus",
+      "model": "qwen-plus",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5328.433799999402,
+      "tokens": {
+        "prompt": 607,
+        "completion": 259,
+        "total": 866
+      },
+      "risks": [
+        {
+          "id": "risk_3f226fa7",
+          "title": "风险项 1",
+          "description": "_line_type_re = re.compile(_type_re, re.IGNORECASE)",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "_line_type_re = re.compile(_type_re, re.IGNORECASE)",
+          "suggestion": "Case-insensitive compilation may cause unintended matching of command tokens (e.g., 'no' or 'No') as 'NO' in the 'command' group, violating QDP specification which treats 'NO' only as a data placeholder—not a command—and potentially misclassifying lines.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/io/ascii/qdp.py"
+          ],
+          "line_start": 71,
+          "line_end": 71,
+          "category": "logic"
+        },
+        {
+          "id": "risk_07449c51",
+          "title": "风险项 2",
+          "description": "if v.upper() == \"NO\":",
+          "risk_level": "low",
+          "confidence": "medium",
+          "evidence": "if v.upper() == \"NO\":",
+          "suggestion": "Ensure consistent case handling: the regex now matches 'NO' case-insensitively, but downstream logic only uppercases individual values; confirm all 'NO' variants (e.g., 'no', 'No') are intended to be masked and that no valid numeric strings like 'N0' (zero) are falsely matched.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/io/ascii/qdp.py"
+          ],
+          "line_start": 309,
+          "line_end": 309,
+          "category": "logic"
+        }
+      ],
+      "notes": [
+        "result_repair 自动修复风险结构 2 项（仅结构归一）"
+      ],
+      "errors": []
+    }
+  ]
+}

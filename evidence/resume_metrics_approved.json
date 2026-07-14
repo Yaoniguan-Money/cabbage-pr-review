@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-07-14",
+  "metrics": [
+    {
+      "id": "pr-review-qwen-swebench-pairs-v1",
+      "level": "A-qualified",
+      "project": "AI PR Review",
+      "baseline": "default YAML rules-only reviewer",
+      "result": {
+        "rules_precision_pct": 0.0,
+        "rules_recall_pct": 0.0,
+        "rules_f1_pct": 0.0,
+        "qwen_precision_pct": 53.33,
+        "qwen_recall_pct": 96.0,
+        "qwen_f1_pct": 68.57,
+        "qwen_file_localization_pct_all_positives": 96.0,
+        "qwen_line_localization_pct_all_positives": 96.0,
+        "qwen_clean_control_flag_rate_pct": 84.0,
+        "qwen_false_risks_per_clean_control": 1.4,
+        "qwen_latency_p50_ms": 3943.06,
+        "qwen_latency_p95_ms": 8989.16,
+        "qwen_total_tokens": 39366,
+        "qwen_estimated_cost_cny_upper_bound": 0.118332
+      },
+      "sample_size": "50 distinct pinned SWE-bench Lite Issue-PR pairs: 25 reversed gold-fix positives and 25 forward gold-fix controls",
+      "category_balance": "5 each: security, logic, exception, compatibility, performance",
+      "repetitions": "one live call per patch; no best-of selection",
+      "run_type": "live qwen-plus single-pass structured review component",
+      "raw_file": "evidence/raw/pr_review_live_qwen.json",
+      "metrics_file": "evidence/raw/pr_review_metrics.json",
+      "failures_file": "evidence/failures/pr_review_failures.jsonl",
+      "reproduce": "powershell -ExecutionPolicy Bypass -File evidence/reproduce.ps1 -IncludeLive",
+      "required_disclosure": "Report precision and the 84% clean-control flag rate with recall/F1; the result favors recall and is not production-ready precision.",
+      "forbidden_expansion": "Not natural buggy-PR traffic, globally bug-free negatives, full multi-agent workflow quality, production SLA, human acceptance, or universally correct severity/category."
+    }
+  ]
+}

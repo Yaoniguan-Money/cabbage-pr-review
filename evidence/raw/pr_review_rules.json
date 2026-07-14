@@ -1,0 +1,1210 @@
+{
+  "schema_version": 1,
+  "mode": "rules_only",
+  "config": {
+    "schema_version": 1,
+    "rules_mode": "default YAML rule pack, balanced scope, no LLM",
+    "live_llm_mode": "single-pass structured reviewer using app.llm.openai_compat.OpenAICompatibleProvider",
+    "live_provider": "Alibaba Cloud Model Studio",
+    "live_api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "live_api_key_env": "DASHSCOPE_API_KEY",
+    "live_model": "qwen-plus",
+    "temperature": 0.2,
+    "timeout_seconds": 120,
+    "max_attempts_per_patch": 2,
+    "pricing_snapshot_utc_date": "2026-07-14",
+    "pricing_cny_per_thousand_tokens_upper_bound": {
+      "input": 0.002,
+      "output": 0.006
+    },
+    "cost_policy": "Conservative estimate uses the qwen-plus prices stated in Alibaba Cloud's official model-evaluation billing example on 2026-07-14; the console remains the billing source of truth.",
+    "match_policy": {
+      "patch_detection": "A patch is predicted positive when at least one structured risk is returned.",
+      "file_localization": "At least one predicted risk path exactly equals a target location path.",
+      "line_localization": "For a correctly localized target file, a predicted inclusive line span overlaps an exact changed target line.",
+      "severity": "At least one file-localized risk has the annotated target severity.",
+      "category": "At least one file-localized risk has the annotated category."
+    }
+  },
+  "results": [
+    {
+      "case_id": "prcase-042",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 34.98760000002221,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-049",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.47959999961313,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-008",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 13.693599999896833,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-034",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 20.549400000163587,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-039",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 17.890200000692857,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-033",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 23.44000000084634,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [
+        {
+          "id": "risk_1",
+          "title": "新增 bare except 捕获所有异常，可能掩盖错误，建议指定异常类型",
+          "description": "新增 bare except 捕获所有异常，可能掩盖错误，建议指定异常类型",
+          "risk_level": "medium",
+          "confidence": "medium",
+          "evidence": "hunk 2 · 变更 +6/-0 行 | except Http404 as e:\n                return await sync_to_async(response_for_exception)(request, e)",
+          "suggestion": "规则 `python-bare-except` 命中，请人工复核相关变更",
+          "related_atoms": [
+            "atom_2"
+          ],
+          "file_paths": [
+            "django/contrib/staticfiles/handlers.py"
+          ],
+          "line_start": 60,
+          "line_end": 61,
+          "category": "exception"
+        }
+      ],
+      "rule_hits": [
+        {
+          "rule_id": "python-bare-except",
+          "severity": "MEDIUM",
+          "file_path": "django/contrib/staticfiles/handlers.py",
+          "evidence": "hunk 2 · 变更 +6/-0 行 | except Http404 as e:\n                return await sync_to_async(response_for_exception)(request, e)",
+          "message": "新增 bare except 捕获所有异常，可能掩盖错误，建议指定异常类型",
+          "line_start": 60,
+          "line_end": 61
+        }
+      ],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-015",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 18.488399999114336,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-032",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.364100000530016,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-041",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 27.685600000040722,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-038",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 25.17689999876893,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-023",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.568300000173622,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-044",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.18440000008559,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-043",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 16.981599999780883,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-029",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 18.124800000805408,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-005",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 21.247299999231473,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-017",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 13.303100000484847,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-011",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 12.754399998812005,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-001",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 17.82210000055784,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-025",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 20.61119999962102,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-009",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 24.62579999883019,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 3,
+        "reviewed_atoms": 3,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-035",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 20.11830000083137,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-037",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 16.33650000076159,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-002",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 18.790699999954086,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-047",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 15.751499999169027,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-007",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 12.448099998437101,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-036",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 18.294299999979557,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-004",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 15.837299999475363,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-019",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 12.802100000044447,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-050",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 22.64850000028673,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 3,
+        "reviewed_atoms": 3,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-024",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 12.825299998439732,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-045",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 23.857000000134576,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 3,
+        "reviewed_atoms": 3,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-031",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 32.2879000013927,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-010",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 44.78460000063933,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-030",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 34.798200000295765,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-022",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 25.09699999973236,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-040",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 24.292300000524847,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-013",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 29.850900000383263,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-016",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 27.07199999895238,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-048",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 33.77519999958167,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 3,
+        "reviewed_atoms": 3,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-028",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.265499999164604,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-021",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 23.397199998726137,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-012",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 25.31230000022333,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-006",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.547800000509596,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-014",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 29.66230000129144,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-046",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 32.58629999982077,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 3,
+        "reviewed_atoms": 3,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-018",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 19.77660000011383,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-020",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 17.58940000036091,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 1,
+        "reviewed_atoms": 1,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-003",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 26.101800000105868,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-026",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 25.132299999313545,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 3,
+        "reviewed_atoms": 3,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    },
+    {
+      "case_id": "prcase-027",
+      "mode": "rules_only",
+      "success": true,
+      "latency_ms": 21.333400000003166,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "rule_hits": [],
+      "notes": [],
+      "review_stats": {
+        "review_depth_mode": "balanced",
+        "review_depth_label": "",
+        "total_atoms": 2,
+        "reviewed_atoms": 2,
+        "batches_run": 1,
+        "pro_calls": 0,
+        "flash_calls": 0
+      }
+    }
+  ]
+}
