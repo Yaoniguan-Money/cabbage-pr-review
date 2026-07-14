@@ -24,7 +24,7 @@ def test_format_rule_hits_for_prompt():
 
 def test_run_rules_preflight_detects_secret():
     patch = """@@ -1,2 +1,3 @@
-+password = "hardcoded123456"
++password = "test-only-placeholder"
 """
     ctx = {
         "patches": [{"filename": "config.py", "status": "modified", "patch": patch}],
