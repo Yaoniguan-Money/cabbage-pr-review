@@ -1,0 +1,1270 @@
+{
+  "schema_version": 1,
+  "mode": "live_llm_single_pass",
+  "config": {
+    "schema_version": 1,
+    "rules_mode": "default YAML rule pack, balanced scope, no LLM",
+    "live_llm_mode": "single-pass structured reviewer using app.llm.openai_compat.OpenAICompatibleProvider",
+    "live_model": "deepseek-v4-flash",
+    "temperature": 0.2,
+    "timeout_seconds": 120,
+    "max_attempts_per_patch": 2,
+    "pricing_snapshot_utc_date": "2026-07-14",
+    "pricing_usd_per_million_tokens": {
+      "input_cache_miss": 0.14,
+      "output": 0.28
+    },
+    "cost_policy": "Upper bound assumes every input token is a cache miss because the app token accumulator does not retain provider cache-hit token splits.",
+    "match_policy": {
+      "patch_detection": "A patch is predicted positive when at least one structured risk is returned.",
+      "file_localization": "At least one predicted risk path exactly equals a target location path.",
+      "line_localization": "For a correctly localized target file, a predicted inclusive line span overlaps an exact changed target line.",
+      "severity": "At least one file-localized risk has the annotated target severity.",
+      "category": "At least one file-localized risk has the annotated category."
+    }
+  },
+  "results": [
+    {
+      "case_id": "prcase-001",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4293.899799999963,
+      "tokens": {
+        "prompt": 478,
+        "completion": 339,
+        "total": 817
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Insecure default file upload permissions",
+          "description": "Changing FILE_UPLOAD_PERMISSIONS from 0o644 to None removes explicit permission setting, causing uploaded files to inherit the system default umask (often 0o666 minus umask), which may result in world-readable files and reduce security.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "FILE_UPLOAD_PERMISSIONS = None (was 0o644)",
+          "suggestion": "Revert to 0o644 or set an explicit secure permission mode.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/conf/global_settings.py"
+          ],
+          "line_start": 307,
+          "line_end": 307,
+          "category": "security"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-002",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 33297.37230000046,
+      "tokens": {
+        "prompt": 569,
+        "completion": 3239,
+        "total": 3808
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Regex anchor change allows trailing newline in username",
+          "description": "Changing from \\Z to $ allows usernames ending with a newline to pass validation, which may lead to inconsistent data or unexpected behavior.",
+          "risk_level": "low",
+          "confidence": "high",
+          "evidence": "In ASCIIUsernameValidator: regex changed from r'^[\\w.@+-]+\\Z' to r'^[\\w.@+-]+$'",
+          "suggestion": "Revert to using \\Z anchor to ensure the regex matches the entire string end, including after a trailing newline.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/auth/validators.py"
+          ],
+          "line_start": 9,
+          "line_end": 9,
+          "category": "logic"
+        },
+        {
+          "id": "r2",
+          "title": "Regex anchor change allows trailing newline in username (UnicodeUsernameValidator)",
+          "description": "Same change in UnicodeUsernameValidator also allows usernames ending with newline, causing similar validation bypass.",
+          "risk_level": "low",
+          "confidence": "high",
+          "evidence": "In UnicodeUsernameValidator: regex changed from r'^[\\w.@+-]+\\Z' to r'^[\\w.@+-]+$'",
+          "suggestion": "Revert to using \\Z anchor to ensure the regex matches the entire string end.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/auth/validators.py"
+          ],
+          "line_start": 19,
+          "line_end": 19,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-003",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 13979.454799999985,
+      "tokens": {
+        "prompt": 715,
+        "completion": 1340,
+        "total": 2055
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of email from password reset token hash reduces security",
+          "description": "The hash used for password reset tokens no longer includes the user's email address. This means that if a user changes their email address, an existing password reset token will remain valid. An attacker who obtains a token before an email change can still use it afterwards, potentially allowing unauthorized password reset.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "Removed lines: `email_field = user.get_email_field_name()`, `email = getattr(user, email_field, '') or ''`, and inclusion of `email` in the return string. New return: `return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)` (line 95 in new file). Also modified docstring to no longer mention email.",
+          "suggestion": "Restore the inclusion of the user's email in the hash to ensure tokens are invalidated when the email changes. Revert the changes to `_make_hash_value` to use `return f'{user.pk}{user.password}{login_timestamp}{timestamp}{email}'` as before.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/auth/tokens.py"
+          ],
+          "line_start": 78,
+          "line_end": 95,
+          "category": "security"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-004",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5443.818199999441,
+      "tokens": {
+        "prompt": 460,
+        "completion": 493,
+        "total": 953
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Incorrect permission check for 'Save as new' button",
+          "description": "Changed permission from has_add_permission to has_change_permission, allowing users with change-only permission to see and potentially use the 'Save as new' action, which requires add permission.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "Line 103: 'show_save_as_new': not is_popup and has_change_permission and change and save_as (was has_add_permission)",
+          "suggestion": "Revert to has_add_permission, as 'Save as new' requires add permission.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/admin/templatetags/admin_modify.py"
+          ],
+          "line_start": 103,
+          "line_end": 103,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-005",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 5066.675299999588,
+      "tokens": {
+        "prompt": 442,
+        "completion": 421,
+        "total": 863
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of req update breaks redirect chain",
+          "description": "In `resolve_redirects`, the line `req = prepared_request` was deleted, which previously updated the local variable `req` to the latest prepared request. In the loop, subsequent iterations rely on `req` being the current request (e.g., for history tracking or further redirects). Without this update, `req` remains the original request, causing incorrect behavior in subsequent redirects.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Deleted line: `req = prepared_request` (line -171) and changed argument from `req` to `prepared_request` in `self.send()`",
+          "suggestion": "Restore the assignment `req = prepared_request` after preparing the new request to ensure `req` reflects the current request for subsequent iterations.",
+          "related_atoms": [],
+          "file_paths": [
+            "requests/sessions.py"
+          ],
+          "line_start": 171,
+          "line_end": 174,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-006",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 6294.5095000004585,
+      "tokens": {
+        "prompt": 561,
+        "completion": 619,
+        "total": 1180
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of empty array handling may cause exception",
+          "description": "Removing the early returns for empty arrays in `_return_list_of_arrays` and `_return_single_array` can cause `np.broadcast_arrays` or `func(xy, origin)` to raise exceptions (e.g., `ValueError` for broadcasting empty arrays) when empty arrays are passed, leading to crashes.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "Lines removed: `if any([x.size == 0 for x in axes]): return axes` and `if 0 in xy.shape: return xy`",
+          "suggestion": "Restore the removed empty array checks or add equivalent handling to prevent exceptions on empty inputs.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/wcs/wcs.py"
+          ],
+          "line_start": 1215,
+          "line_end": 1215,
+          "category": "exception"
+        },
+        {
+          "id": "r2",
+          "title": "Removal of empty array handling may cause exception in _return_single_array",
+          "description": "Same defect in `_return_single_array`: removing the empty shape check can cause `func(xy, origin)` to fail on empty arrays.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "Line removed: `if 0 in xy.shape: return xy`",
+          "suggestion": "Restore the check or handle empty arrays appropriately.",
+          "related_atoms": [],
+          "file_paths": [
+            "astropy/wcs/wcs.py"
+          ],
+          "line_start": 1238,
+          "line_end": 1238,
+          "category": "exception"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-007",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 31708.80969999962,
+      "tokens": {
+        "prompt": 466,
+        "completion": 2817,
+        "total": 3283
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of ValueError exception handling causes crash on null bytes in file paths",
+          "description": "Deleted except ValueError block in iter_modules_and_files will cause unhandled ValueError when path.resolve() encounters null bytes from network filesystems, leading to application crash.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Deleted lines: except ValueError as e: ... continue",
+          "suggestion": "Restore removed except ValueError block to handle network filesystem paths safely.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/utils/autoreload.py"
+          ],
+          "line_start": 145,
+          "line_end": 145,
+          "category": "exception"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-008",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 9140.757099999973,
+      "tokens": {
+        "prompt": 547,
+        "completion": 833,
+        "total": 1380
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of BadSignature handling may cause unhandled exception",
+          "description": "The diff removes the dedicated `except signing.BadSignature` block which previously attempted `_legacy_decode` and, on failure, logged a warning and returned an empty dict. Now, a `BadSignature` exception is caught by the generic `except Exception` clause which calls `self._legacy_decode(session_data)` directly. If `_legacy_decode` raises an exception, it will propagate out of the `decode` method (no inner try), potentially causing a 500 error or session failure.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Removed lines:\n-        except signing.BadSignature:\n-            try:\n-                return self._legacy_decode(session_data)\n-            except Exception:\n-                logger = logging.getLogger('django.security.SuspiciousSession')\n-                logger.warning('Session data corrupted')\n-                return {}",
+          "suggestion": "Restore the removed `except signing.BadSignature` block to maintain safe fallback for legacy session data. Alternatively, ensure that `_legacy_decode` is wrapped in a try-except inside the generic `except Exception` block to avoid unhandled exceptions.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/contrib/sessions/backends/base.py"
+          ],
+          "line_start": 124,
+          "line_end": 131,
+          "category": "exception"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-009",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 17831.979800000227,
+      "tokens": {
+        "prompt": 847,
+        "completion": 1712,
+        "total": 2559
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Unhandled ValueError from urlsplit in host_match check",
+          "description": "urlsplit(value) is called on line 127 without exception handling. If the URL contains an invalid IPv6 address (e.g., 'http://[invalid'), urlsplit raises ValueError, which is no longer caught by the removed outer try-except. This changes behavior from a ValidationError to an unhandled exception.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Line 127: `host_match = re.search(r'^\\[(.+)\\](?::\\d{1,5})?$', urlsplit(value).netloc)` – original code used pre-parsed `splitted_url.netloc` with proper exception handling.",
+          "suggestion": "Either preserve the parsed result from the earlier try-except block or wrap this urlsplit call in a try-except to catch ValueError and raise ValidationError, maintaining the original behavior.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/validators.py"
+          ],
+          "line_start": 127,
+          "line_end": 127,
+          "category": "exception"
+        },
+        {
+          "id": "r2",
+          "title": "TypeError when hostname is None in length check",
+          "description": "Line 139: `if len(urlsplit(value).hostname) > 253:` calls len() on hostname without checking for None. If the URL has no hostname (e.g., 'file:///'), urlsplit(...).hostname returns None, causing a TypeError. Original code guarded with `if splitted_url.hostname is None or ...`.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Line 139: `if len(urlsplit(value).hostname) > 253:` – removed the `hostname is None` check from the original line `if splitted_url.hostname is None or len(splitted_url.hostname) > 253:`.",
+          "suggestion": "Restore the None check: `if urlsplit(value).hostname is None or len(urlsplit(value).hostname) > 253:` or re-introduce a parsed variable to avoid redundant calls.",
+          "related_atoms": [],
+          "file_paths": [
+            "django/core/validators.py"
+          ],
+          "line_start": 139,
+          "line_end": 139,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-010",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 6453.223900000012,
+      "tokens": {
+        "prompt": 630,
+        "completion": 486,
+        "total": 1116
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Zero support vectors causes division by zero in np.arange step",
+          "description": "When n_SV == 0, dual_coef_indices.size is 0, and the step parameter dual_coef_indices.size / n_class becomes 0. np.arange raises ValueError because step cannot be zero. This breaks the _sparse_fit method for cases with no support vectors.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Removed the if not n_SV: guard and directly compute dual_coef_indptr with step = dual_coef_indices.size / n_class, which is zero when n_SV=0.",
+          "suggestion": "Restore the conditional branch for n_SV == 0, or handle the zero-step case separately, e.g., using np.array([0]) as indptr.",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/svm/base.py"
+          ],
+          "line_start": 289,
+          "line_end": 294,
+          "category": "exception"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-011",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 4109.808100000009,
+      "tokens": {
+        "prompt": 465,
+        "completion": 339,
+        "total": 804
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removed dpi restoration during pickling",
+          "description": "Deleting the line that resets dpi to original value before pickling may cause incorrect dpi serialization when pixel ratio changes, leading to inconsistent figure sizes after unpickling.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "Removed line: state[\"_dpi\"] = state.get('_original_dpi', state['_dpi'])",
+          "suggestion": "Restore the line or ensure dpi consistency during pickling by keeping the original dpi.",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/figure.py"
+          ],
+          "line_start": 3026,
+          "line_end": 3026,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-012",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 31750.312600000143,
+      "tokens": {
+        "prompt": 768,
+        "completion": 3103,
+        "total": 3871
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Missing astype(int) for non-float arrays",
+          "description": "The refactoring moved the `xa = xa.astype(int)` call inside the `if xa.dtype.kind == 'f':` block, but previously it was executed for all data types (including integers) via a separate `with np.errstate(invalid='ignore'):` block. As a result, when `xa` is not a float (e.g., unsigned integers), the conversion to `int` is skipped, potentially causing type mismatch errors or incorrect behavior in subsequent operations like indexing with `xa[xa > self.N - 1]`.",
+          "risk_level": "high",
+          "confidence": "high",
+          "evidence": "Original code had `with np.errstate(invalid='ignore'):` followed by `xa = xa.astype(int)` outside the `if` block. New code only has `xa = xa.astype(int)` inside the `if` block.",
+          "suggestion": "Restore the `xa = xa.astype(int)` call to execute for all data types, either by moving it back outside the `if` block or by adding an `else` clause for non-float types.",
+          "related_atoms": [],
+          "file_paths": [
+            "lib/matplotlib/colors.py"
+          ],
+          "line_start": 716,
+          "line_end": 716,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-013",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 21091.410899999573,
+      "tokens": {
+        "prompt": 703,
+        "completion": 1929,
+        "total": 2632
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "Removal of error handling for regex compilation",
+          "description": "The _regex_transformer function was removed and replaced with direct re.compile calls. This eliminates the conversion of re.error to argparse.ArgumentTypeError, causing unhandled re.error exceptions when users provide invalid regex patterns, leading to less friendly error messages and potential argparse crash.",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "Deleted _regex_transformer (lines 102-110 in old file) and replaced its usage in _regexp_csv_transfomer (line 103 new) and the 'regexp' mapping (line 130 new) with bare re.compile.",
+          "suggestion": "Restore _regex_transformer or wrap re.compile calls in try-except to raise ArgumentTypeError on re.error.",
+          "related_atoms": [],
+          "file_paths": [
+            "pylint/config/argument.py"
+          ],
+          "line_start": 103,
+          "line_end": 103,
+          "category": "exception"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-014",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": true,
+      "attempts": 1,
+      "latency_ms": 39440.51159999981,
+      "tokens": {
+        "prompt": 1067,
+        "completion": 3912,
+        "total": 4979
+      },
+      "risks": [
+        {
+          "id": "r1",
+          "title": "缺失稀疏矩阵支持 - is_multilabel",
+          "description": "原代码使用 check_array 且 accept_sparse=True 允许 scipy 稀疏矩阵输入。现改用 xp.asarray，它可能无法处理稀疏矩阵，导致 TypeError 或意外转换为密集数组，破坏向后兼容性。",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "替换前: y = check_array(y, dtype=None, **check_y_kwargs) 其中 check_y_kwargs 包含 accept_sparse=True。替换后: y = xp.asarray(y)。",
+          "suggestion": "在 xp.asarray 调用前添加稀疏矩阵检测，若为稀疏矩阵则保留原 check_array 调用或使用 xp.asarray 支持的稀疏转换。",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 160,
+          "line_end": 160,
+          "category": "compatibility"
+        },
+        {
+          "id": "r2",
+          "title": "缺少复杂数据检查 - is_multilabel",
+          "description": "原代码在捕获 VisibleDeprecationWarning 或 ValueError 后，检查异常消息是否以 'Complex data not supported' 开头，若是则重新抛出。新代码完全移除了该检查，导致复杂数据可能被静默转换为 object 类型，改变了原有行为。",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "原代码: except (np.VisibleDeprecationWarning, ValueError) as e:\n    if str(e).startswith(\"Complex data not supported\"):\n        raise\n    y = check_array(y, dtype=object, **check_y_kwargs)\n新代码: except (np.VisibleDeprecationWarning, ValueError):\n    y = xp.asarray(y, dtype=object)",
+          "suggestion": "恢复对复杂数据异常的检查，在 except 块中判断异常消息内容并重新抛出。",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 161,
+          "line_end": 162,
+          "category": "logic"
+        },
+        {
+          "id": "r3",
+          "title": "缺失稀疏矩阵支持 - type_of_target",
+          "description": "与 is_multilabel 类似，type_of_target 中原使用 check_array 且 accept_sparse=True 支持稀疏矩阵，现改用 xp.asarray，可能导致稀疏矩阵输入失败或错误处理。",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "替换前: y = check_array(y, dtype=None, **check_y_kwargs) 其中 check_y_kwargs 包含 accept_sparse=True。替换后: y = xp.asarray(y)。",
+          "suggestion": "在 xp.asarray 调用前添加稀疏矩阵检测，若为稀疏矩阵则保留原 check_array 调用或使用 xp.asarray 支持的稀疏转换。",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 305,
+          "line_end": 305,
+          "category": "compatibility"
+        },
+        {
+          "id": "r4",
+          "title": "缺少复杂数据检查 - type_of_target",
+          "description": "与 is_multilabel 类似，type_of_target 中原有复杂数据异常检查，新代码已移除，导致复杂数据可能被静默转换为 object 类型。",
+          "risk_level": "medium",
+          "confidence": "high",
+          "evidence": "原代码: except (np.VisibleDeprecationWarning, ValueError) as e:\n    if str(e).startswith(\"Complex data not supported\"):\n        raise\n    y = check_array(y, dtype=object, **check_y_kwargs)\n新代码: except (np.VisibleDeprecationWarning, ValueError):\n    y = xp.asarray(y, dtype=object)",
+          "suggestion": "恢复对复杂数据异常的检查，在 except 块中判断异常消息内容并重新抛出。",
+          "related_atoms": [],
+          "file_paths": [
+            "sklearn/utils/multiclass.py"
+          ],
+          "line_start": 306,
+          "line_end": 308,
+          "category": "logic"
+        }
+      ],
+      "notes": [],
+      "errors": []
+    },
+    {
+      "case_id": "prcase-015",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2100.111300000208,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-016",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2061.660999999731,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-017",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2054.0318000003026,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-018",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2153.0554999999367,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-019",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2034.8545999995622,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-020",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2061.388699999952,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-021",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2179.301399999531,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-022",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2097.250300000269,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-023",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2007.6780999997936,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-024",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2131.9668999994974,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-025",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 1983.6747999997897,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-026",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 1988.249499999256,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-027",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2142.3949999998513,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-028",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2090.498900000057,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-029",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2134.0899000006175,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-030",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2203.551499999776,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-031",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2112.952700000278,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-032",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2068.773500000134,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-033",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2156.8735999999262,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-034",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2080.86430000003,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-035",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2105.062000000544,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-036",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2132.724699999926,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-037",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2070.4698999998072,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-038",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2122.070399999757,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-039",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2193.9012999991974,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-040",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2086.3218000004053,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-041",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2059.118600000147,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-042",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2136.8865000004007,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-043",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2060.9544999997524,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-044",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2116.300100000444,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-045",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2096.0175000000163,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-046",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2007.7940000001036,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-047",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2751.5088999998625,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-048",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2144.70270000038,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-049",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2034.6444000006159,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    },
+    {
+      "case_id": "prcase-050",
+      "mode": "live_llm_single_pass",
+      "model": "deepseek-v4-flash",
+      "success": false,
+      "attempts": 2,
+      "latency_ms": 2003.8264999993771,
+      "tokens": {
+        "prompt": 0,
+        "completion": 0,
+        "total": 0
+      },
+      "risks": [],
+      "notes": [],
+      "errors": [
+        "attempt 1: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402",
+        "attempt 2: HTTPStatusError: Client error '402 Payment Required' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+      ]
+    }
+  ]
+}

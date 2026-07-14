@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_url": "https://huggingface.co/datasets/SWE-bench/SWE-bench_Lite/resolve/69611d31007e1c6731db8bd5b5c3f2d33f5bab6e/data/test-00000-of-00001.parquet",
+  "source_revision": "69611d31007e1c6731db8bd5b5c3f2d33f5bab6e",
+  "source_parquet_sha256": "f46f2e3f003f2552932393da4b223e1e0456a2c71eba8b73ae58f29646c1278b",
+  "dataset_path": "evidence/datasets/pr_review_cases.jsonl",
+  "dataset_sha256": "651d546291295dd42464da036007bdb2a653e51243838cbd9488cf0f7c85a9f7",
+  "total_patches": 50,
+  "distinct_source_issue_pr_pairs": 50,
+  "source_pair_basis": "Each selected row is one pinned SWE-bench Lite Issue-PR pair; the row carries the official gold patch. Tracker URLs identify the issue and are not asserted to be PR URLs.",
+  "positive_reverse_bug_patches": 25,
+  "negative_forward_fix_controls": 25,
+  "categories": {
+    "security": 5,
+    "exception": 5,
+    "compatibility": 5,
+    "performance": 5,
+    "logic": 5
+  },
+  "case_order_seed": 260714,
+  "label_limit": "Forward controls are accepted source fixes with no target issue defect; they are not guaranteed free of every unrelated defect."
+}

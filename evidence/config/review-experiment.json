@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "rules_mode": "default YAML rule pack, balanced scope, no LLM",
+  "live_llm_mode": "single-pass structured reviewer using app.llm.openai_compat.OpenAICompatibleProvider",
+  "live_provider": "Alibaba Cloud Model Studio",
+  "live_api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "live_api_key_env": "DASHSCOPE_API_KEY",
+  "live_model": "qwen-plus",
+  "temperature": 0.2,
+  "timeout_seconds": 120,
+  "max_attempts_per_patch": 2,
+  "pricing_snapshot_utc_date": "2026-07-14",
+  "pricing_source_url": "https://help.aliyun.com/en/model-studio/model-evaluation-overview",
+  "pricing_cny_per_thousand_tokens_upper_bound": {
+    "input": 0.002,
+    "output": 0.006
+  },
+  "cost_policy": "Conservative estimate uses the qwen-plus prices stated in Alibaba Cloud's official model-evaluation billing example on 2026-07-14; the console remains the billing source of truth.",
+  "percentile_method": "nearest-rank percentile over all successful per-patch calls",
+  "match_policy": {
+    "patch_detection": "A patch is predicted positive when at least one structured risk is returned.",
+    "file_localization": "At least one predicted risk path exactly equals a target location path.",
+    "line_localization": "For a correctly localized target file, a predicted inclusive line span overlaps an exact changed target line.",
+    "severity": "At least one file-localized risk has the annotated target severity.",
+    "category": "At least one file-localized risk has the annotated category."
+  }
+}

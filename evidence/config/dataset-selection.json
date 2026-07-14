@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_dataset": "SWE-bench/SWE-bench_Lite",
+  "source_revision": "69611d31007e1c6731db8bd5b5c3f2d33f5bab6e",
+  "source_split": "test",
+  "case_order_seed": 260714,
+  "positive_reverse_patch_indices": {
+    "security": [6, 12, 57, 112, 150],
+    "exception": [5, 18, 53, 86, 199],
+    "compatibility": [125, 134, 165, 205, 236],
+    "performance": [109, 138, 154, 159, 273],
+    "logic": [0, 3, 22, 48, 190]
+  },
+  "negative_forward_patch_indices": [1, 2, 7, 11, 13, 21, 30, 44, 45, 49, 50, 61, 79, 80, 92, 97, 103, 118, 120, 128, 148, 155, 169, 192, 232],
+  "label_policy": "Positive patches reverse an official gold bug-fix patch from a distinct Issue-PR pair. Negative controls are forward accepted gold fixes from 25 other Issue-PR pairs and are labeled only as having no target defect from the source issue; they are not claimed globally bug-free.",
+  "review_input_policy": "Only unified diff text and a neutral synthetic PR title are provided to reviewers. The source issue statement and gold-fix direction are withheld."
+}

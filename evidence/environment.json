@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "captured_at_utc": "2026-07-14T07:46:17.037157+00:00",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "system": "Windows",
+  "release": "10",
+  "machine": "AMD64",
+  "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "python_executable": "<user-home>\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+  "node": "v24.14.0",
+  "npm": "11.9.0",
+  "python_packages": {
+    "coverage": "7.14.0",
+    "fastapi": "0.115.4",
+    "httpx": "0.27.2",
+    "polars": "1.40.1",
+    "pydantic": "2.9.2",
+    "pytest": "8.3.3",
+    "requests": "2.34.0"
+  },
+  "provider_credentials_present": {
+    "DASHSCOPE_API_KEY": true,
+    "DEEPSEEK_API_KEY": true
+  },
+  "secret_values_recorded": false
+}
