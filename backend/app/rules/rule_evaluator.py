@@ -20,6 +20,10 @@ _METADATA_THRESHOLD_KEYS = (
     "requires_removed_signal",
 )
 
+_HUNK_HEADER_RE = re.compile(
+    r"^@@\s+-(?P<old>\d+)(?:,(?P<old_count>\d+))?\s+\+(?P<new>\d+)(?:,(?P<new_count>\d+))?\s+@@"
+)
+
 
 @dataclass
 class RuleContext:
@@ -281,6 +285,36 @@ def enrich_hit_evidence(
     return joined[:500]
 
 
+def locate_added_evidence_lines(patch_text: str, evidence: str) -> tuple[int | None, int | None]:
+    """Locate evidence on added lines using unified-diff new-file coordinates."""
+    needles = [line.strip() for line in (evidence or "").splitlines() if line.strip()]
+    if not patch_text or not needles:
+        return None, None
+    matches: list[int] = []
+    new_line: int | None = None
+    for raw_line in patch_text.splitlines():
+        header = _HUNK_HEADER_RE.match(raw_line)
+        if header:
+            new_line = int(header.group("new"))
+            continue
+        if new_line is None:
+            continue
+        if raw_line.startswith("+") and not raw_line.startswith("+++"):
+            content = raw_line[1:]
+            if any(needle in content or content.strip() in needle for needle in needles if content.strip()):
+                matches.append(new_line)
+            new_line += 1
+        elif raw_line.startswith("-") and not raw_line.startswith("---"):
+            continue
+        elif raw_line.startswith("\\ No newline at end of file"):
+            continue
+        else:
+            new_line += 1
+    if not matches:
+        return None, None
+    return min(matches), max(matches)
+
+
 def evaluate_rule_on_atom(
     rule: RuleDefinition,
     atom: DiffAtom,
@@ -322,6 +356,10 @@ def evaluate_rule_on_atom(
         rule=rule,
         reporting=pack_reporting,
     )
+    line_start, line_end = locate_added_evidence_lines(
+        atom.hunk_patch or ctx.patches_by_file.get(file_path, ""),
+        evidence,
+    )
 
     return RuleHitRecord(
         rule_id=rule.id,
@@ -329,4 +367,6 @@ def evaluate_rule_on_atom(
         file_path=file_path,
         evidence=final_evidence,
         message=rule.message,
+        line_start=line_start,
+        line_end=line_end,
     )

@@ -94,6 +94,8 @@ class RuleHitRecord(BaseModel):
     file_path: str
     evidence: str
     message: str
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
 
 
 _SEVERITY_TO_RISK: dict[str, RiskLevel] = {

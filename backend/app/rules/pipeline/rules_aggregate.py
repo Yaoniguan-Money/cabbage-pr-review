@@ -14,6 +14,19 @@ from app.rules.rule_schema import (
 )
 
 
+def _rule_category(rule_id: str) -> str:
+    normalized = rule_id.casefold()
+    if any(token in normalized for token in ("secret", "eval", "exec", "shell", "security")):
+        return "security"
+    if any(token in normalized for token in ("except", "error", "exception")):
+        return "exception"
+    if any(token in normalized for token in ("dependency", "requirements", "lockfile", "version")):
+        return "compatibility"
+    if any(token in normalized for token in ("performance", "blocking", "large-patch")):
+        return "performance"
+    return "other"
+
+
 def aggregate_risks_from_hits(
     hits: list[RuleHitRecord],
     *,
@@ -68,6 +81,11 @@ def aggregate_risks_from_hits(
             key = (hit.rule_id, hit.file_path)
             atom_ids.extend(related_atoms_by_key.get(key, []))
 
+        line_starts = [hit.line_start for hit in group_hits if hit.line_start is not None]
+        line_ends = [hit.line_end for hit in group_hits if hit.line_end is not None]
+        grouped_line_start = min(line_starts) if len(unique_files) == 1 and line_starts else None
+        grouped_line_end = max(line_ends) if len(unique_files) == 1 and line_ends else None
+
         risks.append(
             RiskItem(
                 id=f"risk_{len(risks) + 1}",
@@ -79,6 +97,9 @@ def aggregate_risks_from_hits(
                 suggestion=meta_suggestion or f"规则 `{rule_id}` 命中，请人工复核相关变更",
                 related_atoms=list(dict.fromkeys(atom_ids)),
                 file_paths=unique_files[:50],
+                line_start=grouped_line_start,
+                line_end=grouped_line_end,
+                category=_rule_category(rule_id),
             )
         )
     return risks
@@ -109,6 +130,9 @@ def _risks_per_hit(
                 suggestion=meta_suggestion or f"规则 `{hit.rule_id}` 命中，请人工复核相关变更",
                 related_atoms=list(related_atoms_by_key.get(key, [])),
                 file_paths=[hit.file_path],
+                line_start=hit.line_start,
+                line_end=hit.line_end,
+                category=_rule_category(hit.rule_id),
             )
         )
     return risks

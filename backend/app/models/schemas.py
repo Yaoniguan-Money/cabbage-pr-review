@@ -124,6 +124,9 @@ class RiskItem(BaseModel):
     suggestion: str = ""
     related_atoms: list[str] = Field(default_factory=list)
     file_paths: list[str] = Field(default_factory=list)
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
+    category: str = ""
 
 
 class MissingInfoItem(BaseModel):
