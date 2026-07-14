@@ -168,6 +168,9 @@ def _run_batch_review(
                     "suggestion": "建议",
                     "related_atoms": ["a1"],
                     "file_paths": ["path/a.py"],
+                    "line_start": 12,
+                    "line_end": 12,
+                    "category": "security|logic|exception|compatibility|performance|other",
                 }
             ],
             "missing_info": [],

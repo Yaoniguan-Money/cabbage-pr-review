@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.rules.pipeline.rules_diff import run_rules_diff
 from app.rules.pipeline.rules_review import run_rules_review
 from app.rules.rule_loader import load_rule_pack
+from app.rules.rule_evaluator import locate_added_evidence_lines
 
 
 def test_load_default_rule_pack():
@@ -28,7 +29,7 @@ index 111..222 100644
 +++ b/app/main.py
 @@ -1,3 +1,4 @@
  import os
-+API_KEY = "super-secret-key-12345"
++API_KEY = "sk-test-placeholder-not-a-real-key"
 """
     ctx = {
         "patches": [
@@ -45,7 +46,7 @@ def test_rules_review_detects_secret_in_patch():
 --- a/config.py
 +++ b/config.py
 @@ -1,2 +1,3 @@
-+password = "hardcoded123456"
++password = "test-only-placeholder"
 """
     ctx = {
         "patches": [
@@ -58,3 +59,18 @@ def test_rules_review_detects_secret_in_patch():
     assert stats.flash_calls == 0
     assert len(hits) >= 1
     assert len(review.risks) >= 1
+    assert hits[0].line_start == 1
+    assert hits[0].line_end == 1
+    assert review.risks[0].line_start == 1
+
+
+def test_locate_added_evidence_lines_across_hunks():
+    patch = """@@ -2,2 +10,3 @@
+ keep
++dangerous_call(user_input)
+ old
+@@ -20,1 +30,2 @@
++other_change()
++dangerous_call(second_input)
+"""
+    assert locate_added_evidence_lines(patch, "dangerous_call") == (11, 31)
