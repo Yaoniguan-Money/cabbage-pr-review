@@ -174,6 +174,8 @@ npm run build
 
 或：`make test-backend` / `make test-frontend`。测试通过 `tests/conftest.py` **Mock** LLM，不消耗 API 额度。CI（GitHub Actions）同样仅跑 mock 测试。
 
+测试、Benchmark、原始结果与复现方式见 ./evidence/README.md。
+
 ## 开源借鉴与许可证
 
 | 来源 | 许可证 | 本项目用法 |
