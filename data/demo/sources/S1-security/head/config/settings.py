@@ -10,8 +10,8 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 APP_NAME = "demo-security-app"
 APP_VERSION = "0.9.0"
-password = "hardcoded123456"
-API_KEY = "sk-demo-not-for-prod"
+password = "test-only-placeholder"
+API_KEY = "sk-test-placeholder-not-a-real-key"
 
 
 @dataclass(frozen=True)

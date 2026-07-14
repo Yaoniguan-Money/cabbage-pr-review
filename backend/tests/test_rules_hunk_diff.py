@@ -11,7 +11,7 @@ def _ctx(filename: str, patch: str) -> dict:
 
 def test_single_hunk_still_one_atom():
     patch = """@@ -1,2 +1,3 @@
-+password = "hardcoded123456"
++password = "test-only-placeholder"
 """
     diff, _ = run_rules_diff(_ctx("config.py", patch))
     assert len(diff.all_atoms) == 1

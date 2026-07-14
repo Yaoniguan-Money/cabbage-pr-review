@@ -13,7 +13,7 @@ async def test_workflow_rules_only_produces_markdown_report():
                 {
                     "filename": "src/auth.py",
                     "status": "modified",
-                    "patch": '+password = "hardcoded123456"\n',
+                    "patch": '+password = "test-only-placeholder"\n',
                 }
             ],
             "changed_files_count": 1,

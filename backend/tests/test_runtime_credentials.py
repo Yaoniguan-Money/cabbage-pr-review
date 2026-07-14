@@ -20,7 +20,7 @@ client = TestClient(app)
 
 def test_public_deploy_ignores_server_key(monkeypatch):
     monkeypatch.setattr(settings, "deploy_mode", "public")
-    monkeypatch.setattr(settings, "deepseek_api_key", "sk-server-should-ignore")
+    monkeypatch.setattr(settings, "deepseek_api_key", "sk-test-placeholder-not-a-real-key")
     monkeypatch.setattr(settings, "cloud_api_key", "")
     assert server_cloud_configured() is False
     assert cloud_available_for_request(None) is False
